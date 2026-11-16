@@ -49,3 +49,8 @@ next-env.d.ts
 
 # Sisa unduhan Windows
 *:Zone.Identifier
+
+# Konteks AI (tidak dilacak)
+CLAUDE.md
+AGENTS.md
+.agents/
