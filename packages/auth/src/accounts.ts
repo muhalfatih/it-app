@@ -4,11 +4,11 @@
 import { randomUUID } from "node:crypto"
 
 import { db } from "@workspace/db/client"
-import { and, asc, eq } from "@workspace/db/orm"
+import { and, asc, eq, sql } from "@workspace/db/orm"
 import { account, session, user, userRole } from "@workspace/db/schema"
 import type { Bidang, Role } from "@workspace/db/schema/roles"
 
-import { passwordSchema, usernameSchema } from "./rules"
+import { assertManagerRemains, passwordSchema, usernameSchema } from "./rules"
 import { auth } from "./server"
 
 /** Email wajib di tabel Better Auth; akun lokal memakai email sintetis yang tidak dipakai untuk apa pun. */
@@ -18,6 +18,29 @@ const syntheticEmail = (username: string) => `${username}@akun.lokal`
 async function hashPassword(password: string) {
   const ctx = await auth.$context
   return ctx.password.hash(passwordSchema.parse(password))
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
+/** Kunci advisory: perubahan peran/nonaktif dijalankan bergiliran agar cek Manajer terakhir tidak balapan. */
+const MANAGER_LOCK = 4270001
+
+async function guardManagers(
+  tx: Tx,
+  change: Parameters<typeof assertManagerRemains>[1]
+) {
+  await tx.execute(sql`select pg_advisory_xact_lock(${MANAGER_LOCK})`)
+  const users = await tx
+    .select({ id: user.id, disabledAt: user.disabledAt })
+    .from(user)
+  const roles = await tx.select().from(userRole)
+  assertManagerRemains(
+    users.map((u) => ({
+      id: u.id,
+      disabled: u.disabledAt !== null,
+      roles: roles.filter((r) => r.userId === u.id).map((r) => r.role as Role),
+    })),
+    change
+  )
 }
 
 export type AccountInput = {
@@ -78,6 +101,7 @@ export async function updateAccount(
   input: AccountInput
 ): Promise<void> {
   await db.transaction(async (tx) => {
+    await guardManagers(tx, { id, roles: input.roles })
     await tx
       .update(user)
       .set({
@@ -120,6 +144,7 @@ export async function setDisabled(
   disabled: boolean
 ): Promise<void> {
   await db.transaction(async (tx) => {
+    if (disabled) await guardManagers(tx, { id, disabled: true })
     await tx
       .update(user)
       .set({ disabledAt: disabled ? new Date() : null })

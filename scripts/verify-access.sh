@@ -45,6 +45,11 @@ for path in /setting/akun /setting/kanal /setting/tugas-rutin; do
 done
 check "GET /galeri (diizinkan) -> 200" "200" "$(status /galeri "$JAR")"
 
+echo "== Endpoint Better Auth yang ditutup (akun hanya diubah Manajer)"
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X POST "$BASE_URL/api/auth/update-user" \
+  -H "content-type: application/json" -H "origin: $BASE_URL" --data '{"name":"Nama Palsu"}')
+check "POST /api/auth/update-user -> 404" "404" "$code"
+
 echo "== Akun dinonaktifkan saat sesi masih ada"
 psql_db "update \"user\" set disabled_at = now() where username = '$USER_NAME'"
 check "GET / -> /masuk" "307 $BASE_URL/masuk" "$(status / "$JAR")"

@@ -6,16 +6,11 @@ import { z } from "zod"
 import {
   AccountError,
   createAccount,
-  listAccounts,
   resetPassword,
   setDisabled,
   updateAccount,
 } from "@workspace/auth/accounts"
-import {
-  assertManagerRemains,
-  passwordSchema,
-  usernameSchema,
-} from "@workspace/auth/rules"
+import { passwordSchema, usernameSchema } from "@workspace/auth/rules"
 import { withPermission } from "@workspace/auth/session"
 import { BIDANG, ROLES } from "@workspace/db/schema/roles"
 
@@ -55,13 +50,6 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
   }
 }
 
-async function managerGuard(
-  change: Parameters<typeof assertManagerRemains>[1]
-) {
-  const accounts = await listAccounts()
-  assertManagerRemains(accounts, change)
-}
-
 export const createAccountAction = withPermission(
   "setting.kelola",
   async (input: unknown): Promise<ActionResult> =>
@@ -78,7 +66,6 @@ export const updateAccountAction = withPermission(
   async (id: string, input: unknown): Promise<ActionResult> =>
     run(async () => {
       const data = profileSchema.parse(input)
-      await managerGuard({ id, roles: data.roles })
       await updateAccount(z.string().min(1).parse(id), data)
     })
 )
@@ -98,7 +85,6 @@ export const setDisabledAction = withPermission(
   "setting.kelola",
   async (id: string, disabled: boolean): Promise<ActionResult> =>
     run(async () => {
-      if (disabled) await managerGuard({ id, disabled: true })
       await setDisabled(
         z.string().min(1).parse(id),
         z.boolean().parse(disabled)

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 
 import { listAccounts } from "@workspace/auth/accounts"
 import { requirePermission } from "@workspace/auth/session"
@@ -63,9 +64,20 @@ export default async function TugasRutinPage({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {staff.length
-            ? "Pilih staf untuk melihat dan mengubah tugas rutinnya."
-            : "Belum ada staf unit. Beri peran ke akun di Setting → Akun & peran."}
+          {staff.length ? (
+            "Pilih staf untuk melihat dan mengubah tugas rutinnya."
+          ) : (
+            <>
+              Belum ada staf unit. Beri peran ke akun di{" "}
+              <Link
+                href="/setting/akun"
+                className="underline underline-offset-4"
+              >
+                Setting → Akun &amp; peran
+              </Link>
+              .
+            </>
+          )}
         </p>
       )}
     </div>

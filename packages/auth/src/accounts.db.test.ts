@@ -1,0 +1,100 @@
+// Tes integrasi jalur akun nyata (Drizzle + Better Auth) terhadap database KHUSUS uji.
+// Jalankan: DATABASE_URL=postgres://.../itapp_test pnpm --filter @workspace/auth test
+// (buat dulu: create database itapp_test; lalu db:migrate dengan URL yang sama).
+// Dilewati bila nama database tidak berakhiran _test, karena tes mengosongkan tabel akun.
+import { beforeEach, describe, expect, it } from "vitest"
+
+const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
+
+describe.skipIf(!TEST_DB)("akun (database uji)", async () => {
+  const { db } = await import("@workspace/db/client")
+  const { count, eq, sql } = await import("@workspace/db/orm")
+  const { session, user, userRole } = await import("@workspace/db/schema")
+  const { auth } = await import("./server")
+  const accounts = await import("./accounts")
+
+  const PASSWORD = "Rahasia-Uji-1"
+  const base: { bidang: never[]; unitId: null } = { bidang: [], unitId: null }
+
+  async function make(username: string, roles: ("manajer" | "sdm_khusus")[]) {
+    return accounts.createAccount({
+      ...base,
+      username,
+      name: username,
+      roles,
+      password: PASSWORD,
+      mustChangePassword: false,
+    })
+  }
+  const signIn = (username: string) =>
+    auth.api.signInUsername({ body: { username, password: PASSWORD } })
+  const sessionsOf = async (id: string) =>
+    (
+      await db
+        .select({ n: count() })
+        .from(session)
+        .where(eq(session.userId, id))
+    )[0]!.n
+  async function activeManagers() {
+    const rows = await db
+      .select({ id: user.id })
+      .from(user)
+      .innerJoin(userRole, eq(userRole.userId, user.id))
+      .where(sql`${userRole.role} = 'manajer' and ${user.disabledAt} is null`)
+    return rows.length
+  }
+
+  beforeEach(async () => {
+    await db.execute(sql`truncate table "user" cascade`)
+  })
+
+  it("menonaktifkan akun mencabut sesinya dan menolak login baru", async () => {
+    await make("uji.boss", ["manajer"])
+    const { id } = await make("uji.staf", ["sdm_khusus"])
+    await signIn("uji.staf")
+    expect(await sessionsOf(id)).toBe(1)
+
+    await accounts.setDisabled(id, true)
+
+    expect(await sessionsOf(id)).toBe(0)
+    await expect(signIn("uji.staf")).rejects.toMatchObject({
+      message: "Akun dinonaktifkan",
+    })
+  })
+
+  it("atur ulang kata sandi mencabut sesi dan mewajibkan ganti kata sandi", async () => {
+    await make("uji.boss", ["manajer"])
+    const { id } = await make("uji.staf", ["sdm_khusus"])
+    await signIn("uji.staf")
+
+    await accounts.resetPassword(id, "Sandi-Baru-22")
+
+    expect(await sessionsOf(id)).toBe(0)
+    const [row] = await db.select().from(user).where(eq(user.id, id))
+    expect(row!.mustChangePassword).toBe(true)
+  })
+
+  it("menolak mencabut peran Manajer aktif terakhir", async () => {
+    const { id } = await make("uji.boss", ["manajer"])
+    await expect(
+      accounts.updateAccount(id, { ...base, name: "Boss", roles: [] })
+    ).rejects.toThrow("Harus ada minimal satu Manajer aktif")
+    await expect(accounts.setDisabled(id, true)).rejects.toThrow(
+      "Harus ada minimal satu Manajer aktif"
+    )
+    expect(await activeManagers()).toBe(1)
+  })
+
+  it("dua perubahan serentak tidak bisa menghabiskan Manajer aktif", async () => {
+    const a = await make("uji.a", ["manajer"])
+    const b = await make("uji.b", ["manajer"])
+
+    const results = await Promise.allSettled([
+      accounts.setDisabled(b.id, true),
+      accounts.updateAccount(a.id, { ...base, name: "A", roles: [] }),
+    ])
+
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1)
+    expect(await activeManagers()).toBe(1)
+  })
+})

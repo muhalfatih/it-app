@@ -98,6 +98,8 @@ function SettingList({
                   <div className="flex items-center gap-3">
                     <Input
                       defaultValue={row.name}
+                      name={`nama-${row.id}`}
+                      autoComplete="off"
                       aria-label={`Nama ${itemLabel}`}
                       aria-invalid={error ? true : undefined}
                       className={cn(
@@ -149,7 +151,7 @@ function SettingList({
                         {row.active ? "Aktif" : "Nonaktif"}
                       </span>
                     </label>
-                    {busy === key ? <Spinner aria-label="Menyimpan" /> : null}
+                    {busy === key ? <Spinner aria-label="Menyimpan…" /> : null}
                   </div>
                   {error ? (
                     <p role="alert" className="text-xs text-destructive">
@@ -180,6 +182,8 @@ function SettingList({
           <div className="flex items-center gap-3">
             <Input
               value={draft}
+              name="nama-baru"
+              autoComplete="off"
               onChange={(e) => setDraft(e.target.value)}
               placeholder={`Tambah ${itemLabel}…`}
               aria-label={`Nama ${itemLabel} baru`}

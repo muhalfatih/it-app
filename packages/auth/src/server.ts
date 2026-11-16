@@ -13,6 +13,8 @@ import * as schema from "@workspace/db/schema"
  */
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
+  // Profil & username hanya diubah Manajer lewat accounts.ts; endpoint bawaan ini ditutup.
+  disabledPaths: ["/update-user", "/is-username-available"],
   emailAndPassword: {
     enabled: true,
     // Akun hanya dibuat oleh Manajer (lihat accounts.ts), tidak ada pendaftaran mandiri.
