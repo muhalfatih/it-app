@@ -21,6 +21,7 @@ const MATRIX: [Permission, string][] = [
   ["planner.lihat", "DMSK"],
   ["planner.ubah", "MS"],
   ["planner.pdf", "DMSK"],
+  ["planner.hapus_terkunci", "M"],
   ["laporan.isi", "MSK"],
   ["laporan.rekap.semua", "DM"],
   ["laporan.rekap.sendiri", "SK"],
