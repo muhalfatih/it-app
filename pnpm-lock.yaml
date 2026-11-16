@@ -260,6 +260,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@20.19.43)(vite@8.3.8(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   packages/auth:
     dependencies:
@@ -311,7 +314,7 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: 0.45.4
-        version: 0.45.4(postgres@4.1.1)
+        version: 0.45.4(kysely@0.29.9)(postgres@4.1.1)
       postgres:
         specifier: 4.1.1
         version: 4.1.1
@@ -5789,10 +5792,6 @@ snapshots:
   drizzle-orm@0.45.4(kysely@0.29.9)(postgres@4.1.1):
     optionalDependencies:
       kysely: 0.29.9
-      postgres: 4.1.1
-
-  drizzle-orm@0.45.4(postgres@4.1.1):
-    optionalDependencies:
       postgres: 4.1.1
 
   electron-to-chromium@1.5.485: {}

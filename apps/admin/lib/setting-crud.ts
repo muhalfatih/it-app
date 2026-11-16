@@ -7,6 +7,9 @@ import { asc, eq } from "@workspace/db/orm"
 import { building, channel, taskType, unit } from "@workspace/db/schema"
 
 export type CrudResult = { ok: true } | { error: string }
+
+/** Galat yang pesannya aman ditampilkan ke pengguna (aturan bisnis, bukan bug). */
+export class UserError extends Error {}
 type Table = typeof unit | typeof building | typeof taskType | typeof channel
 
 export const nameSchema = z
@@ -27,6 +30,7 @@ export async function guarded(
     revalidatePath(path)
     return { ok: true }
   } catch (error) {
+    if (error instanceof UserError) return { error: error.message }
     if (error instanceof z.ZodError) {
       return { error: error.issues[0]?.message ?? "Isian tidak valid" }
     }

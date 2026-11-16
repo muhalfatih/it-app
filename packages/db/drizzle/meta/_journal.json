@@ -15,6 +15,13 @@
       "when": 1794819613399,
       "tag": "0001_volatile_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794844484078,
+      "tag": "0002_complete_skrulls",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import type { Role } from "@workspace/db/schema/roles"
 export const PERMISSIONS = [
   "planner.lihat",
   "planner.ubah",
+  "planner.hapus_terkunci",
   "planner.pdf",
   "laporan.isi",
   "laporan.rekap.semua",
@@ -42,6 +43,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   manajer: [
     "planner.lihat",
     "planner.ubah",
+    "planner.hapus_terkunci",
     "planner.pdf",
     "laporan.isi",
     "laporan.rekap.semua",

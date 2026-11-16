@@ -29,7 +29,7 @@ status() { # status <path> [cookie-jar]
 psql_db() { docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"; }
 
 echo "== Tanpa sesi"
-for path in /setting/akun /setting/kanal /galeri /; do
+for path in /setting/akun /setting/kanal /galeri /planner /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
@@ -44,6 +44,21 @@ for path in /setting/akun /setting/kanal /setting/tugas-rutin; do
   check "GET $path -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$JAR")"
 done
 check "GET /galeri (diizinkan) -> 200" "200" "$(status /galeri "$JAR")"
+check "GET /planner (diizinkan) -> 200" "200" "$(status /planner "$JAR")"
+check "GET /planner/baru (tanpa planner.ubah) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner/baru "$JAR")"
+
+echo "== Staf Unit Lain (opsional: VERIFY_OTHER_USERNAME / VERIFY_OTHER_PASSWORD)"
+if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; then
+  OTHER_JAR="$(mktemp)"
+  code=$(curl -s -o /dev/null -w "%{http_code}" -c "$OTHER_JAR" -X POST "$BASE_URL/api/auth/sign-in/username" \
+    -H "content-type: application/json" -H "origin: $BASE_URL" \
+    --data "{\"username\":\"$VERIFY_OTHER_USERNAME\",\"password\":\"$VERIFY_OTHER_PASSWORD\"}")
+  check "login staf unit lain" "200" "$code"
+  check "GET /planner (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner "$OTHER_JAR")"
+  rm -f "$OTHER_JAR"
+else
+  echo "SKIP  staf unit lain (variabel VERIFY_OTHER_* tidak diisi)"
+fi
 
 echo "== Endpoint Better Auth yang ditutup (akun hanya diubah Manajer)"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X POST "$BASE_URL/api/auth/update-user" \
