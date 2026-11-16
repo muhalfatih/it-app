@@ -1,6 +1,7 @@
 // Verifies WCAG contrast of the theme tokens in src/styles/globals.css (light :root and .dark).
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
+import process from "node:process"
 
 const css = readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8")
 
