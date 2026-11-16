@@ -33,6 +33,7 @@ Menggantikan perencanaan konten manual dengan satu Planner terpusat (target PRD:
 | Tampilan | Disetujui sesuai bagian "Halaman" di bawah. |
 | Filter tambahan | **Dilewati** untuk saat ini. Hanya "Pekerjaan saya saja". |
 | Pendekatan | **A**: dirender di server per periode. |
+| Hari Minggu | **A**: pekan dihitung Senin–Minggu untuk menentukan entri yang tampil; Kalender 7 hari; Partisi Senin–Sabtu (§4.2), kolom Minggu hanya muncul bila ada tugas di hari Minggu. |
 
 ## Approaches
 
@@ -87,7 +88,8 @@ Semua tanggal Planner bertipe `date` (tanpa jam, mode string `yyyy-MM-dd`), sehi
 
 Satu modul tanpa db/next, dipakai halaman sekarang dan PDF nanti:
 
-- `resolvePeriod({ tanggal, rentang })`: pekan = Senin–Sabtu yang memuat `tanggal`; bulan = bulan kalender. `tanggal` kosong/tidak valid → hari ini (WIB). **BELUM DIPUTUSKAN: tanggal hari Minggu** (kegiatan, penugasan, atau tayang). Dengan pekan Senin–Sabtu, entri yang tanggalnya hanya jatuh di hari Minggu tidak muncul di tampilan pekanan mana pun.
+- `resolvePeriod({ tanggal, rentang })`: pekan = **Senin–Minggu** yang memuat `tanggal` (supaya entri yang tanggalnya hanya jatuh di hari Minggu tetap muncul); bulan = bulan kalender. `tanggal` kosong/tidak valid → hari ini (WIB).
+- `weekDays(period, entries)`: hari yang ditampilkan Partisi = Senin–Sabtu, **ditambah Minggu hanya bila ada penugasan di hari Minggu** pada data yang sedang ditampilkan.
 - `inPeriod(entry, period)`: entri masuk bila rentang kegiatan, **salah satu** rentang penugasan, atau tanggal tayangnya beririsan dengan periode.
 - `sortKey(entry)`: `activity_start`, atau bila kosong, tanggal mulai penugasan paling awal; seri → nama.
 - `applyMyWork(entries, userId, period)`: entri yang memuat penugasan milik pengguna **yang beririsan dengan periode**. Entri yang hanya ramai oleh rekan di pekan ini, sementara penugasan saya ada di pekan lain, tidak ikut. *Keputusan pembangun.*
@@ -96,7 +98,7 @@ Satu modul tanpa db/next, dipakai halaman sekarang dan PDF nanti:
 - `toPartitionRows(staff, entries, days, { myWorkUserId? })`: satu baris per orang, sel per hari berisi penugasan aktif hari itu ("Jenis — Nama konten"). Baris = staf unit aktif urut nama, **ditambah** akun nonaktif yang masih punya penugasan di periode itu (supaya tugasnya tidak hilang dari grid). Dengan "pekerjaan saya": hanya baris pengguna.
 - `parsePlannerParams(searchParams, roles)`: membaca `tampilan`, `tanggal`, `rentang`, `saya`; nilai tak dikenal → default.
 
-Tes menutup: batas pekan Senin–Sabtu, entri yang hanya beririsan lewat penugasan atau tanggal tayang, urutan dengan dan tanpa tanggal kegiatan, `end` eksklusif, "pekerjaan saya" di tiga tampilan, akun nonaktif di Partisi, `canDeleteEntry` per tahap, default `saya` per peran (`defaultMyWorkOnly`), parameter tidak valid.
+Tes menutup: batas pekan Senin–Minggu, entri yang hanya bertanggal Minggu, kolom Minggu Partisi muncul/tidak, entri yang hanya beririsan lewat penugasan atau tanggal tayang, urutan dengan dan tanpa tanggal kegiatan, `end` eksklusif, "pekerjaan saya" di tiga tampilan, akun nonaktif di Partisi, `canDeleteEntry` per tahap, default `saya` per peran (`defaultMyWorkOnly`), parameter tidak valid.
 
 Query periode (server-only, di samping modul ini): satu query mengambil entri yang beririsan dengan periode beserta penugasan (nama orang, nama jenis), kanal, dan tahap kartu. Perbandingan rentang dilakukan di SQL. Supaya aturan "masuk periode" tidak bercabang, **tes integrasi menjalankan query dan `inPeriod` pada data uji yang sama dan memastikan hasilnya identik**. *Keputusan pembangun.*
 
@@ -116,7 +118,7 @@ Query periode (server-only, di samping modul ini): satu query mengambil entri ya
 ```
 Media Planner                                    [+ Entri baru]
 [ Daftar | Kalender | Partisi ]
-[‹] 16–21 Nov 2026 [›] [Hari ini]  [Pekan|Bulan]¹   [■ Pekerjaan saya saja]
+[‹] 16–22 Nov 2026 [›] [Hari ini]  [Pekan|Bulan]¹   [■ Pekerjaan saya saja]
 ──────────────────────────────────────────────────────────────
 <isi tampilan>
 ```
@@ -137,7 +139,7 @@ Urut menurut `sortKey`. Penugasan diringkas (orang · jenis), kanal sebagai badg
 
 **Kalender** (`@reui` event-calendar, sudah dirakit di `galeri/_demo-planner.tsx`):
 
-- `view="days"`, 6 hari, `weekStartsOn={1}`, locale `id`, i18n `EVENT_CALENDAR_I18N_ID`, drag/resize mati, semua event `allDay`. Pengalih tampilan bawaan kalender disembunyikan (`showViewSwitcher={false}`); perpindahan tampilan hanya lewat tab halaman.
+- `view="days"`, **7 hari** (Senin–Minggu), `weekStartsOn={1}`, locale `id`, i18n `EVENT_CALENDAR_I18N_ID`, drag/resize mati, semua event `allDay`. Pengalih tampilan bawaan kalender disembunyikan (`showViewSwitcher={false}`); perpindahan tampilan hanya lewat tab halaman.
 - `date` dikendalikan dari `tanggal`; navigasi kalender mengganti URL.
 - Bar penugasan satu warna netral (token). Tayang tampil sebagai chip lewat `renderEvent` dengan ikon khusus dan warna `primary` (§4.2). Tidak ada warna per jenis.
 - Di HP (`useIsMobile`), tampilan awal **agenda** untuk pekan yang sama.
@@ -145,7 +147,7 @@ Urut menurut `sortKey`. Penugasan diringkas (orang · jenis), kanal sebagai badg
 
 **Partisi** (domain `PartitionGrid`):
 
-- Kolom Senin–Sabtu, sel kosong abu-abu (sudah ada).
+- Kolom Senin–Sabtu (+ Minggu bila ada tugas, lihat `weekDays`), sel kosong abu-abu (sudah ada).
 - `PartitionItem` diberi `href` opsional supaya item bisa diklik ke entri. Ini perubahan kecil di `packages/ui/src/components/domain/partition-grid.tsx`.
 - Tanggal tayang tidak ditampilkan di Partisi (bukan tugas orang).
 - Di HP: geser horizontal dengan kolom nama sticky (sudah ada).
