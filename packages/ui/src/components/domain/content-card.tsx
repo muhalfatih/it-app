@@ -1,6 +1,10 @@
 import { CalendarIcon, LockIcon } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarGroup } from "@workspace/ui/components/avatar"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+} from "@workspace/ui/components/avatar"
 import {
   Card,
   CardAction,
@@ -51,16 +55,24 @@ function ContentCard({
   locked,
 }: ContentCardProps) {
   return (
-    <Card size="sm">
+    // relative: label sr-only (absolute) tetap di dalam kartu, tidak melebarkan kontainer scroll
+    <Card size="sm" className="relative">
       {thumbnailUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- file konten dari server unit, bukan aset Next
-        <img src={thumbnailUrl} alt="" className="aspect-video w-full object-cover" />
+        <img
+          src={thumbnailUrl}
+          alt=""
+          className="aspect-video w-full object-cover"
+        />
       ) : null}
       <CardHeader>
         <CardTitle className="line-clamp-2">{title}</CardTitle>
         <CardAction>
           {locked ? (
-            <LockIcon aria-label="Isi kartu terkunci" className="text-muted-foreground" />
+            <LockIcon
+              aria-label="Isi kartu terkunci"
+              className="text-muted-foreground"
+            />
           ) : null}
         </CardAction>
       </CardHeader>

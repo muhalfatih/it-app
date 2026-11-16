@@ -29,7 +29,9 @@ function PartitionGrid({ days, rows }: PartitionGridProps) {
     <Table className="table-fixed">
       <TableHeader>
         <TableRow>
-          <TableHead className="sticky left-0 z-10 w-36 bg-background">Nama</TableHead>
+          <TableHead className="sticky left-0 z-10 w-36 bg-background">
+            Nama
+          </TableHead>
           {days.map((day) => (
             <TableHead key={day.key} className="w-36">
               {day.label}
@@ -48,7 +50,10 @@ function PartitionGrid({ days, rows }: PartitionGridProps) {
               return (
                 <TableCell
                   key={day.key}
-                  className={cn("align-top whitespace-normal", items.length === 0 && "bg-muted")}
+                  className={cn(
+                    "align-top whitespace-normal",
+                    items.length === 0 && "bg-muted"
+                  )}
                 >
                   {items.length === 0 ? (
                     <span className="sr-only">Kosong</span>

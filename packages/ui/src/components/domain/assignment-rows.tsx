@@ -7,7 +7,11 @@ import type { DateRange } from "react-day-picker"
 
 import { Button } from "@workspace/ui/components/button"
 import { Calendar } from "@workspace/ui/components/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover"
 import {
   Select,
   SelectContent,
@@ -20,7 +24,12 @@ import {
 type Option = { value: string; label: string }
 
 /** Satu penugasan di entri Planner. Tanggal dalam format ISO `yyyy-MM-dd`. */
-type Assignment = { personId: string; taskTypeId: string; start?: string; end?: string }
+type Assignment = {
+  personId: string
+  taskTypeId: string
+  start?: string
+  end?: string
+}
 
 type AssignmentRowsProps = {
   value: Assignment[]
@@ -33,7 +42,8 @@ const toIso = (date?: Date) => (date ? format(date, "yyyy-MM-dd") : undefined)
 
 function rangeLabel({ start, end }: Assignment) {
   if (!start) return "Pilih tanggal"
-  const fmt = (iso: string) => format(parseISO(iso), "d MMM", { locale: localeId })
+  const fmt = (iso: string) =>
+    format(parseISO(iso), "d MMM", { locale: localeId })
   return end && end !== start ? `${fmt(start)} – ${fmt(end)}` : fmt(start)
 }
 
@@ -49,7 +59,11 @@ function OptionSelect({
   onValueChange: (value: string) => void
 }) {
   return (
-    <Select items={options} value={value || null} onValueChange={(v) => onValueChange(v ?? "")}>
+    <Select
+      items={options}
+      value={value || null}
+      onValueChange={(v) => onValueChange(v ?? "")}
+    >
       <SelectTrigger aria-label={label} className="w-full min-w-0">
         <SelectValue placeholder={label} />
       </SelectTrigger>
@@ -67,7 +81,12 @@ function OptionSelect({
 }
 
 /** Baris penugasan multi-entry: orang + jenis penugasan + rentang tanggal (spesifikasi §4.1). */
-function AssignmentRows({ value, onChange, people, taskTypes }: AssignmentRowsProps) {
+function AssignmentRows({
+  value,
+  onChange,
+  people,
+  taskTypes,
+}: AssignmentRowsProps) {
   const update = (index: number, patch: Partial<Assignment>) =>
     onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)))
 
@@ -75,7 +94,10 @@ function AssignmentRows({ value, onChange, people, taskTypes }: AssignmentRowsPr
     <div className="flex flex-col gap-2">
       {value.map((row, index) => {
         const selected: DateRange | undefined = row.start
-          ? { from: parseISO(row.start), to: row.end ? parseISO(row.end) : undefined }
+          ? {
+              from: parseISO(row.start),
+              to: row.end ? parseISO(row.end) : undefined,
+            }
           : undefined
         return (
           <div
@@ -98,7 +120,12 @@ function AssignmentRows({ value, onChange, people, taskTypes }: AssignmentRowsPr
             </div>
             <Popover>
               <PopoverTrigger
-                render={<Button variant="outline" className="row-start-3 justify-start sm:row-start-auto" />}
+                render={
+                  <Button
+                    variant="outline"
+                    className="row-start-3 justify-start sm:row-start-auto"
+                  />
+                }
               >
                 <CalendarIcon data-icon="inline-start" />
                 {rangeLabel(row)}
@@ -109,7 +136,12 @@ function AssignmentRows({ value, onChange, people, taskTypes }: AssignmentRowsPr
                   locale={localeId}
                   weekStartsOn={1}
                   selected={selected}
-                  onSelect={(range) => update(index, { start: toIso(range?.from), end: toIso(range?.to) })}
+                  onSelect={(range) =>
+                    update(index, {
+                      start: toIso(range?.from),
+                      end: toIso(range?.to),
+                    })
+                  }
                 />
               </PopoverContent>
             </Popover>
