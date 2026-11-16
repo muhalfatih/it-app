@@ -31,7 +31,7 @@ export function CalendarView({ events, start }: CalendarViewProps) {
     () => true,
     () => false
   )
-  if (!mounted) return <Skeleton className="h-[440px] w-full" />
+  if (!mounted) return <Skeleton className="h-110 w-full" />
 
   return (
     <EventCalendar<PlannerEventData>
@@ -42,6 +42,8 @@ export function CalendarView({ events, start }: CalendarViewProps) {
       agendaDayCount={7}
       date={parseISO(start)}
       weekStartsOn={1}
+      // Event allDay dikirim sebagai tengah malam WIB; zona tetap supaya hari tidak bergeser di zona browser lain.
+      timeZone="Asia/Jakarta"
       locale={localeId}
       i18n={EVENT_CALENDAR_I18N_ID}
       interactions={{ drag: false, resize: false }}
@@ -52,7 +54,7 @@ export function CalendarView({ events, start }: CalendarViewProps) {
       // shortcut: kalender belum punya mode "hanya sehari penuh"; grid jam dipadatkan jadi satu jam, ganti bila mode itu ada.
       dayStartHour={8}
       dayEndHour={9}
-      className="h-[440px]"
+      className="h-110"
     >
       <EventCalendarContent />
     </EventCalendar>

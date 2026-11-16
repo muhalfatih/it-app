@@ -30,8 +30,9 @@ describe("data tampilan Planner", () => {
       title: "Editing · Budi — Video Profil",
       allDay: true,
     })
-    expect(ev.start).toEqual(new Date(2026, 10, 18))
-    expect(ev.end).toEqual(new Date(2026, 10, 21))
+    // Tengah malam WIB, bukan zona server: 17 Nov 17:00Z = 18 Nov 00:00 WIB.
+    expect(ev.start).toEqual(new Date("2026-11-17T17:00:00Z"))
+    expect(ev.end).toEqual(new Date("2026-11-20T17:00:00Z"))
   })
 
   it("event tayang ada satu per entri", () => {
@@ -85,6 +86,24 @@ describe("data tampilan Planner", () => {
       w
     )
     expect(rows.map((r) => r.personId)).toEqual(["u1", "u2"])
+  })
+
+  it("partisi: penugasan akun yang bukan staf tetap tampil", () => {
+    const w = resolvePeriod({ tanggal: "2026-11-16", rentang: "pekan" })
+    const rows = toPartitionRows(
+      [staff("u1", "Budi")],
+      [
+        entry({
+          assignments: [
+            a({ id: 9, userId: "dir", userName: "Direktur Lama", start: "2026-11-16", end: "2026-11-16" }),
+          ],
+        }),
+      ],
+      w
+    )
+    const dir = rows.find((r) => r.personId === "dir")!
+    expect(dir.name).toBe("Direktur Lama")
+    expect(dir.items["2026-11-16"]).toHaveLength(1)
   })
 
   it("partisi pekerjaan saya: hanya baris saya", () => {

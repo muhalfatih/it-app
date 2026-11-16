@@ -33,6 +33,7 @@ export function DeleteEntry({
 }) {
   const router = useRouter()
   const inputId = React.useId()
+  const errorId = `${inputId}-error`
   const [open, setOpen] = React.useState(false)
   const [typed, setTyped] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
@@ -85,11 +86,13 @@ export function DeleteEntry({
               onChange={(e) => setTyped(e.target.value)}
               placeholder={name}
               autoComplete="off"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
             />
           </Field>
         )}
         {error && (
-          <p role="alert" className="text-sm text-destructive">
+          <p id={errorId} role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}

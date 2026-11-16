@@ -51,10 +51,16 @@ export function toListRows(entries: PlannerEntry[]): ListRow[] {
   }))
 }
 
-/** end eksklusif (hari selesai + 1); tanggal dibuat sebagai tengah malam lokal. */
+/** Kalender membagi hari menurut Asia/Jakarta (prop timeZone di CalendarView), bukan zona server. */
+const wibMidnight = (d: IsoDate) => new Date(`${d}T00:00:00+07:00`)
+
+/** end eksklusif (hari selesai + 1); batas = tengah malam WIB, apa pun zona server. */
 function allDay(start: IsoDate, end: IsoDate) {
-  const s = parseISO(start)
-  return { start: s, end: addDays(parseISO(end), 1), allDay: true as const }
+  return {
+    start: wibMidnight(start),
+    end: wibMidnight(iso(addDays(parseISO(end), 1))),
+    allDay: true as const,
+  }
 }
 
 export function toCalendarEvents(
@@ -107,10 +113,16 @@ export function toPartitionRows(
     ])
   )
   const busy = new Set<string>()
+  const extra: StaffMember[] = []
   for (const e of entries)
     for (const a of e.assignments) {
-      const row = rows.get(a.userId)
-      if (!row) continue
+      let row = rows.get(a.userId)
+      if (!row) {
+        // Akun yang kini bukan staf unit (mis. hanya direktur): tugasnya tetap tampil.
+        row = { personId: a.userId, name: a.userName, items: Object.fromEntries(days.map((d) => [d, []])) }
+        rows.set(a.userId, row)
+        extra.push({ id: a.userId, name: a.userName, disabled: true })
+      }
       for (const day of days) {
         if (a.start > day || day > a.end) continue
         busy.add(a.userId)
@@ -122,7 +134,9 @@ export function toPartitionRows(
       }
     }
 
-  return staff
+  const seen = new Set<string>()
+  return [...staff, ...extra]
+    .filter((s) => !seen.has(s.id) && !!seen.add(s.id))
     .filter((s) => !opts.myWorkUserId || s.id === opts.myWorkUserId)
     .filter((s) => !s.disabled || busy.has(s.id))
     .sort((x, y) => x.name.localeCompare(y.name, "id"))

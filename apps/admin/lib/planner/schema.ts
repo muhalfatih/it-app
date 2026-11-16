@@ -8,7 +8,10 @@ const assignmentSchema = z
   .object({
     id: z.string().optional(),
     personId: z.string({ error: assignmentMsg }).min(1, assignmentMsg),
-    taskTypeId: z.string({ error: assignmentMsg }).min(1, assignmentMsg),
+    taskTypeId: z
+      .string({ error: assignmentMsg })
+      .regex(/^\d{1,10}$/, assignmentMsg)
+      .refine((v) => Number(v) >= 1 && Number(v) <= 2_147_483_647, assignmentMsg),
     start: isoDate(assignmentMsg),
     end: isoDate(assignmentMsg),
   })
@@ -30,7 +33,7 @@ export const entryInputSchema = z
       .array(assignmentSchema)
       .min(1, { message: "Tambahkan minimal satu penugasan" }),
     channelIds: z
-      .array(z.number().int().positive())
+      .array(z.number().int().positive().max(2_147_483_647))
       .min(1, { message: "Pilih minimal satu kanal" })
       .refine((ids) => new Set(ids).size === ids.length, {
         message: "Kanal tidak boleh ganda",

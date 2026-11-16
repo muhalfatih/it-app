@@ -109,16 +109,25 @@ export async function createEntry(
   })
 }
 
-export async function updateEntry(id: number, raw: unknown): Promise<void> {
+export async function updateEntry(
+  id: number,
+  raw: unknown,
+  version?: string
+): Promise<void> {
   assertEntryId(id)
   const input = entryInputSchema.parse(raw)
   await db.transaction(async (tx) => {
     const [entry] = await tx
-      .select({ id: plannerEntry.id })
+      .select({ id: plannerEntry.id, updatedAt: plannerEntry.updatedAt })
       .from(plannerEntry)
       .where(eq(plannerEntry.id, id))
       .for("update")
     if (!entry) throw new UserError(NOT_FOUND)
+    // Formulir basi: entri diubah orang lain sejak formulir dimuat.
+    if (version !== undefined && entry.updatedAt.toISOString() !== version)
+      throw new UserError(
+        "Entri sudah diubah orang lain. Muat ulang halaman, lalu ulangi perubahan Anda"
+      )
 
     const [oldRows, oldChannels] = await Promise.all([
       tx
@@ -144,9 +153,16 @@ export async function updateEntry(id: number, raw: unknown): Promise<void> {
           throw new UserError("Penugasan tidak valid")
         keptIds.add(old.id)
         updates.push({ id: old.id, values })
-        if (old.userId !== values.userId) check.people.push(values.userId)
-        if (old.taskTypeId !== values.taskTypeId)
+        // Baris yang tidak berubah lolos apa adanya; baris yang berubah (orang, jenis, atau tanggal) harus aktif.
+        const changed =
+          old.userId !== values.userId ||
+          old.taskTypeId !== values.taskTypeId ||
+          old.startDate !== values.startDate ||
+          old.endDate !== values.endDate
+        if (changed) {
+          check.people.push(values.userId)
           check.taskTypes.push(values.taskTypeId)
+        }
       } else {
         inserts.push(values)
         check.people.push(values.userId)

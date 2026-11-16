@@ -12,13 +12,14 @@ export const saveEntry = withPermission(
   "planner.ubah",
   async (
     id: number | null,
-    input: EntryInput
+    input: EntryInput,
+    version?: string
   ): Promise<CrudResult & { id?: number }> => {
     const user = await getCurrentUser()
     let savedId: number | undefined = id ?? undefined
     const result = await guarded("/planner", async () => {
       if (id === null) savedId = (await createEntry(input, user!.id)).id
-      else await updateEntry(id, input)
+      else await updateEntry(id, input, version)
     })
     if ("error" in result || savedId === undefined) return result
     revalidatePath(`/planner/${savedId}`)

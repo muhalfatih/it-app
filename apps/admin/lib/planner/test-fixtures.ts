@@ -22,6 +22,7 @@ export function entry(patch: Partial<PlannerEntry> = {}): PlannerEntry {
     activityEnd: null,
     publishDate: "2026-10-07",
     stage: "ide",
+    updatedAt: "2026-10-01T00:00:00.000Z",
     assignments: [a()],
     channels: [{ id: 1, name: "Instagram" }],
     ...patch,

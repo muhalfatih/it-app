@@ -19,6 +19,8 @@ export type PlannerEntry = {
   activityEnd: IsoDate | null
   publishDate: IsoDate
   stage: ContentStage
+  /** ISO instan; versi untuk mendeteksi formulir basi. */
+  updatedAt: string
   assignments: PlannerAssignment[]
   channels: { id: number; name: string }[]
 }

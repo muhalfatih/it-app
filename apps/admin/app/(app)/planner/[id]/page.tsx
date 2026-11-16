@@ -21,7 +21,7 @@ export default async function EntriPage({
   const { id } = await params
   const user = await requirePermission("planner.lihat")
   const entryId = /^\d+$/.test(id) ? Number(id) : NaN
-  const entry = Number.isSafeInteger(entryId) ? await getEntry(entryId) : null
+  const entry = Number.isSafeInteger(entryId) && entryId >= 1 && entryId <= 2_147_483_647 ? await getEntry(entryId) : null
   if (!entry) notFound()
 
   const canEdit = user.permissions.has("planner.ubah")
@@ -42,7 +42,13 @@ export default async function EntriPage({
           </div>
         )}
       </div>
-      <EntryForm entry={entry} options={options} readOnly={!canEdit} />
+      {/* key: remount saat data server berubah (mis. setelah simpan) supaya state formulir, termasuk id baris baru, ikut segar. */}
+      <EntryForm
+        key={JSON.stringify(entry)}
+        entry={entry}
+        options={options}
+        readOnly={!canEdit}
+      />
     </div>
   )
 }

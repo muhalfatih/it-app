@@ -55,6 +55,8 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
           href={`/planner/${row.original.id}`}
           className="line-clamp-2 font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring"
           title={row.original.name}
+          // Klik tautan ditangani Link sendiri (termasuk Ctrl/Cmd+klik ke tab baru); jangan ikut memicu onRowClick.
+          onClick={(e) => e.stopPropagation()}
         >
           {row.original.name}
         </Link>

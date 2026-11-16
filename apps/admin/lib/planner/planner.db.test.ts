@@ -202,6 +202,50 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     expect(await count(tables.plannerEntry)).toBe(0)
   })
 
+  it("baris lama staf nonaktif yang diubah (tanggal atau jenis) ditolak", async () => {
+    const { id } = await mut.createEntry(input(), admin)
+    const old = (await qry.getEntry(id))!.assignments[0]!
+    await accounts.setDisabled(s1, true)
+    await expect(
+      mut.updateEntry(id, input({ assignments: [{ id: String(old.id), ...row(s1, "2026-11-25", "2026-11-26") }] }))
+    ).rejects.toThrow("sudah dinonaktifkan")
+  })
+
+  it("jenis dinonaktifkan: baris lama tak berubah lolos, baris baru atau berubah ditolak", async () => {
+    const { id } = await mut.createEntry(input(), admin)
+    const old = (await qry.getEntry(id))!.assignments[0]!
+    await dbm.db
+      .update(tables.taskType)
+      .set({ active: false })
+      .where(orm.eq(tables.taskType.id, Number(tt)))
+    const keep = { id: String(old.id), ...row(s1) }
+    await mut.updateEntry(id, input({ name: "Sama", assignments: [keep] }))
+    await expect(
+      mut.updateEntry(id, input({ assignments: [keep, row(s2)] }))
+    ).rejects.toThrow("Jenis sudah dinonaktifkan")
+    await expect(
+      mut.updateEntry(id, input({ assignments: [{ ...keep, start: "2026-11-30", end: "2026-11-30" }] }))
+    ).rejects.toThrow("Jenis sudah dinonaktifkan")
+  })
+
+  it("formulir basi (versi lama) ditolak dan tidak menimpa", async () => {
+    const { id } = await mut.createEntry(input(), admin)
+    const v1 = (await qry.getEntry(id))!.updatedAt
+    await mut.updateEntry(id, input({ name: "Dari A" }), v1)
+    await expect(
+      mut.updateEntry(id, input({ name: "Dari B" }), v1)
+    ).rejects.toThrow("sudah diubah orang lain")
+    expect((await qry.getEntry(id))!.name).toBe("Dari A")
+    const v2 = (await qry.getEntry(id))!.updatedAt
+    await mut.updateEntry(id, input({ name: "Dari B" }), v2)
+  })
+
+  it("id jenis atau kanal di luar int4 / bukan angka ditolak oleh skema, bukan 500", async () => {
+    await expect(mut.createEntry(input({ assignments: [{ ...row(s1), taskTypeId: "abc" }] }), admin)).rejects.toThrow()
+    await expect(mut.createEntry(input({ assignments: [{ ...row(s1), taskTypeId: "99999999999" }] }), admin)).rejects.toThrow()
+    await expect(mut.createEntry(input({ channelIds: [99999999999] }), admin)).rejects.toThrow()
+  })
+
   it("updateEntry menolak id penugasan lama yang muncul dua kali", async () => {
     const { id } = await mut.createEntry(input(), admin)
     const old = (await qry.getEntry(id))!.assignments[0]!

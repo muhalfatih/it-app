@@ -61,6 +61,7 @@ async function hydrate(rows: EntryRow[]): Promise<PlannerEntry[]> {
     activityStart: r.activityStart,
     activityEnd: r.activityEnd,
     publishDate: r.publishDate,
+    updatedAt: r.updatedAt.toISOString(),
     stage: (cards.find((c) => c.entryId === r.id)?.stage ?? "ide") as ContentStage,
     assignments: assignments
       .filter((a) => a.entryId === r.id)

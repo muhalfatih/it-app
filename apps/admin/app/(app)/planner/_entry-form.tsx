@@ -6,6 +6,16 @@ import { CircleAlertIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@workspace/ui/components/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
 import {
@@ -87,8 +97,13 @@ export function EntryForm({
   const [errors, setErrors] = React.useState<Errors>({})
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [pending, startTransition] = React.useTransition()
+  const [confirmDiscard, setConfirmDiscard] = React.useState(false)
 
   const formRef = React.useRef<HTMLFormElement>(null)
+  // Formulir di-remount saat data server berubah, jadi nilai awal cukup diambil sekali.
+  const values = JSON.stringify([name, activityStart, activityEnd, publishDate, assignments, channelIds])
+  const [initialValues] = React.useState(values)
+  const dirty = values !== initialValues
 
   function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -106,14 +121,15 @@ export function EntryForm({
       // Fokus ke kolom bermasalah pertama setelah galat dirender.
       requestAnimationFrame(() =>
         formRef.current
-          ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.querySelector<HTMLElement>('[aria-invalid="true"], [data-error-focus]')
           ?.focus()
       )
       return
     }
     setErrors({})
     startTransition(async () => {
-      const result = await saveEntry(entry?.id ?? null, parsed.data)
+      // updatedAt sebagai versi: server menolak bila entri sudah diubah orang lain.
+      const result = await saveEntry(entry?.id ?? null, parsed.data, entry?.updatedAt)
       if ("error" in result) {
         setServerError(result.error)
         return
@@ -125,6 +141,10 @@ export function EntryForm({
   }
 
   const invalid = (key: keyof Errors) => (errors[key] ? true : undefined)
+  const errorId = (key: keyof Errors) => `${formId}-${key}-error`
+  const describedBy = (key: keyof Errors) =>
+    errors[key] ? errorId(key) : undefined
+  const leave = () => router.push("/planner")
 
   return (
     <form ref={formRef} onSubmit={submit} noValidate className="flex max-w-3xl flex-col gap-6">
@@ -135,7 +155,7 @@ export function EntryForm({
           <AlertDescription>{serverError}</AlertDescription>
         </Alert>
       )}
-      {/* fieldset disabled mematikan semua kontrol di dalamnya untuk mode baca saja. */}
+      {/* fieldset disabled mematikan semua kontrol native di dalamnya untuk mode baca saja. */}
       <fieldset disabled={readOnly || pending} className="m-0 min-w-0 border-0 p-0">
         <FieldGroup>
           <Field data-invalid={invalid("name")}>
@@ -145,10 +165,11 @@ export function EntryForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-invalid={invalid("name")}
+              aria-describedby={describedBy("name")}
               maxLength={120}
               autoComplete="off"
             />
-            <FieldError>{errors.name}</FieldError>
+            <FieldError id={errorId("name")}>{errors.name}</FieldError>
           </Field>
 
           <FieldSet data-invalid={invalid("activity")}>
@@ -165,6 +186,7 @@ export function EntryForm({
                   value={activityStart}
                   onChange={(e) => setActivityStart(e.target.value)}
                   aria-invalid={invalid("activity")}
+                  aria-describedby={describedBy("activity")}
                 />
               </Field>
               <Field>
@@ -175,13 +197,20 @@ export function EntryForm({
                   value={activityEnd}
                   onChange={(e) => setActivityEnd(e.target.value)}
                   aria-invalid={invalid("activity")}
+                  aria-describedby={describedBy("activity")}
                 />
               </Field>
             </div>
-            <FieldError>{errors.activity}</FieldError>
+            <FieldError id={errorId("activity")}>{errors.activity}</FieldError>
           </FieldSet>
 
-          <FieldSet data-invalid={invalid("assignments")}>
+          {/* AssignmentRows tidak menerima aria-invalid; saat galat, fieldset-nya yang menerima fokus dan membacakan galat. */}
+          <FieldSet
+            data-invalid={invalid("assignments")}
+            data-error-focus={errors.assignments ? "" : undefined}
+            tabIndex={errors.assignments ? -1 : undefined}
+            aria-describedby={describedBy("assignments")}
+          >
             <FieldLegend variant="label">Penugasan</FieldLegend>
             <AssignmentRows
               value={assignments}
@@ -189,19 +218,22 @@ export function EntryForm({
               people={options.people}
               taskTypes={options.taskTypes}
             />
-            <FieldError>{errors.assignments}</FieldError>
+            <FieldError id={errorId("assignments")}>{errors.assignments}</FieldError>
           </FieldSet>
 
           <FieldSet data-invalid={invalid("channelIds")}>
             <FieldLegend variant="label">Kanal</FieldLegend>
             <div className="grid gap-2 sm:grid-cols-2">
-              {options.channels.map((c) => {
+              {options.channels.map((c, index) => {
                 const id = `${formId}-ch-${c.id}`
+                const first = index === 0
                 return (
                   <FieldLabel key={c.id} htmlFor={id}>
                     <Field orientation="horizontal">
                       <Checkbox
                         id={id}
+                        // Checkbox base-ui bukan kontrol native, jadi tidak ikut mati oleh fieldset disabled.
+                        disabled={readOnly || pending}
                         checked={channelIds.includes(c.id)}
                         onCheckedChange={(checked) =>
                           setChannelIds((prev) =>
@@ -210,6 +242,8 @@ export function EntryForm({
                               : prev.filter((x) => x !== c.id)
                           )
                         }
+                        aria-invalid={first ? invalid("channelIds") : undefined}
+                        aria-describedby={first ? describedBy("channelIds") : undefined}
                       />
                       <FieldContent>
                         <FieldTitle>{c.name}</FieldTitle>
@@ -219,7 +253,7 @@ export function EntryForm({
                 )
               })}
             </div>
-            <FieldError>{errors.channelIds}</FieldError>
+            <FieldError id={errorId("channelIds")}>{errors.channelIds}</FieldError>
           </FieldSet>
 
           <Field data-invalid={invalid("publishDate")} className="max-w-xs">
@@ -230,8 +264,9 @@ export function EntryForm({
               value={publishDate}
               onChange={(e) => setPublishDate(e.target.value)}
               aria-invalid={invalid("publishDate")}
+              aria-describedby={describedBy("publishDate")}
             />
-            <FieldError>{errors.publishDate}</FieldError>
+            <FieldError id={errorId("publishDate")}>{errors.publishDate}</FieldError>
           </Field>
         </FieldGroup>
       </fieldset>
@@ -245,12 +280,28 @@ export function EntryForm({
             type="button"
             variant="outline"
             disabled={pending}
-            onClick={() => router.push("/planner")}
+            onClick={() => (dirty ? setConfirmDiscard(true) : leave())}
           >
             Batal
           </Button>
         </div>
       )}
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buang perubahan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Perubahan yang belum disimpan akan hilang.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Lanjut mengubah</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={leave}>
+              Buang perubahan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   )
 }
