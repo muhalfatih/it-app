@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Contoh thumbnail">
-  <!-- Isian abu-abu tengah tetap: <img> tidak mewarisi tema halaman. -->
-  <rect width="320" height="180" fill="#8a9499"/>
-  <circle cx="92" cy="62" r="18" fill="#c4cbce"/>
-  <path d="M0 150 L96 92 L160 132 L224 80 L320 140 V180 H0 Z" fill="#5f6b71"/>
-</svg>

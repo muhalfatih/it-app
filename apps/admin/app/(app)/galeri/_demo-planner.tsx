@@ -1,21 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { useTable, type ColumnDef } from "@tanstack/react-table"
 import { id as localeId } from "date-fns/locale"
 
 import {
   AssignmentRows,
   type Assignment,
 } from "@workspace/ui/components/domain/assignment-rows"
-import { Badge } from "@workspace/ui/components/reui/badge"
-import {
-  DataGrid,
-  DataGridContainer,
-  dataGridFeatures,
-  type DataGridFeatures,
-} from "@workspace/ui/components/reui/data-grid/data-grid"
-import { DataGridTable } from "@workspace/ui/components/reui/data-grid/data-grid-table"
 import { EventCalendar } from "@workspace/ui/components/reui/event-calendar/event-calendar"
 import { EventCalendarContent } from "@workspace/ui/components/reui/event-calendar/event-calendar-content"
 import { EventCalendarNav } from "@workspace/ui/components/reui/event-calendar/event-calendar-nav"
@@ -24,7 +15,8 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 
 import { EVENT_CALENDAR_I18N_ID } from "@workspace/ui/lib/i18n-id"
 
-import { LONG_TITLE, PEOPLE, TASK_TYPES } from "./_data"
+import { PEOPLE, TASK_TYPES } from "./_data"
+import { PlannerGrid } from "./_demo-tables"
 
 const d = (day: number) => new Date(2026, 10, day)
 
@@ -63,88 +55,37 @@ const EVENTS: CalendarEvent[] = [
   },
 ]
 
-type Entry = {
-  id: string
-  name: string
-  dates: string
-  channels: string
-  publish: string
-}
-
-const ENTRIES: Entry[] = [
-  {
-    id: "p1",
-    name: "Video Profil Sekolah 2026",
-    dates: "16–20 Nov",
-    channels: "YouTube, TV Display",
-    publish: "Kam, 19 Nov",
-  },
-  {
-    id: "p2",
-    name: "Poster Pentas Seni",
-    dates: "18 Nov",
-    channels: "Instagram, WA Grup",
-    publish: "Jum, 20 Nov",
-  },
-  {
-    id: "p3",
-    name: LONG_TITLE,
-    dates: "20–21 Nov",
-    channels: "YouTube, Instagram",
-    publish: "Sab, 21 Nov",
-  },
-]
-
-const COLUMNS: ColumnDef<DataGridFeatures, Entry>[] = [
-  {
-    accessorKey: "name",
-    header: "Konten/Kegiatan",
-    cell: ({ getValue }) => (
-      <span className="line-clamp-2">{String(getValue())}</span>
-    ),
-  },
-  { accessorKey: "dates", header: "Tanggal kegiatan" },
-  { accessorKey: "channels", header: "Kanal" },
-  {
-    accessorKey: "publish",
-    header: "Tayang",
-    cell: ({ getValue }) => (
-      <Badge variant="primary-light">{String(getValue())}</Badge>
-    ),
-  },
-]
-
 const noop = () => () => {}
-
-function EntryList() {
-  const table = useTable({
-    features: dataGridFeatures,
-    data: ENTRIES,
-    columns: COLUMNS,
-    getRowId: (row) => row.id,
-  })
-  return (
-    <DataGrid table={table} recordCount={ENTRIES.length}>
-      <DataGridContainer>
-        <DataGridTable />
-      </DataGridContainer>
-    </DataGrid>
-  )
-}
 
 export function PlannerDemo() {
   const [assignments, setAssignments] = React.useState<Assignment[]>([
     {
+      id: "a1",
       personId: "budi",
       taskTypeId: "footage",
       start: "2026-11-16",
       end: "2026-11-17",
     },
     {
+      id: "a2",
       personId: "budi",
       taskTypeId: "editing",
       start: "2026-11-18",
       end: "2026-11-19",
+    },
+    {
+      id: "a3",
+      personId: "ahmad",
+      taskTypeId: "dokumentasi",
+      start: "2026-11-19",
+      end: "2026-11-20",
+    },
+    {
+      id: "a4",
+      personId: "ahmad",
+      taskTypeId: "editing",
+      start: "2026-11-20",
+      end: "2026-11-21",
     },
   ])
   // Garis "sekarang" dihitung dari jam server vs klien (hydration mismatch); render kalender setelah mount saja.
@@ -180,7 +121,7 @@ export function PlannerDemo() {
           </EventCalendar>
         )}
       </div>
-      <EntryList />
+      <PlannerGrid />
       <AssignmentRows
         value={assignments}
         onChange={setAssignments}

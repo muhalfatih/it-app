@@ -1,6 +1,7 @@
 // Label bahasa Indonesia untuk komponen @reui yang bawaannya berbahasa Inggris.
 import type { EventCalendarI18nOverrides } from "@workspace/ui/components/reui/event-calendar/event-calendar-i18n"
 import type { DateSelectorI18nConfig } from "@workspace/ui/components/reui/date-selector"
+import type { DataGridI18nOverrides } from "@workspace/ui/components/reui/data-grid/data-grid-i18n"
 
 const BULAN = [
   "Januari",
@@ -82,4 +83,39 @@ export const DATE_SELECTOR_I18N_ID: Partial<DateSelectorI18nConfig> = {
   weekdaysShort: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
   placeholder: "Pilih tanggal…",
   rangePlaceholder: "Pilih rentang tanggal…",
+}
+
+export const DATA_GRID_I18N_ID: DataGridI18nOverrides = {
+  labels: {
+    sortAscending: "Urut naik",
+    sortDescending: "Urut turun",
+    pinColumnStart: "Sematkan ke kiri",
+    pinColumnEnd: "Sematkan ke kanan",
+    moveColumnStart: "Geser ke kiri",
+    moveColumnEnd: "Geser ke kanan",
+    columnsMenu: "Kolom",
+    unpinColumn: (title) => `Lepas sematan kolom ${title}`,
+    toggleColumns: "Tampilkan kolom",
+    rowCreate: "Tambah baris",
+    pinRow: "Sematkan baris",
+    unpinRow: "Lepas sematan baris",
+    selectRow: "Pilih baris",
+    selectAll: "Pilih semua",
+    expandRow: "Buka baris",
+    collapseRow: "Tutup baris",
+    dragToReorder: "Seret untuk mengurutkan",
+    dragToReorderRow: "Seret untuk mengurutkan baris",
+    reorderingUnavailable: "Pengurutan tidak tersedia",
+    loading: "Memuat…",
+    empty: "Belum ada data",
+    allRowsLoaded: "Semua data sudah dimuat",
+    rowsPerPage: "Baris per halaman",
+    paginationInfo: ({ from, to, count }) => `${from}–${to} dari ${count}`,
+    previousPage: "Halaman sebelumnya",
+    nextPage: "Halaman berikutnya",
+    goToPage: (page) => `Ke halaman ${page}`,
+    filterSelectedCount: (count) => `${count} dipilih`,
+    filterNoResults: "Tidak ada hasil.",
+    filterClear: "Hapus filter",
+  },
 }

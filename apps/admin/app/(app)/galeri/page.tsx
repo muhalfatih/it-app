@@ -35,17 +35,7 @@ import {
 } from "@workspace/ui/components/progress"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Spinner } from "@workspace/ui/components/spinner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table"
-import { MediaPlayer } from "@workspace/ui/components/domain/media-player"
 import { PartitionGrid } from "@workspace/ui/components/domain/partition-grid"
-import { ThemeToggle } from "@workspace/ui/components/domain/theme-toggle"
 import {
   Alert,
   AlertDescription,
@@ -64,12 +54,15 @@ import {
 } from "@workspace/ui/components/reui/timeline"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { AlertsDemo } from "./_demo-alerts"
+import { BadgesDemo } from "./_demo-badges"
 import { ChartDemo } from "./_demo-chart"
 import { FormsDemo } from "./_demo-forms"
 import { KanbanDemo } from "./_demo-kanban"
+import { MediaDemo } from "./_demo-media"
 import { OverlaysDemo } from "./_demo-overlays"
 import { PlannerDemo } from "./_demo-planner"
-import { SidebarDemo } from "./_demo-sidebar"
+import { RecapGrid } from "./_demo-tables"
 import { TabsCalendarDemo } from "./_demo-tabs-calendar"
 import { DAYS, PARTITION_ROWS } from "./_data"
 
@@ -123,7 +116,6 @@ export default function GaleriPage() {
             Design system Unit IT &amp; Media — tinjau di mode terang dan gelap.
           </p>
         </div>
-        <ThemeToggle />
       </header>
 
       <Section title="Warna">
@@ -184,60 +176,11 @@ export default function GaleriPage() {
       </Section>
 
       <Section title="Badge status">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="success-light">Tuntas</Badge>
-          <Badge variant="info-light">Tindak Lanjut</Badge>
-          <Badge variant="warning-light">Tertunda 3 hari</Badge>
-          <Badge variant="destructive-light">Ditolak</Badge>
-          <Badge variant="outline">Diajukan</Badge>
-          <Badge variant="success-light">Disetujui</Badge>
-          <Badge variant="warning-light">Perlu diperbarui</Badge>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {["Ide", "Draft", "Review", "Disetujui", "Telah Tayang"].map(
-            (stage) => (
-              <Badge key={stage} variant="primary-light">
-                {stage}
-              </Badge>
-            )
-          )}
-        </div>
+        <BadgesDemo />
       </Section>
 
       <Section title="Alert">
-        <div className="grid gap-3 md:grid-cols-2">
-          <Alert variant="warning">
-            <RefreshCwIcon />
-            <AlertTitle>Perlu diperbarui</AlertTitle>
-            <AlertDescription>
-              Penugasan &quot;Editing Video Profil Sekolah&quot; berubah.
-              Jawaban lama tetap terisi — cukup isi tugas yang baru.
-            </AlertDescription>
-          </Alert>
-          <Alert variant="destructive">
-            <LockIcon />
-            <AlertTitle>Laporan terkunci</AlertTitle>
-            <AlertDescription>
-              Batas pengisian Sabtu 10.00 WIB sudah lewat. Hubungi Manajer untuk
-              membuka kunci.
-            </AlertDescription>
-          </Alert>
-          <Alert variant="success">
-            <CalendarCheckIcon />
-            <AlertTitle>Pengaduan terkirim</AlertTitle>
-            <AlertDescription>
-              Terima kasih, pengaduan Anda sudah kami terima dan akan menjadi
-              bahan evaluasi layanan internet sekolah.
-            </AlertDescription>
-          </Alert>
-          <Alert variant="info">
-            <InboxIcon />
-            <AlertTitle>Pengajuan SDM baru</AlertTitle>
-            <AlertDescription>
-              Unit SD mengajukan 2 SDM untuk Pentas Seni, 22–23 November.
-            </AlertDescription>
-          </Alert>
-        </div>
+        <AlertsDemo />
       </Section>
 
       <Section title="Skor laporan">
@@ -247,42 +190,8 @@ export default function GaleriPage() {
         </Progress>
       </Section>
 
-      <Section title="Tabel">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Rutin</TableHead>
-              <TableHead>Planner</TableHead>
-              <TableHead>dari Manajer</TableHead>
-              <TableHead>Input sendiri</TableHead>
-              <TableHead className="text-right">Rata-rata</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[
-              ["Budi Santoso", "20/24", "9/10", "2/2", "3/3", "87,2%"],
-              ["Siti Rahmawati", "22/24", "6/8", "1/2", "1/1", "85,7%"],
-              ["Ahmad Fauzan", "18/24", "4/9", "0/1", "5/5", "69,2%"],
-            ].map(([name, ...cells]) => (
-              <TableRow key={name}>
-                <TableCell className="font-medium">{name}</TableCell>
-                {cells.map((cell, i) => (
-                  <TableCell
-                    key={i}
-                    className={
-                      i === cells.length - 1
-                        ? "text-right tabular-nums"
-                        : "tabular-nums"
-                    }
-                  >
-                    {cell}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <Section title="Tabel rekap laporan harian">
+        <RecapGrid />
       </Section>
 
       <Section title="Tabs & kalender">
@@ -301,14 +210,8 @@ export default function GaleriPage() {
         <KanbanDemo />
       </Section>
 
-      <Section title="Pemutar media">
-        <div className="max-w-md">
-          <MediaPlayer
-            src="/galeri/contoh.svg"
-            kind="image"
-            alt="Contoh thumbnail konten"
-          />
-        </div>
+      <Section title="Media konten">
+        <MediaDemo />
       </Section>
 
       <Section title="Riwayat kartu">
@@ -339,7 +242,7 @@ export default function GaleriPage() {
         </Timeline>
       </Section>
 
-      <Section title="Rekap (chart)">
+      <Section title="Chart">
         <ChartDemo />
       </Section>
 
@@ -363,7 +266,6 @@ export default function GaleriPage() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <SidebarDemo />
       </Section>
 
       <Section title="Keadaan kosong & memuat">

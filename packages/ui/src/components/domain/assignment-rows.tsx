@@ -1,10 +1,12 @@
 "use client"
 
-import { format, parseISO } from "date-fns"
+import * as React from "react"
+import { eachDayOfInterval, format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import { CalendarIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
 
+import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Button } from "@workspace/ui/components/button"
 import { Calendar } from "@workspace/ui/components/calendar"
 import {
@@ -12,6 +14,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@workspace/ui/components/popover"
+import { Badge } from "@workspace/ui/components/reui/badge"
+import {
+  Frame,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from "@workspace/ui/components/reui/frame"
 import {
   Select,
   SelectContent,
@@ -20,11 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
+import { cn } from "@workspace/ui/lib/utils"
 
 type Option = { value: string; label: string }
 
 /** Satu penugasan di entri Planner. Tanggal dalam format ISO `yyyy-MM-dd`. */
 type Assignment = {
+  /** Id stabil baris (dari database); baris baru diberi id sementara. */
+  id?: string
   personId: string
   taskTypeId: string
   start?: string
@@ -38,6 +50,10 @@ type AssignmentRowsProps = {
   taskTypes: Option[]
 }
 
+// Desktop: satu baris per penugasan. HP: orang + hapus, lalu jenis, lalu tanggal + durasi.
+const ROW =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.1fr)_5.5rem_2.25rem]"
+
 const toIso = (date?: Date) => (date ? format(date, "yyyy-MM-dd") : undefined)
 
 function rangeLabel({ start, end }: Assignment) {
@@ -47,16 +63,48 @@ function rangeLabel({ start, end }: Assignment) {
   return end && end !== start ? `${fmt(start)} – ${fmt(end)}` : fmt(start)
 }
 
+/** Jumlah hari kerja (Senin–Sabtu) dalam rentang penugasan. */
+function workDays({ start, end }: Assignment) {
+  if (!start) return 0
+  return eachDayOfInterval({
+    start: parseISO(start),
+    end: parseISO(end ?? start),
+  }).filter((d) => d.getDay() !== 0).length
+}
+
+/** Penugasan lain milik orang yang sama dengan rentang tanggal beririsan. */
+function overlaps(rows: Assignment[], index: number) {
+  const a = rows[index]
+  if (!a?.personId || !a.start) return false
+  const aEnd = a.end ?? a.start
+  return rows.some((b, i) => {
+    if (i === index || b.personId !== a.personId || !b.start) return false
+    return a.start! <= (b.end ?? b.start) && b.start <= aEnd
+  })
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
+}
+
 function OptionSelect({
   label,
+  placeholder,
   options,
   value,
   onValueChange,
+  autoFocus,
 }: {
   label: string
+  placeholder: string
   options: Option[]
   value: string
   onValueChange: (value: string) => void
+  autoFocus?: boolean
 }) {
   return (
     <Select
@@ -64,8 +112,13 @@ function OptionSelect({
       value={value || null}
       onValueChange={(v) => onValueChange(v ?? "")}
     >
-      <SelectTrigger aria-label={label} className="w-full min-w-0">
-        <SelectValue placeholder={label} />
+      <SelectTrigger
+        size="sm"
+        aria-label={label}
+        autoFocus={autoFocus}
+        className="w-full min-w-0"
+      >
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
@@ -80,92 +133,191 @@ function OptionSelect({
   )
 }
 
-/** Baris penugasan multi-entry: orang + jenis penugasan + rentang tanggal (spesifikasi §4.1). */
+/**
+ * Penugasan multi-entry (spesifikasi §4.1) dengan editing inline: tiap sel langsung bisa diubah.
+ * Satu orang boleh punya dua tugas atau lebih; rentang yang beririsan diberi tanda "Bentrok".
+ */
 function AssignmentRows({
   value,
   onChange,
   people,
   taskTypes,
 }: AssignmentRowsProps) {
+  const baseId = React.useId()
+  const counter = React.useRef(0)
+  const [focusId, setFocusId] = React.useState<string | null>(null)
+
   const update = (index: number, patch: Partial<Assignment>) =>
     onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+  const add = () => {
+    const id = `${baseId}-baru-${counter.current++}`
+    setFocusId(id)
+    onChange([...value, { id, personId: "", taskTypeId: "" }])
+  }
+  const personName = (id: string) =>
+    people.find((p) => p.value === id)?.label ?? ""
+  const incomplete = value.filter(
+    (r) => !r.personId || !r.taskTypeId || !r.start
+  ).length
 
   return (
-    <div className="flex flex-col gap-2">
-      {value.map((row, index) => {
-        const selected: DateRange | undefined = row.start
-          ? {
-              from: parseISO(row.start),
-              to: row.end ? parseISO(row.end) : undefined,
-            }
-          : undefined
-        return (
-          <div
-            key={index}
-            className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[1fr_1fr_auto_auto]"
-          >
-            <OptionSelect
-              label="Orang"
-              options={people}
-              value={row.personId}
-              onValueChange={(personId) => update(index, { personId })}
-            />
-            <div className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto">
-              <OptionSelect
-                label="Jenis penugasan"
-                options={taskTypes}
-                value={row.taskTypeId}
-                onValueChange={(taskTypeId) => update(index, { taskTypeId })}
-              />
-            </div>
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    className="row-start-3 justify-start sm:row-start-auto"
-                  />
-                }
-              >
-                <CalendarIcon data-icon="inline-start" />
-                {rangeLabel(row)}
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  locale={localeId}
-                  weekStartsOn={1}
-                  selected={selected}
-                  onSelect={(range) =>
-                    update(index, {
-                      start: toIso(range?.from),
-                      end: toIso(range?.to),
-                    })
+    <Frame spacing="xs">
+      <FrameHeader className="flex flex-row flex-wrap items-center gap-2">
+        <FrameTitle>Penugasan</FrameTitle>
+        <Badge variant="outline" size="sm">
+          {value.length}
+        </Badge>
+        {incomplete > 0 ? (
+          <Badge variant="warning-light" size="sm">
+            {incomplete} belum lengkap
+          </Badge>
+        ) : null}
+        <span className="ml-auto text-xs text-muted-foreground">
+          Ubah langsung di tiap baris
+        </span>
+      </FrameHeader>
+      <FramePanel className="p-0!">
+        <div
+          aria-hidden
+          className={cn(
+            ROW,
+            "hidden border-b px-3 py-2 text-xs font-medium text-muted-foreground sm:grid"
+          )}
+        >
+          <span>Orang</span>
+          <span>Jenis tugas</span>
+          <span>Tanggal</span>
+          <span className="text-right">Durasi</span>
+          <span />
+        </div>
+
+        {value.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            Belum ada penugasan. Tambahkan baris di bawah.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {value.map((row, index) => {
+              const key = row.id ?? `baris-${index}`
+              const name = personName(row.personId)
+              const n = index + 1
+              const missing = !row.personId || !row.taskTypeId || !row.start
+              const clash = !missing && overlaps(value, index)
+              const selected: DateRange | undefined = row.start
+                ? {
+                    from: parseISO(row.start),
+                    to: row.end ? parseISO(row.end) : undefined,
                   }
-                />
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Hapus penugasan"
-              className="col-start-2 row-start-1 sm:col-start-auto"
-              onClick={() => onChange(value.filter((_, i) => i !== index))}
-            >
-              <Trash2Icon />
-            </Button>
-          </div>
-        )
-      })}
-      <Button
-        variant="outline"
-        className="self-start"
-        onClick={() => onChange([...value, { personId: "", taskTypeId: "" }])}
-      >
-        <PlusIcon data-icon="inline-start" />
-        Tambah penugasan
-      </Button>
-    </div>
+                : undefined
+              return (
+                <li key={key} className={cn(ROW, "px-3 py-2")}>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Avatar size="sm" aria-hidden>
+                      <AvatarFallback>
+                        {name ? initials(name) : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <OptionSelect
+                      label={`Orang, baris ${n}`}
+                      placeholder="Pilih orang"
+                      options={people}
+                      value={row.personId}
+                      autoFocus={key === focusId}
+                      onValueChange={(personId) => update(index, { personId })}
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Hapus baris ${n}${name ? `: ${name}` : ""}`}
+                    className="sm:order-last"
+                    onClick={() =>
+                      onChange(value.filter((_, i) => i !== index))
+                    }
+                  >
+                    <Trash2Icon />
+                  </Button>
+                  <div className="col-span-2 sm:col-span-1">
+                    <OptionSelect
+                      label={`Jenis tugas, baris ${n}`}
+                      placeholder="Pilih jenis"
+                      options={taskTypes}
+                      value={row.taskTypeId}
+                      onValueChange={(taskTypeId) =>
+                        update(index, { taskTypeId })
+                      }
+                    />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Tanggal, baris ${n}: ${rangeLabel(row)}`}
+                          className="w-full min-w-0 justify-start"
+                        />
+                      }
+                    >
+                      <CalendarIcon data-icon="inline-start" />
+                      <span className="truncate tabular-nums">
+                        {rangeLabel(row)}
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="range"
+                        locale={localeId}
+                        weekStartsOn={1}
+                        selected={selected}
+                        defaultMonth={selected?.from}
+                        onSelect={(range) =>
+                          update(index, {
+                            start: toIso(range?.from),
+                            end: toIso(range?.to),
+                          })
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <div className="flex justify-end">
+                    {missing ? (
+                      <Badge variant="warning-light" size="sm">
+                        Belum lengkap
+                      </Badge>
+                    ) : clash ? (
+                      <Badge
+                        variant="warning-light"
+                        size="sm"
+                        title="Tanggal beririsan dengan tugas lain orang ini"
+                      >
+                        Bentrok
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {workDays(row)} hari
+                      </span>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        <div className="border-t p-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-muted-foreground"
+            onClick={add}
+          >
+            <PlusIcon data-icon="inline-start" />
+            Tambah penugasan
+          </Button>
+        </div>
+      </FramePanel>
+    </Frame>
   )
 }
 

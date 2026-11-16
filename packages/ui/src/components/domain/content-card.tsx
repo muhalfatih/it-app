@@ -1,19 +1,20 @@
-import { CalendarIcon, LockIcon } from "lucide-react"
+import {
+  CalendarIcon,
+  CircleCheckIcon,
+  EyeIcon,
+  LightbulbIcon,
+  LockIcon,
+  PencilLineIcon,
+  RadioTowerIcon,
+} from "lucide-react"
 
 import {
   Avatar,
   AvatarFallback,
   AvatarGroup,
 } from "@workspace/ui/components/avatar"
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { Frame, FramePanel } from "@workspace/ui/components/reui/frame"
 
 type ContentStage = "ide" | "draft" | "review" | "disetujui" | "tayang"
 
@@ -25,13 +26,21 @@ const CONTENT_STAGE_LABEL: Record<ContentStage, string> = {
   tayang: "Telah Tayang",
 }
 
+/** Ikon tiap tahap (dipakai di kepala kolom Kanban). */
+const CONTENT_STAGE_ICON: Record<ContentStage, typeof LightbulbIcon> = {
+  ide: LightbulbIcon,
+  draft: PencilLineIcon,
+  review: EyeIcon,
+  disetujui: CircleCheckIcon,
+  tayang: RadioTowerIcon,
+}
+
 type ContentCardProps = {
   title: string
-  stage: ContentStage
   /** Sudah diformat, mis. "Kam, 20 Nov". */
   publishDate: string
   channels: string[]
-  assignees: { name: string }[]
+  assignees: { id: string; name: string }[]
   thumbnailUrl?: string
   locked?: boolean
 }
@@ -44,10 +53,12 @@ function initials(name: string) {
     .join("")
 }
 
-/** Kartu konten Kanban. Isi kartu terkunci sejak tahap Review (spesifikasi §6.4). */
+/**
+ * Kartu konten Kanban (pola Frame c-kanban-3). Tahap ditunjukkan kolomnya, jadi tidak diulang di kartu.
+ * Isi kartu terkunci sejak tahap Review (spesifikasi §6.4).
+ */
 function ContentCard({
   title,
-  stage,
   publishDate,
   channels,
   assignees,
@@ -56,50 +67,62 @@ function ContentCard({
 }: ContentCardProps) {
   return (
     // relative: label sr-only (absolute) tetap di dalam kartu, tidak melebarkan kontainer scroll
-    <Card size="sm" className="relative">
-      {thumbnailUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- file konten dari server unit, bukan aset Next
-        <img
-          src={thumbnailUrl}
-          alt=""
-          className="aspect-video w-full object-cover"
-        />
-      ) : null}
-      <CardHeader>
-        <CardTitle className="line-clamp-2">{title}</CardTitle>
-        <CardAction>
+    <Frame variant="ghost" spacing="sm" className="relative p-0">
+      <FramePanel className="flex flex-col gap-2.5 p-3">
+        {thumbnailUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- file konten dari server unit, bukan aset Next
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="aspect-video w-full rounded-md object-cover"
+          />
+        ) : null}
+        <div className="flex items-start gap-2">
+          <span className="line-clamp-2 flex-1 text-sm font-medium">
+            {title}
+          </span>
           {locked ? (
             <LockIcon
+              role="img"
               aria-label="Isi kartu terkunci"
-              className="text-muted-foreground"
+              className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
             />
           ) : null}
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-wrap gap-1">
-        <Badge variant="primary-light">{CONTENT_STAGE_LABEL[stage]}</Badge>
-        {channels.map((channel) => (
-          <Badge key={channel} variant="outline">
-            {channel}
-          </Badge>
-        ))}
-      </CardContent>
-      <CardFooter className="justify-between gap-2 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <CalendarIcon aria-hidden />
-          <span className="sr-only">Tanggal tayang:</span>
-          {publishDate}
-        </span>
-        <AvatarGroup>
-          {assignees.map((person) => (
-            <Avatar key={person.name} size="sm" title={person.name}>
-              <AvatarFallback>{initials(person.name)}</AvatarFallback>
-            </Avatar>
-          ))}
-        </AvatarGroup>
-      </CardFooter>
-    </Card>
+        </div>
+        {channels.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {channels.map((channel) => (
+              <Badge key={channel} variant="outline" size="sm">
+                {channel}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 tabular-nums">
+            <CalendarIcon aria-hidden className="size-3.5" />
+            <span className="sr-only">Tanggal tayang:</span>
+            {publishDate}
+          </span>
+          <AvatarGroup>
+            {assignees.map((person) => (
+              <Avatar key={person.id} size="sm" title={person.name}>
+                <AvatarFallback>{initials(person.name)}</AvatarFallback>
+              </Avatar>
+            ))}
+          </AvatarGroup>
+          <span className="sr-only">
+            Ditugaskan: {assignees.map((p) => p.name).join(", ")}
+          </span>
+        </div>
+      </FramePanel>
+    </Frame>
   )
 }
 
-export { CONTENT_STAGE_LABEL, ContentCard, type ContentStage }
+export {
+  CONTENT_STAGE_ICON,
+  CONTENT_STAGE_LABEL,
+  ContentCard,
+  type ContentStage,
+}
