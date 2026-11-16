@@ -125,8 +125,8 @@ Media Planner                                    [+ Entri baru]
 
 - "Entri baru" hanya untuk pemilik `planner.ubah`. ¹ hanya di Daftar.
 - Tab dan navigasi periode mengganti URL (tautan/`router.push`), lalu server merender ulang.
-- Periode kosong → komponen `Empty` dengan ajakan membuat entri (bila punya izin).
-- `loading.tsx` dengan skeleton.
+- Periode kosong → komponen `Empty` dengan ajakan membuat entri (bila punya izin), **hanya di Daftar dan Kalender**. Partisi tetap menampilkan grid abu-abu.
+- Tanpa `loading.tsx`. Streaming memulai respons 200, sehingga pengalihan izin dan 404 tidak lagi tercermin di kode status. *Keputusan pembangun.*
 
 **Daftar** (`@reui` data-grid):
 
@@ -140,7 +140,7 @@ Urut menurut `sortKey`. Penugasan diringkas (orang · jenis), kanal sebagai badg
 **Kalender** (`@reui` event-calendar, sudah dirakit di `galeri/_demo-planner.tsx`):
 
 - `view="days"`, **7 hari** (Senin–Minggu), `weekStartsOn={1}`, locale `id`, i18n `EVENT_CALENDAR_I18N_ID`, drag/resize mati, semua event `allDay`. Pengalih tampilan bawaan kalender disembunyikan (`showViewSwitcher={false}`); perpindahan tampilan hanya lewat tab halaman.
-- `date` dikendalikan dari `tanggal`; navigasi kalender mengganti URL.
+- `date` = awal periode dari URL. Navigasi bawaan kalender (`EventCalendarNav`) tidak dipakai; pindah pekan hanya lewat toolbar halaman.
 - Bar penugasan satu warna netral (token). Tayang tampil sebagai chip lewat `renderEvent` dengan ikon khusus dan warna `primary` (§4.2). Tidak ada warna per jenis.
 - Di HP (`useIsMobile`), tampilan awal **agenda** untuk pekan yang sama.
 - Klik event → `/planner/[id]`.

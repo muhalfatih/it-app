@@ -98,7 +98,7 @@ Bila ada tes snapshot/tabel matriks yang menghitung izin manajer, perbarui juga.
 - Create: `apps/admin/vitest.config.ts` (environment `node`, include `lib/**/*.test.ts`; alias `@` → root app)
 - Create: `apps/admin/lib/planner/types.ts`
 - Create: `apps/admin/lib/planner/rules.ts`
-- Create: `apps/admin/lib/planner/test-fixtures.ts`: `entry(patch?: Partial<PlannerEntry>): PlannerEntry`, `a(patch?: Partial<PlannerAssignment>): PlannerAssignment`, `staff(id: string, name: string, disabled?: boolean): StaffMember`. Default: entri id 1, "Konten", tanpa kegiatan, tayang `2026-11-19`, tahap `ide`, satu penugasan (`a()`: id 1, userId `"u1"`, "Budi", jenis 1 "Editing", `2026-11-17`–`2026-11-17`), satu kanal. Dipakai di Task 3 dan 4.
+- Create: `apps/admin/lib/planner/test-fixtures.ts`: `entry(patch?: Partial<PlannerEntry>): PlannerEntry`, `a(patch?: Partial<PlannerAssignment>): PlannerAssignment`, `staff(id: string, name: string, disabled?: boolean): StaffMember`. Default sengaja **di luar pekan uji** (Oktober) supaya setiap tes hanya mengandalkan tanggal yang ia set sendiri: entri id 1, "Konten", tanpa kegiatan, tayang `2026-10-07`, tahap `ide`, satu penugasan (`a()`: id 1, userId `"u1"`, "Budi", jenis 1 "Editing", `2026-10-06`–`2026-10-06`), satu kanal. Dipakai di Task 3 dan 4.
 - Test: `apps/admin/lib/planner/rules.test.ts`
 
 **Interfaces:**
@@ -347,7 +347,6 @@ Panggil `frontend-design:frontend-design` sebelum mulai.
 
 **Files:**
 - Create: `apps/admin/app/(app)/planner/page.tsx` (server)
-- Create: `apps/admin/app/(app)/planner/loading.tsx`
 - Create: `apps/admin/app/(app)/planner/_toolbar.tsx` (klien: tab, navigasi periode, Pekan/Bulan, sakelar "Pekerjaan saya saja", tombol "Entri baru")
 - Create: `apps/admin/app/(app)/planner/_list-view.tsx` (klien, data-grid)
 - Create: `apps/admin/app/(app)/planner/_calendar-view.tsx` (klien, event-calendar)
@@ -371,11 +370,11 @@ it("buildPlannerHref menulis saya eksplisit dan rentang hanya untuk daftar", () 
 - [ ] **Step 2:** `pnpm --filter admin test` → FAIL. Tulis `buildPlannerHref` → PASS.
 - [ ] **Step 3: `page.tsx`.** Alurnya: `await searchParams` → `requirePermission("planner.lihat")` → `parsePlannerParams(sp, user.roles)` → `resolvePeriod` → `listEntriesInPeriod`. Kalau `saya`, terapkan `applyMyWork(entries, user.id, period)`. Lalu render toolbar dan satu tampilan:
   - Daftar: `toListRows` → `_list-view`. Kolom: Nama konten, Kegiatan, Penugasan, Kanal (badge), Tayang, Tahap (badge + ikon `CONTENT_STAGE_ICON`/`CONTENT_STAGE_LABEL`). Baris bisa diklik/dibuka dengan keyboard → `/planner/<id>`. Pakai i18n `DATA_GRID_I18N_ID`.
-  - Kalender: `toCalendarEvents(entries, { myWorkUserId })` → `_calendar-view`. Props `view="days"`, `dayCount={7}`, `weekStartsOn={1}`, `date` = awal periode, `onDateChange` → `router.push(buildPlannerHref(..., { tanggal }))`. Juga `interactions={{ drag: false, resize: false }}`, `locale={id}`, `i18n={EVENT_CALENDAR_I18N_ID}`, `<EventCalendarNav showViewSwitcher={false} />`, dan `onEventClick` → `/planner/<entryId>`. `renderEvent` memberi event `tayang` ikon lucide dan warna `var(--primary)`; event tugas memakai satu warna token netral. Di HP (`useIsMobile`): `view="agenda"`, `agendaDayCount={7}`. Tinggi eksplisit pada root kalender.
+  - Kalender: `toCalendarEvents(entries, { myWorkUserId })` → `_calendar-view`. Props `view="days"`, `dayCount={7}`, `weekStartsOn={1}`, `date` = awal periode (prop biasa dari server). **Tanpa `EventCalendarNav`**: navigasi periode hanya lewat toolbar halaman, jadi tidak perlu `onDateChange`. Juga `interactions={{ drag: false, resize: false }}`, `locale={id}`, `i18n={EVENT_CALENDAR_I18N_ID}`, dan `onEventClick` → `/planner/<entryId>`. `renderEvent` memberi event `tayang` ikon lucide dan warna `var(--primary)`; event tugas memakai satu warna token netral. Di HP (`useIsMobile`): `view="agenda"`, `agendaDayCount={7}`. Tinggi eksplisit pada root kalender.
   - Partisi: `toPartitionRows(staff, entries, period, { myWorkUserId })` + `weekDays` → `PartitionGrid`.
-  - Kalau periode kosong: `Empty` dengan teks "Belum ada entri di periode ini", ditambah tombol "Entri baru" untuk pemilik `planner.ubah`.
+  - Kalau periode kosong, **hanya Daftar dan Kalender** menampilkan `Empty` dengan teks "Belum ada entri di periode ini", ditambah tombol "Entri baru" untuk pemilik `planner.ubah`. Partisi tetap menampilkan grid abu-abu, karena itu justru menunjukkan siapa yang longgar (§4.2).
   - `metadata.title = "Media Planner"`.
-  - `loading.tsx`: `Skeleton` seukuran toolbar + area tampilan.
+  - **Jangan** menambah `loading.tsx` (atau `<Suspense>` di atas pemeriksaan izin) di `planner/**`. Streaming memulai respons `200`, sehingga `redirect()` dari `requirePermission` dan `notFound()` tidak lagi menghasilkan 307/404 (lihat `next/dist/docs/01-app/03-api-reference/03-file-conventions/loading.md` "Status codes"). Task 8 bergantung pada kode status itu.
 - [ ] **Step 4: `_toolbar.tsx`.** Tab berupa tautan `buildPlannerHref`. Tombol ‹/› memakai `shiftPeriod`, tombol "Hari ini" memakai `todayWib()`. Judul periode, mis. "16–22 Nov 2026" atau "November 2026". Pekan/Bulan hanya untuk Daftar. Sakelar `saya` (Switch + label). "Entri baru" → `/planner/baru` bila `canEdit`.
 - [ ] **Step 5: Verifikasi manual** dengan `pnpm dev`, masuk sebagai manajer, dan beberapa entri contoh. Periksa:
   - ketiga tampilan, tombol ‹ › dan "Hari ini";
@@ -399,7 +398,7 @@ it("buildPlannerHref menulis saya eksplisit dan rentang hanya untuk daftar", () 
 **Interfaces:**
 - Consumes: `withPermission`, `getCurrentUser` (`@workspace/auth/session`); `guarded`, `CrudResult` (`@/lib/setting-crud`); `createEntry`, `updateEntry`, `deleteEntry`, `getEntry`, `listFormOptions`, `entryInputSchema` (Task 5); `canDeleteEntry`, `needsNameConfirm` (Task 3); `AssignmentRows` (domain).
 - Produces:
-  - `saveEntry(id: number | null, input: EntryInput): Promise<CrudResult & { id?: number }>`. Dibungkus `withPermission("planner.ubah")`. Kalau `id === null` → create, kalau tidak → update. Lalu `revalidatePath("/planner")` dan `revalidatePath("/planner/<id>")`.
+  - `saveEntry(id: number | null, input: EntryInput): Promise<CrudResult & { id?: number }>`. Dibungkus `withPermission("planner.ubah")`. Kalau `id === null` → create, kalau tidak → update. `guarded("/planner", fn)` membuang nilai balik `fn`, jadi id ditangkap lewat variabel luar (`let savedId`, diisi di dalam `fn`). Bila hasilnya `ok`, panggil juga `revalidatePath(\`/planner/${savedId}\`)` lalu kembalikan `{ ok: true, id: savedId }`.
   - `removeEntry(id: number, confirmName?: string): Promise<CrudResult>`. Dibungkus `withPermission("planner.ubah")`. Izin lengkap diambil dari `getCurrentUser()` lalu diteruskan ke `deleteEntry`. Setelah sukses, klien diarahkan ke `/planner`.
 
 - [ ] **Step 1: Halaman `baru/page.tsx`.** Panggil `requirePermission("planner.ubah")` dan `listFormOptions()`, lalu render `_entry-form` kosong.
