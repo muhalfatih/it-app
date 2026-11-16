@@ -139,7 +139,7 @@ Urut menurut `sortKey`. Penugasan diringkas (orang · jenis), kanal sebagai badg
 
 **Kalender** (`@reui` event-calendar, sudah dirakit di `galeri/_demo-planner.tsx`):
 
-- `view="days"`, **7 hari** (Senin–Minggu), `weekStartsOn={1}`, locale `id`, i18n `EVENT_CALENDAR_I18N_ID`, drag/resize mati, semua event `allDay`. Pengalih tampilan bawaan kalender disembunyikan (`showViewSwitcher={false}`); perpindahan tampilan hanya lewat tab halaman.
+- `view="days"`, **7 hari** (Senin–Minggu), `weekStartsOn={1}`, locale `id`, i18n `EVENT_CALENDAR_I18N_ID`, drag/resize mati, semua event `allDay`. Perpindahan tampilan hanya lewat tab halaman.
 - `date` = awal periode dari URL. Navigasi bawaan kalender (`EventCalendarNav`) tidak dipakai; pindah pekan hanya lewat toolbar halaman.
 - Bar penugasan satu warna netral (token). Tayang tampil sebagai chip lewat `renderEvent` dengan ikon khusus dan warna `primary` (§4.2). Tidak ada warna per jenis.
 - Di HP (`useIsMobile`), tampilan awal **agenda** untuk pekan yang sama.
