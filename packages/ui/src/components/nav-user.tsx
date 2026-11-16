@@ -1,10 +1,6 @@
 "use client"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar"
+import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,12 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
-import {
-  ChevronsUpDownIcon,
-  BadgeCheckIcon,
-  BellIcon,
-  LogOutIcon,
-} from "lucide-react"
+import { ChevronsUpDownIcon, KeyRoundIcon, LogOutIcon } from "lucide-react"
 
 function initials(name: string) {
   return name
@@ -37,12 +28,11 @@ function initials(name: string) {
 
 export function NavUser({
   user,
+  onSignOut,
 }: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
+  user: { name: string; subtitle: string }
+  /** Server action keluar (menghapus sesi lalu mengarahkan ke /masuk). */
+  onSignOut: () => Promise<void>
 }) {
   const { isMobile } = useSidebar()
   return (
@@ -55,12 +45,11 @@ export function NavUser({
             }
           >
             <Avatar>
-              <AvatarImage src={user.avatar} alt={user.name} />
               <AvatarFallback>{initials(user.name)}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs">{user.email}</span>
+              <span className="truncate text-xs">{user.subtitle}</span>
             </div>
             <ChevronsUpDownIcon className="ml-auto size-4" />
           </DropdownMenuTrigger>
@@ -74,29 +63,24 @@ export function NavUser({
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar>
-                    <AvatarImage src={user.avatar} alt={user.name} />
                     <AvatarFallback>{initials(user.name)}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                    <span className="truncate text-xs">{user.subtitle}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheckIcon />
-                Akun
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon />
-                Notifikasi
+              <DropdownMenuItem render={<a href="/ganti-kata-sandi" />}>
+                <KeyRoundIcon />
+                Ganti kata sandi
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void onSignOut()}>
               <LogOutIcon />
               Keluar
             </DropdownMenuItem>

@@ -52,6 +52,7 @@ import {
   TimelineSeparator,
   TimelineTitle,
 } from "@workspace/ui/components/reui/timeline"
+import { requireUser } from "@workspace/auth/session"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AlertsDemo } from "./_demo-alerts"
@@ -104,7 +105,8 @@ function Section({
   )
 }
 
-export default function GaleriPage() {
+export default async function GaleriPage() {
+  await requireUser()
   return (
     <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 px-4 py-6 sm:px-6">
       <header className="flex items-start justify-between gap-4">
