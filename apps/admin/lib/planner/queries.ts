@@ -147,3 +147,22 @@ export async function listFormOptions(): Promise<{
     })),
   }
 }
+
+/** Pilihan formulir: hanya yang aktif, ditambah nilai yang sudah dipakai entri ini. */
+export async function loadFormOptions(entry?: PlannerEntry) {
+  const o = await listFormOptions()
+  const usedPeople = new Set(entry?.assignments.map((a) => a.userId))
+  const usedTypes = new Set(entry?.assignments.map((a) => String(a.taskTypeId)))
+  const usedChannels = new Set(entry?.channels.map((c) => c.id))
+  return {
+    people: o.people
+      .filter((p) => p.active || usedPeople.has(p.value))
+      .map(({ value, label }) => ({ value, label })),
+    taskTypes: o.taskTypes
+      .filter((t) => t.active || usedTypes.has(t.value))
+      .map(({ value, label }) => ({ value, label })),
+    channels: o.channels
+      .filter((c) => c.active || usedChannels.has(c.id))
+      .map(({ id, name }) => ({ id, name })),
+  }
+}

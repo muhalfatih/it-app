@@ -8,7 +8,6 @@ import { Button } from "@workspace/ui/components/button"
 import { ButtonGroup } from "@workspace/ui/components/button-group"
 import { Label } from "@workspace/ui/components/label"
 import { Switch } from "@workspace/ui/components/switch"
-import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
 type PlannerToolbarProps = {
   title: string
@@ -30,20 +29,21 @@ export function PlannerToolbar(props: PlannerToolbarProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs
-          value={props.active}
-          onValueChange={(value) =>
-            go(props.tabs.find((t) => t.value === value)!.href)
-          }
-        >
-          <TabsList>
+        <nav aria-label="Tampilan Planner">
+          <ButtonGroup>
             {props.tabs.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
+              <Button
+                key={t.value}
+                variant={t.value === props.active ? "secondary" : "outline"}
+                aria-current={t.value === props.active ? "page" : undefined}
+                render={<Link href={t.href} />}
+                nativeButton={false}
+              >
                 {t.label}
-              </TabsTrigger>
+              </Button>
             ))}
-          </TabsList>
-        </Tabs>
+          </ButtonGroup>
+        </nav>
         {props.newHref && (
           <Button render={<Link href={props.newHref} />} nativeButton={false}>
             <PlusIcon data-icon="inline-start" />
