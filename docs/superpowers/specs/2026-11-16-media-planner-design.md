@@ -87,10 +87,10 @@ Semua tanggal Planner bertipe `date` (tanpa jam, mode string `yyyy-MM-dd`), sehi
 
 Satu modul tanpa db/next, dipakai halaman sekarang dan PDF nanti:
 
-- `resolvePeriod({ tanggal, rentang })`: pekan = Senin–Sabtu yang memuat `tanggal`; bulan = bulan kalender. `tanggal` kosong/tidak valid → hari ini (WIB).
+- `resolvePeriod({ tanggal, rentang })`: pekan = Senin–Sabtu yang memuat `tanggal`; bulan = bulan kalender. `tanggal` kosong/tidak valid → hari ini (WIB). **BELUM DIPUTUSKAN: tanggal hari Minggu** (kegiatan, penugasan, atau tayang). Dengan pekan Senin–Sabtu, entri yang tanggalnya hanya jatuh di hari Minggu tidak muncul di tampilan pekanan mana pun.
 - `inPeriod(entry, period)`: entri masuk bila rentang kegiatan, **salah satu** rentang penugasan, atau tanggal tayangnya beririsan dengan periode.
 - `sortKey(entry)`: `activity_start`, atau bila kosong, tanggal mulai penugasan paling awal; seri → nama.
-- `applyMyWork(entries, userId)`: entri yang memuat penugasan milik pengguna.
+- `applyMyWork(entries, userId, period)`: entri yang memuat penugasan milik pengguna **yang beririsan dengan periode**. Entri yang hanya ramai oleh rekan di pekan ini, sementara penugasan saya ada di pekan lain, tidak ikut. *Keputusan pembangun.*
 - `toListRows(entries)`: baris Daftar.
 - `toCalendarEvents(entries, { myWorkUserId? })`: satu event per penugasan (judul "Jenis · Orang — Nama konten") + satu event "Tayang" per entri. **`end` event-calendar eksklusif** → tanggal selesai + 1 hari. Dengan "pekerjaan saya": hanya penugasan pengguna + tayang entri tersebut.
 - `toPartitionRows(staff, entries, days, { myWorkUserId? })`: satu baris per orang, sel per hari berisi penugasan aktif hari itu ("Jenis — Nama konten"). Baris = staf unit aktif urut nama, **ditambah** akun nonaktif yang masih punya penugasan di periode itu (supaya tugasnya tidak hilang dari grid). Dengan "pekerjaan saya": hanya baris pengguna.
@@ -98,7 +98,7 @@ Satu modul tanpa db/next, dipakai halaman sekarang dan PDF nanti:
 
 Tes menutup: batas pekan Senin–Sabtu, entri yang hanya beririsan lewat penugasan atau tanggal tayang, urutan dengan dan tanpa tanggal kegiatan, `end` eksklusif, "pekerjaan saya" di tiga tampilan, akun nonaktif di Partisi, `canDeleteEntry` per tahap, default `saya` per peran (`defaultMyWorkOnly`), parameter tidak valid.
 
-Query periode (server-only, di samping modul ini): satu query mengambil entri yang beririsan dengan periode beserta penugasan (nama orang, nama jenis), kanal, dan tahap kartu. Perbandingan rentang dilakukan di SQL; fungsi murni di atas tetap menjadi sumber aturan yang dites.
+Query periode (server-only, di samping modul ini): satu query mengambil entri yang beririsan dengan periode beserta penugasan (nama orang, nama jenis), kanal, dan tahap kartu. Perbandingan rentang dilakukan di SQL. Supaya aturan "masuk periode" tidak bercabang, **tes integrasi menjalankan query dan `inPeriod` pada data uji yang sama dan memastikan hasilnya identik**. *Keputusan pembangun.*
 
 ### Halaman
 
@@ -172,6 +172,7 @@ PRD §6: Planner harus tetap terpakai di HP. Kalender di HP = agenda, Partisi = 
 - Tes vitest untuk modul murni `apps/admin/lib/planner/` (daftar kasus di atas). vitest ditambahkan sebagai devDependency `apps/admin` dengan versi yang sama dengan `packages/auth` (4.1.12) dan skrip `test`. *Keputusan pembangun.*
 - Tes izin di `packages/auth` diperbarui untuk `planner.hapus_terkunci`.
 - Tes integrasi ringan (pola `accounts.db.test.ts`):
+  - query periode dan `inPeriod` menghasilkan entri yang sama;
   - simpan entri membuat kartu `ide` dalam transaksi yang sama;
   - update mempertahankan id penugasan yang tidak berubah;
   - hapus menghapus kartu;
