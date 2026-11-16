@@ -1,0 +1,36 @@
+{
+  "name": "@workspace/auth",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:seed": "tsx --env-file=../../.env src/seed.ts"
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts",
+    "./permissions": "./src/permissions.ts",
+    "./rules": "./src/rules.ts",
+    "./authorize": "./src/authorize.ts",
+    "./accounts": "./src/accounts.ts",
+    "./session": "./src/session.ts"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.25",
+    "@workspace/db": "workspace:*",
+    "better-auth": "1.7.25",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "^10",
+    "tsx": "4.23.15",
+    "typescript": "^5",
+    "vitest": "4.1.12"
+  }
+}

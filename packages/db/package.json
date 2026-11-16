@@ -11,6 +11,7 @@
   },
   "exports": {
     "./client": "./src/client.ts",
+    "./orm": "./src/orm.ts",
     "./schema": "./src/schema/index.ts",
     "./schema/roles": "./src/schema/roles.ts"
   },

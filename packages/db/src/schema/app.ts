@@ -10,6 +10,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core"
 
+import { user } from "./auth"
+
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 
@@ -47,11 +49,13 @@ export const channel = pgTable(
   (t) => [uniqueIndex("channel_name_lower_idx").on(sql`lower(${t.name})`)]
 )
 
-/** Peran akun (multi-peran). Akun tanpa baris = Staf Unit Lain. FK ke user ditambahkan bersama skema auth. */
+/** Peran akun (multi-peran). Akun tanpa baris = Staf Unit Lain. */
 export const userRole = pgTable(
   "user_role",
   {
-    userId: text("user_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     role: text("role").notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.role] })]
@@ -60,7 +64,9 @@ export const userRole = pgTable(
 /** Tugas rutin per orang, muncul setiap hari kerja di laporan harian. */
 export const routineTask = pgTable("routine_task", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),

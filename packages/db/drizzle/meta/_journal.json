@@ -8,6 +8,13 @@
       "when": 1794819441670,
       "tag": "0000_smart_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794819613399,
+      "tag": "0001_volatile_black_knight",
+      "breakpoints": true
     }
   ]
 }

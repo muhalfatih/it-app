@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@tanstack/react-table": "^9.3.1",
+    "@workspace/auth": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "better-auth": "1.7.25",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.73.0",
     "next": "16.4.5",

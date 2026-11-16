@@ -4,10 +4,12 @@ import postgres from "postgres"
 import * as schema from "./schema"
 
 const url = process.env.DATABASE_URL
-if (!url) throw new Error("DATABASE_URL belum diset (lihat .env.example)")
+if (!url) throw new Error("DATABASE_URL belum diset (lihat env.example)")
 
 // Satu koneksi per proses; di dev, simpan di globalThis agar HMR tidak membuka koneksi baru terus.
-const globalForDb = globalThis as unknown as { pg?: ReturnType<typeof postgres> }
+const globalForDb = globalThis as unknown as {
+  pg?: ReturnType<typeof postgres>
+}
 const client = globalForDb.pg ?? postgres(url, { max: 10 })
 if (process.env.NODE_ENV !== "production") globalForDb.pg = client
 
