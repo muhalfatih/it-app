@@ -202,6 +202,26 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     expect(await count(tables.plannerEntry)).toBe(0)
   })
 
+  it("updateEntry menolak id penugasan lama yang muncul dua kali", async () => {
+    const { id } = await mut.createEntry(input(), admin)
+    const old = (await qry.getEntry(id))!.assignments[0]!
+    const dup = { id: String(old.id), ...row(s1) }
+    await expect(
+      mut.updateEntry(id, input({ assignments: [dup, dup] }))
+    ).rejects.toThrow("Penugasan tidak valid")
+  })
+
+  it("id entri yang bukan bilangan bulat valid → Entri tidak ditemukan", async () => {
+    for (const bad of [Number.NaN, 1.5, -1, 0, 2 ** 40]) {
+      await expect(mut.updateEntry(bad, input())).rejects.toThrow(
+        "Entri tidak ditemukan"
+      )
+      await expect(
+        mut.deleteEntry(bad, permissionsFor(["manajer"]))
+      ).rejects.toThrow("Entri tidak ditemukan")
+    }
+  })
+
   it("update/delete entri yang tidak ada → Entri tidak ditemukan", async () => {
     await expect(mut.updateEntry(999999, input())).rejects.toThrow(
       "Entri tidak ditemukan"

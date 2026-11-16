@@ -22,7 +22,13 @@ import { entryInputSchema, type EntryInput } from "./schema"
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 const NOT_FOUND = "Entri tidak ditemukan"
-const isOldId = (id: string | undefined): id is string =>
+/** id dari klien: di luar rentang integer Postgres sama saja dengan tidak ada. */
+function assertEntryId(id: number) {
+  if (!Number.isInteger(id) || id < 1 || id > 2_147_483_647)
+    throw new UserError(NOT_FOUND)
+}
+
+const isOldId =(id: string | undefined): id is string =>
   id !== undefined && /^\d+$/.test(id)
 
 /** Orang, jenis, dan kanal pada baris baru/berubah wajib ada dan aktif. */
@@ -104,6 +110,7 @@ export async function createEntry(
 }
 
 export async function updateEntry(id: number, raw: unknown): Promise<void> {
+  assertEntryId(id)
   const input = entryInputSchema.parse(raw)
   await db.transaction(async (tx) => {
     const [entry] = await tx
@@ -133,7 +140,8 @@ export async function updateEntry(id: number, raw: unknown): Promise<void> {
       const values = assignmentValues(a)
       if (isOldId(a.id)) {
         const old = oldById.get(a.id)
-        if (!old) throw new UserError("Penugasan tidak valid")
+        if (!old || keptIds.has(old.id))
+          throw new UserError("Penugasan tidak valid")
         keptIds.add(old.id)
         updates.push({ id: old.id, values })
         if (old.userId !== values.userId) check.people.push(values.userId)
@@ -186,6 +194,7 @@ export async function deleteEntry(
   permissions: ReadonlySet<Permission>,
   confirmName?: string
 ): Promise<void> {
+  assertEntryId(id)
   await db.transaction(async (tx) => {
     const [row] = await tx
       .select({ name: plannerEntry.name, stage: contentCard.stage })
