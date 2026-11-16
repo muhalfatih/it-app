@@ -70,6 +70,7 @@ import { KanbanDemo } from "./_demo-kanban"
 import { OverlaysDemo } from "./_demo-overlays"
 import { PlannerDemo } from "./_demo-planner"
 import { SidebarDemo } from "./_demo-sidebar"
+import { TabsCalendarDemo } from "./_demo-tabs-calendar"
 import { DAYS, PARTITION_ROWS } from "./_data"
 
 export const metadata: Metadata = { title: "Galeri Komponen · Unit IT & Media" }
@@ -282,6 +283,10 @@ export default function GaleriPage() {
             ))}
           </TableBody>
         </Table>
+      </Section>
+
+      <Section title="Tabs & kalender">
+        <TabsCalendarDemo />
       </Section>
 
       <Section title="Partisi per orang">

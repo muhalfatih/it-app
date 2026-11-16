@@ -59,10 +59,11 @@ import {
 
 /** Hapus entri tahap Review ke atas butuh konfirmasi dua langkah (spesifikasi §4.5). */
 function TwoStepDelete() {
+  const [first, setFirst] = React.useState(false)
   const [second, setSecond] = React.useState(false)
   return (
     <>
-      <AlertDialog>
+      <AlertDialog open={first} onOpenChange={setFirst}>
         <AlertDialogTrigger render={<Button variant="destructive" />}>
           Hapus entri (tahap Review)
         </AlertDialogTrigger>
@@ -78,7 +79,11 @@ function TwoStepDelete() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() => setSecond(true)}
+              onClick={() => {
+                // AlertDialogAction bukan tombol tutup: tutup langkah 1 sebelum membuka langkah 2.
+                setFirst(false)
+                setSecond(true)
+              }}
             >
               Lanjutkan
             </AlertDialogAction>

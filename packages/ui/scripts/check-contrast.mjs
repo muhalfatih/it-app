@@ -3,13 +3,24 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import process from "node:process"
 
-const css = readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8")
+const css = readFileSync(
+  new URL("../src/styles/globals.css", import.meta.url),
+  "utf8"
+)
 
 function parseOklch(value) {
-  const m = /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/.exec(value.trim())
+  const m =
+    /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/.exec(
+      value.trim()
+    )
   if (!m) return null
   const alpha = m[5] === undefined ? 1 : Number(m[5]) / (m[6] ? 100 : 1)
-  return { l: Number(m[1]) / (m[2] ? 100 : 1), c: Number(m[3]), h: Number(m[4]), alpha }
+  return {
+    l: Number(m[1]) / (m[2] ? 100 : 1),
+    c: Number(m[3]),
+    h: Number(m[4]),
+    alpha,
+  }
 }
 
 // OKLCH -> gamma-encoded sRGB (0..1), via OKLab and linear sRGB (Björn Ottosson's matrices).
@@ -31,7 +42,9 @@ function toSrgb({ l, c, h }) {
 }
 
 function luminance(rgb) {
-  const [r, g, b] = rgb.map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+  const [r, g, b] = rgb.map((v) =>
+    v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  )
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
@@ -49,12 +62,20 @@ const ratio = (a, b) => ratioRgb(toSrgb(parseOklch(a)), toSrgb(parseOklch(b)))
 
 // Self-check of the color math.
 assert.equal(Math.round(ratio("oklch(1 0 0)", "oklch(0 0 0)") * 10) / 10, 21)
-assert.ok(Math.abs(ratio("oklch(0.401 0.062 217.4)", "oklch(1 0 0)") - 8.96) < 0.15, "#16505E vs white")
+assert.ok(
+  Math.abs(ratio("oklch(0.401 0.062 217.4)", "oklch(1 0 0)") - 8.96) < 0.15,
+  "#16505E vs white"
+)
 
 function block(selector) {
   const m = new RegExp(`(?:^|\\n)${selector}\\s*\\{([^}]*)\\}`).exec(css)
   assert.ok(m, `block ${selector} not found`)
-  return Object.fromEntries([...m[1].matchAll(/--([\w-]+):\s*([^;]+);/g)].map((x) => [x[1], x[2].trim()]))
+  return Object.fromEntries(
+    [...m[1].matchAll(/--([\w-]+):\s*([^;]+);/g)].map((x) => [
+      x[1],
+      x[2].trim(),
+    ])
+  )
 }
 
 const STATUS = ["success", "warning", "info", "destructive"]
@@ -74,17 +95,29 @@ const both = [
   ["destructive", "background", 4.5],
   ["primary", "background", 3],
   ["ring@0.5", "background", 3],
+  // Grafik: tiap seri chart harus terlihat di latar halaman dan kartu (WCAG 1.4.11).
+  ...[1, 2, 3, 4, 5].flatMap((n) => [
+    [`chart-${n}`, "background", 3],
+    [`chart-${n}`, "card", 3],
+  ]),
 ]
+// Latar tembus pandang ditulis "token@alpha>dasar" (mis. bg-destructive/10 di atas popover).
+const SURFACES = ["background", "card", "popover"]
 const themes = {
   light: [
     ...both,
-    ...STATUS.map((s) => [`${s}-foreground`, "background", 4.5]), // badge -light/-outline text
+    ...STATUS.map((s) => [`${s}-foreground`, "background", 4.5]), // badge -outline text
     ...STATUS.map((s) => [s, "background", 3]), // alert icons
+    ...STATUS.flatMap((s) =>
+      SURFACES.map((b) => [`${s}-foreground`, `${s}@0.1>${b}`, 4.5])
+    ), // badge -light
+    ...SURFACES.map((b) => ["destructive", `destructive@0.1>${b}`, 4.5]), // Button variant destructive
   ],
   dark: [
     ...both,
-    ...STATUS.map((s) => [s, "background", 4.5]), // badge -light text in dark
     ...STATUS.map((s) => [`${s}-foreground`, "background", 4.5]), // badge -outline text
+    ...STATUS.flatMap((s) => SURFACES.map((b) => [s, `${s}@0.15>${b}`, 4.5])), // badge -light
+    ...SURFACES.map((b) => ["destructive", `destructive@0.2>${b}`, 4.5]), // Button variant destructive
   ],
 }
 
@@ -93,10 +126,18 @@ const failures = []
 
 for (const [theme, pairs] of Object.entries(themes)) {
   const color = (name) => {
+    if (name.includes(">")) {
+      const [top, base] = name.split(">")
+      const t = color(top)
+      const b = color(base)
+      return t && b && { rgb: over(t.rgb, t.alpha, b.rgb), alpha: 1 }
+    }
     const [token, alpha] = name.split("@")
     const parsed = vars[theme][token] && parseOklch(vars[theme][token])
     if (!parsed) {
-      failures.push(`${theme}: --${token} missing or not an oklch() literal (${vars[theme][token] ?? "undefined"})`)
+      failures.push(
+        `${theme}: --${token} missing or not an oklch() literal (${vars[theme][token] ?? "undefined"})`
+      )
       return null
     }
     return { rgb: toSrgb(parsed), alpha: Number(alpha ?? 1) * parsed.alpha }

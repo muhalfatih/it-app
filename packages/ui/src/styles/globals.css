@@ -78,11 +78,11 @@
     --border: oklch(0.91 0.012 217);
     --input: oklch(0.91 0.012 217);
     --ring: oklch(0.28 0.05 217);
-    --chart-1: oklch(0.85 0.06 217);
-    --chart-2: oklch(0.7 0.06 217);
-    --chart-3: oklch(0.55 0.06 217);
-    --chart-4: oklch(0.4 0.06 217);
-    --chart-5: oklch(0.28 0.06 217);
+    --chart-1: oklch(0.62 0.07 217);
+    --chart-2: oklch(0.54 0.07 217);
+    --chart-3: oklch(0.46 0.07 217);
+    --chart-4: oklch(0.38 0.07 217);
+    --chart-5: oklch(0.3 0.06 217);
     --radius: 0.625rem;
     --sidebar: oklch(0.98 0.006 217);
     --sidebar-foreground: oklch(0.2 0.03 217);
@@ -118,15 +118,15 @@
     --muted-foreground: oklch(0.72 0.02 217);
     --accent: oklch(0.28 0.025 217);
     --accent-foreground: oklch(0.96 0.008 217);
-    --destructive: oklch(0.68 0.15 25);
+    --destructive: oklch(0.72 0.14 25);
     --border: oklch(0.32 0.025 217);
     --input: oklch(0.32 0.025 217);
     --ring: oklch(0.86 0.06 210);
-    --chart-1: oklch(0.28 0.06 217);
-    --chart-2: oklch(0.4 0.06 217);
-    --chart-3: oklch(0.55 0.06 217);
-    --chart-4: oklch(0.7 0.06 217);
-    --chart-5: oklch(0.85 0.06 217);
+    --chart-1: oklch(0.88 0.06 217);
+    --chart-2: oklch(0.8 0.07 217);
+    --chart-3: oklch(0.72 0.07 217);
+    --chart-4: oklch(0.64 0.07 217);
+    --chart-5: oklch(0.57 0.07 217);
     --sidebar: oklch(0.22 0.022 217);
     --sidebar-foreground: oklch(0.96 0.008 217);
     --sidebar-primary: oklch(0.72 0.08 210);
@@ -154,7 +154,7 @@
     @apply bg-background text-foreground;
     }
 
-  /* Target sentuh >= 44px di perangkat sentuh (PRD §8); sel padat (kalender, kanban, data grid, input group) dikecualikan. */
+  /* Target sentuh >= 44px di perangkat sentuh (PRD §8); sel padat (isi kalender, kanban, tabel data grid, input group) dikecualikan; navigasinya tetap 44px. */
   @media (pointer: coarse) {
     :is(
         [data-slot="button"],
@@ -169,25 +169,32 @@
         [data-slot="tabs-trigger"],
         [data-slot="input"],
         [data-slot="input-group"],
-        [data-slot="sidebar-menu-button"]
+        [data-slot="sidebar-menu-button"],
+        [data-slot^="event-calendar-nav-"]
       ):not(
         :is(
             [data-slot="calendar"],
             [data-slot="kanban"],
-            [data-slot="data-grid"],
-            [data-slot="event-calendar"],
+            [data-slot="data-grid-table"],
+            [data-slot="event-calendar-content"],
             [data-slot="input-group"]
           )
           *
       ) {
       min-height: 2.75rem;
     }
-    [data-slot="button"]:is(.size-6, .size-7, .size-8, .size-9, .size-10):not(
+    :is([data-slot="button"], [data-slot^="event-calendar-nav-"]):is(
+        .size-6,
+        .size-7,
+        .size-8,
+        .size-9,
+        .size-10
+      ):not(
         :is(
             [data-slot="calendar"],
             [data-slot="kanban"],
-            [data-slot="data-grid"],
-            [data-slot="event-calendar"],
+            [data-slot="data-grid-table"],
+            [data-slot="event-calendar-content"],
             [data-slot="input-group"]
           )
           *
