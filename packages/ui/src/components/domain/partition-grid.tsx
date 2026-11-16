@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-type PartitionItem = { id: string; label: string }
+type PartitionItem = { id: string; label: string; href?: string }
 
 type PartitionRow = {
   personId: string
@@ -61,7 +61,16 @@ function PartitionGrid({ days, rows }: PartitionGridProps) {
                     <ul className="flex flex-col gap-1 text-xs">
                       {items.map((item) => (
                         <li key={item.id} className="line-clamp-2">
-                          {item.label}
+                          {item.href ? (
+                            <a
+                              href={item.href}
+                              className="underline-offset-4 outline-none hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {item.label}
+                            </a>
+                          ) : (
+                            item.label
+                          )}
                         </li>
                       ))}
                     </ul>
