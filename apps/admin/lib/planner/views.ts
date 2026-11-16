@@ -80,7 +80,7 @@ export function toCalendarEvents(
       id: `p-${e.id}`,
       title: `Tayang: ${e.name}`,
       ...allDay(e.publishDate, e.publishDate),
-      color: "var(--primary)",
+      color: "var(--warning)",
       data: { entryId: e.id, kind: "tayang" },
     })
   }

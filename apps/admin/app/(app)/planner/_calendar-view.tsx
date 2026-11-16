@@ -31,7 +31,7 @@ export function CalendarView({ events, start }: CalendarViewProps) {
     () => true,
     () => false
   )
-  if (!mounted) return <Skeleton className="h-[560px] w-full" />
+  if (!mounted) return <Skeleton className="h-[440px] w-full" />
 
   return (
     <EventCalendar<PlannerEventData>
@@ -49,7 +49,10 @@ export function CalendarView({ events, start }: CalendarViewProps) {
         const entryId = occ.event.data?.entryId
         if (entryId) router.push(`/planner/${entryId}`)
       }}
-      className="h-[560px]"
+      // shortcut: kalender belum punya mode "hanya sehari penuh"; grid jam dipadatkan jadi satu jam, ganti bila mode itu ada.
+      dayStartHour={8}
+      dayEndHour={9}
+      className="h-[440px]"
     >
       <EventCalendarContent />
     </EventCalendar>

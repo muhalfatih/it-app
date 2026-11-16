@@ -34,7 +34,7 @@ export function PlannerToolbar(props: PlannerToolbarProps) {
             {props.tabs.map((t) => (
               <Button
                 key={t.value}
-                variant={t.value === props.active ? "secondary" : "outline"}
+                variant={t.value === props.active ? "default" : "outline"}
                 aria-current={t.value === props.active ? "page" : undefined}
                 render={<Link href={t.href} />}
                 nativeButton={false}
@@ -88,7 +88,7 @@ export function PlannerToolbar(props: PlannerToolbarProps) {
           {props.rentang && (
             <ButtonGroup>
               <Button
-                variant={props.rentang.active === "pekan" ? "secondary" : "outline"}
+                variant={props.rentang.active === "pekan" ? "default" : "outline"}
                 aria-pressed={props.rentang.active === "pekan"}
                 render={<Link href={props.rentang.pekanHref} />}
                 nativeButton={false}
@@ -96,7 +96,7 @@ export function PlannerToolbar(props: PlannerToolbarProps) {
                 Pekan
               </Button>
               <Button
-                variant={props.rentang.active === "bulan" ? "secondary" : "outline"}
+                variant={props.rentang.active === "bulan" ? "default" : "outline"}
                 aria-pressed={props.rentang.active === "bulan"}
                 render={<Link href={props.rentang.bulanHref} />}
                 nativeButton={false}
