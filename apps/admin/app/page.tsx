@@ -1,19 +1,15 @@
+import Link from "next/link"
+
 import { Button } from "@workspace/ui/components/button"
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="text-muted-foreground font-mono text-xs">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
+    <div className="flex min-h-svh flex-col items-start justify-center gap-3 p-6">
+      <h1 className="text-2xl font-semibold tracking-tight">Unit IT &amp; Media</h1>
+      <p className="text-sm text-muted-foreground">Modul Tahap 1 sedang disiapkan. Tinjau design system terlebih dahulu.</p>
+      <Button render={<Link href="/galeri" />} nativeButton={false}>
+        Buka galeri komponen
+      </Button>
     </div>
   )
 }

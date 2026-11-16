@@ -1,0 +1,85 @@
+// Label bahasa Indonesia untuk komponen @reui yang bawaannya berbahasa Inggris.
+import type { EventCalendarI18nOverrides } from "@workspace/ui/components/reui/event-calendar/event-calendar-i18n"
+import type { DateSelectorI18nConfig } from "@workspace/ui/components/reui/date-selector"
+
+const BULAN = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+]
+
+export const EVENT_CALENDAR_I18N_ID: EventCalendarI18nOverrides = {
+  labels: {
+    today: "Hari ini",
+    previous: "Sebelumnya",
+    next: "Berikutnya",
+    addEvent: "Tambah",
+    allDay: "Sehari",
+    more: (count) => `+${count} lagi`,
+    noEvents: "Tidak ada jadwal",
+    loading: "Memuat jadwal",
+    event: "jadwal",
+    events: (count) => `${count} jadwal`,
+    selectView: "Pilih tampilan",
+    week: (weekNumber) => `P${weekNumber}`,
+    goToDate: "Ke tanggal",
+    dropNotAllowed: "Tidak bisa di sini",
+    continues: "berlanjut",
+    timeFrom: (time) => `Dari ${time}`,
+    timeUntil: (time) => `Sampai ${time}`,
+    toggleDayEvents: (count) => `${count} jadwal`,
+  },
+  viewNames: {
+    month: "Bulan",
+    week: "Pekan",
+    day: "Hari",
+    days: (count) => (count === 6 ? "Senin–Sabtu" : `${count} hari`),
+    agenda: "Agenda",
+  },
+  formats: {
+    dayTitle: "EEEE, d MMMM yyyy",
+    agendaDayHeader: "EEEE, d MMMM",
+    moreDayHeader: "EEEE, d MMMM",
+    timeGutter: "HH.mm",
+    timeGutterMinute: "HH.mm",
+    eventTime: "HH.mm",
+  },
+}
+
+export const DATE_SELECTOR_I18N_ID: Partial<DateSelectorI18nConfig> = {
+  selectDate: "Pilih tanggal",
+  apply: "Terapkan",
+  cancel: "Batal",
+  clear: "Hapus",
+  today: "Hari ini",
+  filterTypes: {
+    is: "pada",
+    before: "sebelum",
+    after: "sesudah",
+    between: "antara",
+  },
+  periodTypes: {
+    day: "Hari",
+    month: "Bulan",
+    quarter: "Kuartal",
+    halfYear: "Semester",
+    year: "Tahun",
+  },
+  months: BULAN,
+  monthsShort: BULAN.map((b) => b.slice(0, 3)),
+  quarters: ["K1", "K2", "K3", "K4"],
+  halfYears: ["Semester 1", "Semester 2"],
+  weekdays: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+  weekdaysShort: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
+  placeholder: "Pilih tanggal…",
+  rangePlaceholder: "Pilih rentang tanggal…",
+}
