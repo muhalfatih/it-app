@@ -133,3 +133,15 @@ export function canDeleteEntry(
     needsNameConfirm(stage) ? "planner.hapus_terkunci" : "planner.ubah"
   )
 }
+
+/** URL /planner dari parameter + perubahan; saya selalu eksplisit, rentang hanya untuk Daftar. */
+export function buildPlannerHref(
+  params: PlannerParams,
+  patch: Partial<PlannerParams>
+): string {
+  const p = { ...params, ...patch }
+  const q = new URLSearchParams({ tampilan: p.tampilan, tanggal: p.tanggal })
+  if (p.tampilan === "daftar") q.set("rentang", p.rentang)
+  q.set("saya", p.saya ? "1" : "0")
+  return `/planner?${q}`
+}

@@ -73,12 +73,14 @@ export function toCalendarEvents(
         id: `t-${a.id}`,
         title: `${a.taskTypeName} · ${a.userName} — ${e.name}`,
         ...allDay(a.start, a.end),
+        color: "var(--chart-3)",
         data: { entryId: e.id, kind: "tugas" },
       })
     events.push({
       id: `p-${e.id}`,
       title: `Tayang: ${e.name}`,
       ...allDay(e.publishDate, e.publishDate),
+      color: "var(--primary)",
       data: { entryId: e.id, kind: "tayang" },
     })
   }

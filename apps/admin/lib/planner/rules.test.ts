@@ -4,6 +4,7 @@ import { permissionsFor } from "@workspace/auth/permissions"
 
 import {
   applyMyWork,
+  buildPlannerHref,
   canDeleteEntry,
   inPeriod,
   needsNameConfirm,
@@ -147,5 +148,20 @@ describe("aturan Planner", () => {
     expect(canDeleteEntry(permissionsFor(["sdm_khusus"]), "ide")).toBe(false)
     expect(needsNameConfirm("ide")).toBe(false)
     expect(needsNameConfirm("disetujui")).toBe(true)
+  })
+
+  it("buildPlannerHref menulis saya eksplisit dan rentang hanya untuk daftar", () => {
+    const p = {
+      tampilan: "kalender",
+      tanggal: "2026-11-16",
+      rentang: "pekan",
+      saya: false,
+    } as const
+    expect(buildPlannerHref(p, {})).toBe(
+      "/planner?tampilan=kalender&tanggal=2026-11-16&saya=0"
+    )
+    expect(buildPlannerHref(p, { tampilan: "daftar", rentang: "bulan" })).toBe(
+      "/planner?tampilan=daftar&tanggal=2026-11-16&rentang=bulan&saya=0"
+    )
   })
 })
