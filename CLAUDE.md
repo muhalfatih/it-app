@@ -61,6 +61,24 @@ Registry `@reui` (https://reui.io) dipakai untuk variasi komponen tambahan. Terd
 - Item `@reui` menambah CSS variables ke `packages/ui/src/styles/globals.css` (mis. 18 variabel untuk `alert`). Jalankan `--dry-run` dulu, lalu periksa `git diff` pada `globals.css` setelahnya; token tetap satu-satunya sumber warna.
 - Item bertanda `locked`/premium di hasil MCP, serta blok/template premium (butuh lisensi Pro/Ultimate): jangan dipasang tanpa persetujuan pengguna.
 
+## Awal proyek: diskusikan design system dulu
+
+Saat memulai proyek baru (atau saat `globals.css` masih token bawaan), JANGAN langsung membuat halaman atau modul. Mulai dengan diskusi kebutuhan design system, satu topik per giliran:
+
+1. **Identitas:** warna utama/brand, logo, nada visual (formal, ramah, padat data).
+2. **Tipografi & bentuk:** font, radius, kepadatan (nyaman vs ringkas).
+3. **Tema:** terang saja atau terang + gelap.
+4. **Perangkat & aksesibilitas:** HP/laptop, target sentuh, kontras.
+5. **Komponen yang dibutuhkan:** diturunkan dari PRD/spesifikasi, ditawarkan dulu (shadcn + `@reui`) dan dikonfirmasi sebelum dipasang.
+
+Hasil diskusi dirangkum dan disetujui pengguna sebelum eksekusi. Baru setelah itu:
+
+- Token ditulis di `packages/ui/src/styles/globals.css`.
+- Komponen dipasang lewat CLI (dengan `--dry-run` dulu) dan komponen domain dibuat di `packages/ui/src/components/domain/`.
+- Galeri komponen dirakit di `apps/admin`, lalu ditinjau pengguna.
+
+Pengerjaan modul dimulai setelah pengguna menyetujui design system. Jika pengguna sudah memberi keputusan lengkap (mis. kode warna dan font), tanyakan hanya yang masih kosong.
+
 ## Versioning (git, GitHub, dsb): jelaskan sebelum eksekusi
 
 Untuk setiap aksi versioning (commit, push, pull, merge, fast-forward, rebase, reset, checkout/switch, branch, tag, stash, PR, dll.), SEBELUM menjalankan berikan rekomendasi dan penjelasan berbasis fakta repo saat ini:
