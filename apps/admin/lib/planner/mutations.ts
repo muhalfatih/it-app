@@ -14,6 +14,7 @@ import {
 import type { Permission } from "@workspace/auth/permissions"
 import type { ContentStage } from "@workspace/db/schema/stages"
 
+import { reconcileCardAfterEntryUpdate } from "@/lib/kanban/mutations"
 import { UserError } from "@/lib/setting-crud"
 
 import { canDeleteEntry, needsNameConfirm } from "./rules"
@@ -111,6 +112,7 @@ export async function createEntry(
 
 export async function updateEntry(
   id: number,
+  actorId: string,
   raw: unknown,
   version?: string
 ): Promise<void> {
@@ -118,7 +120,11 @@ export async function updateEntry(
   const input = entryInputSchema.parse(raw)
   await db.transaction(async (tx) => {
     const [entry] = await tx
-      .select({ id: plannerEntry.id, updatedAt: plannerEntry.updatedAt })
+      .select({
+        id: plannerEntry.id,
+        name: plannerEntry.name,
+        updatedAt: plannerEntry.updatedAt,
+      })
       .from(plannerEntry)
       .where(eq(plannerEntry.id, id))
       .for("update")
@@ -202,6 +208,16 @@ export async function updateEntry(
     await tx
       .insert(plannerEntryChannel)
       .values(input.channelIds.map((channelId) => ({ entryId: id, channelId })))
+    await reconcileCardAfterEntryUpdate(
+      tx,
+      id,
+      {
+        oldName: entry.name,
+        newName: input.name,
+        newChannelIds: input.channelIds,
+      },
+      actorId
+    )
   })
 }
 

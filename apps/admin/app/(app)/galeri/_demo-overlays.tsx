@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   AlertTriangleIcon,
   BellRingIcon,
+  Undo2Icon,
   BoxIcon,
   CalendarIcon,
   CopyIcon,
@@ -97,6 +98,9 @@ import {
   SheetTrigger,
 } from "@workspace/ui/components/sheet"
 import { Separator } from "@workspace/ui/components/separator"
+import { Pattern as ToastVariants } from "@workspace/ui/components/examples/c-sonner-4"
+import { Pattern as ToastAction } from "@workspace/ui/components/examples/c-sonner-6"
+import { Pattern as ToastPromise } from "@workspace/ui/components/examples/c-sonner-7"
 import { Textarea } from "@workspace/ui/components/textarea"
 import {
   Tooltip,
@@ -458,59 +462,20 @@ export function OverlaysDemo() {
             </FrameHeader>
             <Scenario
               icon={BellRingIcon}
-              title="Variasi toast"
-              when="Berhasil, bisa diurungkan, proses, dan gagal."
+              title="Variasi status"
+              when="Ikon berwarna sesuai status: biasa, berhasil, gagal, peringatan, info, memuat."
             >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  toast.success("Laporan terkirim", {
-                    description: "Skor hari ini 6/11 (54,5%).",
-                  })
-                }
-              >
-                Berhasil
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  toast("Penugasan dihapus", {
-                    description: "Budi Santoso · Editing",
-                    action: {
-                      label: "Urungkan",
-                      onClick: () => toast.success("Penugasan dikembalikan"),
-                    },
-                  })
-                }
-              >
-                Dengan aksi
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  toast.promise(new Promise((r) => setTimeout(r, 1800)), {
-                    loading: "Mengunggah 4 file…",
-                    success: "4 file terunggah",
-                    error: "Gagal mengunggah",
-                  })
-                }
-              >
-                Proses
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  toast.error("Gagal menyimpan", {
-                    description: "Periksa koneksi lalu coba lagi.",
-                  })
-                }
-              >
-                Gagal
-              </Button>
+              <div className="w-full">
+                <ToastVariants />
+              </div>
+            </Scenario>
+            <Scenario
+              icon={Undo2Icon}
+              title="Aksi dan proses"
+              when="Toast dengan tombol Urungkan, dan satu toast yang berubah dari memuat ke hasil."
+            >
+              <ToastAction />
+              <ToastPromise />
             </Scenario>
           </Frame>
         </div>

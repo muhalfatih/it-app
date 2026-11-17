@@ -38,7 +38,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          // Ikon sejajar dengan baris judul (bukan terpusat), tanpa tarikan -3px bawaan sonner.
+          toast: "cn-toast items-start! gap-2.5!",
+          icon: "m-0! mt-0.5! size-4 shrink-0",
+          actionButton: "self-center!",
         },
       }}
       {...props}

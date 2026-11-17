@@ -9,5 +9,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["lib/**/*.test.ts"],
+    // Beberapa file tes mengosongkan database uji yang sama; jangan jalan bersamaan.
+    fileParallelism: false,
   },
 })

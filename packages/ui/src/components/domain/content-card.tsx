@@ -43,6 +43,10 @@ type ContentCardProps = {
   assignees: { id: string; name: string }[]
   thumbnailUrl?: string
   locked?: boolean
+  /** Tautan ke halaman kartu; seluruh kartu jadi area klik. */
+  href?: string
+  /** Mis. "2/3 kanal" di tahap Disetujui. */
+  progress?: string
 }
 
 function initials(name: string) {
@@ -64,6 +68,8 @@ function ContentCard({
   assignees,
   thumbnailUrl,
   locked,
+  href,
+  progress,
 }: ContentCardProps) {
   return (
     // relative: label sr-only (absolute) tetap di dalam kartu, tidak melebarkan kontainer scroll
@@ -78,9 +84,20 @@ function ContentCard({
           />
         ) : null}
         <div className="flex items-start gap-2">
-          <span className="line-clamp-2 flex-1 text-sm font-medium">
-            {title}
-          </span>
+          {href ? (
+            <a
+              href={href}
+              // Enter/Spasi membuka tautan, bukan memulai seret keyboard pada handle induk.
+              onKeyDown={(e) => e.stopPropagation()}
+              className="line-clamp-2 flex-1 rounded-sm text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-md hover:underline focus-visible:after:ring-2 focus-visible:after:ring-ring"
+            >
+              {title}
+            </a>
+          ) : (
+            <span className="line-clamp-2 flex-1 text-sm font-medium">
+              {title}
+            </span>
+          )}
           {locked ? (
             <LockIcon
               role="img"
@@ -104,6 +121,9 @@ function ContentCard({
             <span className="sr-only">Tanggal tayang:</span>
             {publishDate}
           </span>
+          {progress ? (
+            <span className="tabular-nums">{progress}</span>
+          ) : null}
           <AvatarGroup>
             {assignees.map((person) => (
               <Avatar key={person.id} size="sm" title={person.name}>

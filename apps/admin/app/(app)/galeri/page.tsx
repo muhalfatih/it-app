@@ -52,6 +52,9 @@ import {
   TimelineSeparator,
   TimelineTitle,
 } from "@workspace/ui/components/reui/timeline"
+import { Pattern as TabsSetting } from "@workspace/ui/components/examples/c-tabs-4"
+import { Pattern as TabsStatus } from "@workspace/ui/components/examples/c-tabs-7"
+import { Pattern as TabsView } from "@workspace/ui/components/examples/c-tabs-9"
 import { requireUser } from "@workspace/auth/session"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -61,8 +64,10 @@ import { ChartDemo } from "./_demo-chart"
 import { FormsDemo } from "./_demo-forms"
 import { KanbanDemo } from "./_demo-kanban"
 import { MediaDemo } from "./_demo-media"
+import { MiscDemo } from "./_demo-misc"
 import { OverlaysDemo } from "./_demo-overlays"
 import { PlannerDemo } from "./_demo-planner"
+import { ReuiDemo } from "./_demo-reui"
 import { RecapGrid } from "./_demo-tables"
 import { TabsCalendarDemo } from "./_demo-tabs-calendar"
 import { DAYS, PARTITION_ROWS } from "./_data"
@@ -185,6 +190,14 @@ export default async function GaleriPage() {
         <AlertsDemo />
       </Section>
 
+      <Section title="Input, pilihan & daftar pengaturan">
+        <MiscDemo />
+      </Section>
+
+      <Section title="Komponen reui: cascader, filter, berkas">
+        <ReuiDemo />
+      </Section>
+
       <Section title="Skor laporan">
         <Progress value={54.5} className="max-w-md">
           <ProgressLabel>Skor hari ini (6/11)</ProgressLabel>
@@ -198,6 +211,16 @@ export default async function GaleriPage() {
 
       <Section title="Tabs & kalender">
         <TabsCalendarDemo />
+      </Section>
+
+      <Section title="Tabs untuk alur aplikasi">
+        <div className="grid min-w-0 gap-6 md:grid-cols-2">
+          <TabsStatus />
+          <TabsView />
+          <div className="md:col-span-2">
+            <TabsSetting />
+          </div>
+        </div>
       </Section>
 
       <Section title="Partisi per orang">

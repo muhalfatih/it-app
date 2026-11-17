@@ -62,6 +62,8 @@ export const DATE_SELECTOR_I18N_ID: Partial<DateSelectorI18nConfig> = {
   cancel: "Batal",
   clear: "Hapus",
   today: "Hari ini",
+  previousMonth: "Bulan sebelumnya",
+  nextMonth: "Bulan berikutnya",
   filterTypes: {
     is: "pada",
     before: "sebelum",
