@@ -117,7 +117,7 @@ export function Board({
           onMove={onMove}
           getItemValue={(item) => String(item.id)}
         >
-          <KanbanBoard className="grid min-w-[62rem] grid-cols-5 gap-3">
+          <KanbanBoard className="grid min-w-[62rem] grid-cols-5 gap-3 sm:grid-cols-5">
             {CONTENT_STAGES.map((stage) => {
               const Icon = CONTENT_STAGE_ICON[stage]
               const items = columns[stage]
@@ -143,23 +143,25 @@ export function Board({
                       {items.map((card) => {
                         const targets = allowedMoves(perms, card.stage, card.publishedCount)
                         const movable = !isMobile && Boolean(targets.forward || targets.back)
+                        const cardEl = (
+                          <ContentCard
+                            title={card.name}
+                            href={`/konten/${card.id}`}
+                            publishDate={card.publishLabel}
+                            channels={card.channels.map((c) => c.name)}
+                            assignees={card.assignees}
+                            locked={LOCKED.includes(card.stage)}
+                            progress={
+                              card.stage === "disetujui"
+                                ? `${card.publishedCount}/${card.channels.length} kanal`
+                                : undefined
+                            }
+                          />
+                        )
                         return (
-                          <KanbanItem key={card.id} value={String(card.id)} disabled={!movable}>
-                            <KanbanItemHandle cursor={movable}>
-                              <ContentCard
-                                title={card.name}
-                                href={`/konten/${card.id}`}
-                                publishDate={card.publishLabel}
-                                channels={card.channels.map((c) => c.name)}
-                                assignees={card.assignees}
-                                locked={LOCKED.includes(card.stage)}
-                                progress={
-                                  card.stage === "disetujui"
-                                    ? `${card.publishedCount}/${card.channels.length} kanal`
-                                    : undefined
-                                }
-                              />
-                            </KanbanItemHandle>
+                          <KanbanItem key={card.id} value={String(card.id)}>
+                            {/* Tanpa handle, kartu tidak bisa diseret (tanpa opacity bawaan disabled). */}
+                            {movable ? <KanbanItemHandle>{cardEl}</KanbanItemHandle> : cardEl}
                           </KanbanItem>
                         )
                       })}
