@@ -29,7 +29,7 @@ status() { # status <path> [cookie-jar]
 psql_db() { docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"; }
 
 echo "== Tanpa sesi"
-for path in /setting/akun /setting/kanal /galeri /planner /; do
+for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
@@ -46,6 +46,8 @@ done
 check "GET /galeri (diizinkan) -> 200" "200" "$(status /galeri "$JAR")"
 check "GET /planner (diizinkan) -> 200" "200" "$(status /planner "$JAR")"
 check "GET /planner/baru (tanpa planner.ubah) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner/baru "$JAR")"
+check "GET /konten (diizinkan) -> 200" "200" "$(status /konten "$JAR")"
+check "GET /konten/999999 (tidak ada) -> 404" "404" "$(status /konten/999999 "$JAR")"
 
 echo "== Staf Unit Lain (opsional: VERIFY_OTHER_USERNAME / VERIFY_OTHER_PASSWORD)"
 if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; then
@@ -55,6 +57,7 @@ if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; the
     --data "{\"username\":\"$VERIFY_OTHER_USERNAME\",\"password\":\"$VERIFY_OTHER_PASSWORD\"}")
   check "login staf unit lain" "200" "$code"
   check "GET /planner (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner "$OTHER_JAR")"
+  check "GET /konten (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /konten "$OTHER_JAR")"
   rm -f "$OTHER_JAR"
 else
   echo "SKIP  staf unit lain (variabel VERIFY_OTHER_* tidak diisi)"
