@@ -1,14 +1,12 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import type { Permission } from "@workspace/auth/permissions"
-import {
-  CONTENT_STAGES,
-  type ContentStage,
-} from "@workspace/db/schema/stages"
+import { CONTENT_STAGES, type ContentStage } from "@workspace/db/schema/stages"
+import { KanbanColumnEmpty } from "@workspace/ui/components/domain/kanban-column-empty"
 import {
   CONTENT_STAGE_ICON,
   CONTENT_STAGE_LABEL,
@@ -32,6 +30,10 @@ import {
   type KanbanMoveEvent,
 } from "@workspace/ui/components/reui/kanban"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@workspace/ui/components/toggle-group"
 
 import { allowedMoves } from "@/lib/kanban/rules"
 import type { BoardCard } from "@/lib/kanban/types"
@@ -56,6 +58,7 @@ export function Board({
   allPublished: boolean
 }) {
   const isMobile = useIsMobile()
+  const router = useRouter()
   const perms = React.useMemo(() => new Set(permissions), [permissions])
   const [optimistic, applyMove] = React.useOptimistic(
     cards,
@@ -65,7 +68,11 @@ export function Board({
   const [, startTransition] = React.useTransition()
   const [pending, setPending] = React.useState<Pending | null>(null)
   // dnd-kit membuat id aria berbeda di server dan klien (hydration mismatch); render setelah mount saja.
-  const mounted = React.useSyncExternalStore(noop, () => true, () => false)
+  const mounted = React.useSyncExternalStore(
+    noop,
+    () => true,
+    () => false
+  )
 
   const columns = React.useMemo(() => {
     const byStage = Object.fromEntries(
@@ -93,7 +100,11 @@ export function Board({
     })
   }
 
-  function onMove({ activeContainer, activeIndex, overContainer }: KanbanMoveEvent) {
+  function onMove({
+    activeContainer,
+    activeIndex,
+    overContainer,
+  }: KanbanMoveEvent) {
     if (activeContainer === overContainer) return
     const card = columns[activeContainer as ContentStage]?.[activeIndex]
     if (!card) return
@@ -104,7 +115,9 @@ export function Board({
       // Buka dialog setelah klik lepas-seret selesai; bila tidak, Base UI menganggapnya "outside press" dan menutup dialog pada klik berikutnya.
       setTimeout(() => setPending({ card, to }), 0)
     else if (to === "tayang")
-      toast.error("Kartu pindah ke Telah Tayang otomatis saat semua kanal dicentang")
+      toast.error(
+        "Kartu pindah ke Telah Tayang otomatis saat semua kanal dicentang"
+      )
     else toast.error("Anda tidak berwenang memindahkan kartu ke tahap ini")
   }
 
@@ -127,24 +140,62 @@ export function Board({
                 <KanbanColumn key={stage} value={stage}>
                   <Frame spacing="sm" className="h-full">
                     <FrameHeader className="flex flex-row items-center gap-2">
-                      <Icon aria-hidden className="size-4 text-muted-foreground" />
+                      <Icon
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                      />
                       <FrameTitle>{CONTENT_STAGE_LABEL[stage]}</FrameTitle>
-                      <Badge variant="outline" size="sm" className="ml-auto tabular-nums">
+                      <Badge
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto tabular-nums"
+                      >
                         {items.length}
                       </Badge>
                     </FrameHeader>
+                    {stage === "tayang" && (
+                      <ToggleGroup
+                        value={[allPublished ? "semua" : "30"]}
+                        onValueChange={(v) => {
+                          if (v[0])
+                            router.push(
+                              v[0] === "semua"
+                                ? "/konten?tayang=semua"
+                                : "/konten"
+                            )
+                        }}
+                        variant="outline"
+                        size="sm"
+                        spacing={0}
+                        aria-label="Rentang kartu telah tayang"
+                        className="w-full"
+                      >
+                        <ToggleGroupItem value="30" className="flex-1">
+                          30 hari
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="semua" className="flex-1">
+                          Semua
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                    )}
                     <KanbanColumnContent
                       value={stage}
-                      className="flex min-h-20 flex-col gap-2 p-0.5"
+                      className="flex min-h-20 flex-1 flex-col gap-2 p-0.5"
                     >
                       {items.length === 0 && (
-                        <p className="px-1 py-3 text-xs text-muted-foreground">
-                          Belum ada kartu
-                        </p>
+                        <KanbanColumnEmpty
+                          stage={stage}
+                          showAll={allPublished}
+                        />
                       )}
                       {items.map((card) => {
-                        const targets = allowedMoves(perms, card.stage, card.publishedCount)
-                        const movable = !isMobile && Boolean(targets.forward || targets.back)
+                        const targets = allowedMoves(
+                          perms,
+                          card.stage,
+                          card.publishedCount
+                        )
+                        const movable =
+                          !isMobile && Boolean(targets.forward || targets.back)
                         const cardEl = (
                           <ContentCard
                             title={card.name}
@@ -170,19 +221,15 @@ export function Board({
                             aria-roledescription={undefined}
                           >
                             {/* Tanpa handle, kartu tidak bisa diseret (tanpa opacity bawaan disabled). */}
-                            {movable ? <KanbanItemHandle>{cardEl}</KanbanItemHandle> : cardEl}
+                            {movable ? (
+                              <KanbanItemHandle>{cardEl}</KanbanItemHandle>
+                            ) : (
+                              cardEl
+                            )}
                           </KanbanItem>
                         )
                       })}
                     </KanbanColumnContent>
-                    {stage === "tayang" && (
-                      <Link
-                        href={allPublished ? "/konten" : "/konten?tayang=semua"}
-                        className="px-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                      >
-                        {allPublished ? "Tampilkan 30 hari terakhir" : "Lihat semua"}
-                      </Link>
-                    )}
                   </Frame>
                 </KanbanColumn>
               )
@@ -194,11 +241,21 @@ export function Board({
       <NoteDialog
         open={pending !== null}
         onOpenChange={(open) => !open && setPending(null)}
-        title={pending ? `Kembalikan ke ${CONTENT_STAGE_LABEL[pending.to]}?` : ""}
-        description={pending ? `“${pending.card.name}” dikembalikan untuk revisi. Catatan tersimpan di riwayat kartu.` : ""}
+        title={
+          pending ? `Kembalikan ke ${CONTENT_STAGE_LABEL[pending.to]}?` : ""
+        }
+        description={
+          pending
+            ? `“${pending.card.name}” dikembalikan untuk revisi. Catatan tersimpan di riwayat kartu.`
+            : ""
+        }
         label="Catatan revisi"
         confirmLabel="Kembalikan"
-        onConfirm={(note) => (pending ? commit(pending.card, pending.to, note) : Promise.resolve(null))}
+        onConfirm={(note) =>
+          pending
+            ? commit(pending.card, pending.to, note)
+            : Promise.resolve(null)
+        }
       />
     </>
   )
