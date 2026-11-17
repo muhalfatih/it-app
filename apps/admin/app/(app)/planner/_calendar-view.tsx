@@ -3,7 +3,6 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { id as localeId } from "date-fns/locale"
-import { parseISO } from "date-fns"
 
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { EventCalendar } from "@workspace/ui/components/reui/event-calendar/event-calendar"
@@ -36,11 +35,13 @@ export function CalendarView({ events, start }: CalendarViewProps) {
   return (
     <EventCalendar<PlannerEventData>
       events={events}
+      defaultView={mobile ? "agenda" : "days"}
       view={mobile ? "agenda" : "days"}
       views={mobile ? ["agenda"] : ["days"]}
       dayCount={7}
       agendaDayCount={7}
-      date={parseISO(start)}
+      // Tengah malam WIB, sama dengan batas event; parseISO(start) memakai zona browser dan menggeser pekan di WITA/WIT.
+      date={new Date(`${start}T00:00:00+07:00`)}
       weekStartsOn={1}
       // Event allDay dikirim sebagai tengah malam WIB; zona tetap supaya hari tidak bergeser di zona browser lain.
       timeZone="Asia/Jakarta"
