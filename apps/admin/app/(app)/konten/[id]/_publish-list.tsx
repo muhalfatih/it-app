@@ -33,7 +33,8 @@ export function PublishList({
     <div className="flex flex-col divide-y">
       {channels.map((c) => (
         <ChannelRow
-          key={c.id}
+          // key memuat status centang: baris dipasang ulang saat dibatalkan, jadi link/galat lama hilang.
+          key={`${c.id}-${c.publication ? "on" : "off"}`}
           cardId={cardId}
           channel={c}
           canCheck={canCheck}

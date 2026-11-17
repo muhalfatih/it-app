@@ -50,7 +50,7 @@ export function NoteDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!note.trim()) {
-      setError("Catatan wajib diisi")
+      setError(`${label} wajib diisi`)
       return
     }
     startTransition(async () => {

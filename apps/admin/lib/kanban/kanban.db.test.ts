@@ -180,7 +180,7 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     const { cardId } = await card("disetujui")
     await mut.checkChannel(cardId, chPlain, null, K)
     await mut.checkChannel(cardId, chLink, "https://youtu.be/x", K)
-    await expect(mut.uncheckChannel(cardId, chLink, "   ", M)).rejects.toThrow("Catatan wajib diisi")
+    await expect(mut.uncheckChannel(cardId, chLink, "   ", M)).rejects.toThrow("Alasan wajib diisi")
     await expect(mut.uncheckChannel(cardId, chLink, "Link keliru", K)).rejects.toThrow()
     expect(await mut.uncheckChannel(cardId, chLink, "Link keliru", M)).toEqual({ stage: "disetujui" })
     const pubs = await dbm.db.select().from(t.contentCardPublication).where(orm.eq(t.contentCardPublication.cardId, cardId))

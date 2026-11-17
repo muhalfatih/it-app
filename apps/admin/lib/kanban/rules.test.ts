@@ -11,6 +11,7 @@ import {
   isFullyPublished,
   noteSchema,
   publishUrlError,
+  reasonSchema,
 } from "./rules"
 
 const M = permissionsFor(["manajer"])
@@ -99,6 +100,15 @@ describe("noteSchema", () => {
     expect(noteSchema.safeParse("   ").success).toBe(false)
     expect(noteSchema.safeParse("a".repeat(2001)).success).toBe(false)
     expect(noteSchema.parse("  Perbaiki judul ")).toBe("Perbaiki judul")
+  })
+})
+
+describe("reasonSchema", () => {
+  it("menolak kosong dengan pesan alasan dan menjepit spasi", () => {
+    const r = reasonSchema.safeParse("   ")
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0]?.message).toBe("Alasan wajib diisi")
+    expect(reasonSchema.parse("  Salah kanal ")).toBe("Salah kanal")
   })
 })
 

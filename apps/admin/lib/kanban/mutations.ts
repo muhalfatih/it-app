@@ -25,6 +25,7 @@ import {
   commentSchema,
   isFullyPublished,
   noteSchema,
+  reasonSchema,
   publishUrlError,
 } from "./rules"
 
@@ -179,7 +180,7 @@ export async function uncheckChannel(
     const card = await lockCard(tx, cardId)
     if (!canUncheck(actor.permissions, card.stage))
       throw new UserError("Anda tidak berwenang membatalkan centang")
-    const note = parse(noteSchema, reason)
+    const note = parse(reasonSchema, reason)
     if (!validId(channelId) || !(await publishedIds(tx, cardId)).includes(channelId))
       throw new UserError("Kanal belum dicentang")
 

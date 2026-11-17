@@ -99,6 +99,7 @@ const text = (required: string, max: number) =>
     .max(max, { message: `Maksimal ${max} karakter` })
 
 export const noteSchema = text("Catatan wajib diisi", 2000)
+export const reasonSchema = text("Alasan wajib diisi", 2000)
 export const commentSchema = text("Komentar wajib diisi", 2000)
 export const captionSchema = z
   .string()
