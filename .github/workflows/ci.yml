@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: itapp
+          POSTGRES_PASSWORD: itapp
+          POSTGRES_DB: itapp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U itapp -d itapp_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # Tes database mengosongkan tabel: HANYA database berakhiran _test.
+      DATABASE_URL: postgres://itapp:itapp@localhost:5432/itapp_test
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-in-production-0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # versi dari "packageManager" di package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm --filter @workspace/db db:migrate
+      - run: pnpm --filter @workspace/auth test
+      - run: pnpm --filter admin test
