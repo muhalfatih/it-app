@@ -97,9 +97,18 @@ export const contentCard = pgTable(
       .notNull()
       .references(() => plannerEntry.id, { onDelete: "cascade" }),
     stage: text("stage").notNull().default("ide"),
+    caption: text("caption"),
+    /** Diisi setiap tahap berubah; batas 30 hari kolom Telah Tayang. */
+    stageChangedAt: timestamp("stage_changed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (t) => [
     unique("content_card_entry_unique").on(t.entryId),
