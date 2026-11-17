@@ -100,7 +100,9 @@ export function Board({
     const to = overContainer as ContentStage
     const targets = allowedMoves(perms, card.stage, card.publishedCount)
     if (to === targets.forward) void commit(card, to)
-    else if (to === targets.back) setPending({ card, to })
+    else if (to === targets.back)
+      // Buka dialog setelah klik lepas-seret selesai; bila tidak, Base UI menganggapnya "outside press" dan menutup dialog pada klik berikutnya.
+      setTimeout(() => setPending({ card, to }), 0)
     else if (to === "tayang")
       toast.error("Kartu pindah ke Telah Tayang otomatis saat semua kanal dicentang")
     else toast.error("Anda tidak berwenang memindahkan kartu ke tahap ini")
