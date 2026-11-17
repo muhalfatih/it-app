@@ -18,6 +18,7 @@ import {
   parse,
   subMonths,
 } from "date-fns"
+import type { Locale } from "date-fns"
 import type { DateRange, DayButton } from "react-day-picker"
 
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
@@ -64,6 +65,9 @@ export interface DateSelectorI18nConfig {
   // Placeholders
   placeholder: string
   rangePlaceholder: string
+  // Month navigation (aria-label)
+  previousMonth: string
+  nextMonth: string
 }
 
 export const DEFAULT_DATE_SELECTOR_I18N: DateSelectorI18nConfig = {
@@ -72,6 +76,8 @@ export const DEFAULT_DATE_SELECTOR_I18N: DateSelectorI18nConfig = {
   cancel: "Cancel",
   clear: "Clear",
   today: "Today",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
   filterTypes: {
     is: "is",
     before: "before",
@@ -721,6 +727,7 @@ function DateSelectorPeriodTabs({
               variant="ghost"
               className="size-8.5"
               onClick={() => onMonthChange(subMonths(calendarMonth, 1))}
+              aria-label={i18n.previousMonth}
             >
               <ChevronLeftIcon className="size-4" />
             </Button>
@@ -728,6 +735,7 @@ function DateSelectorPeriodTabs({
               variant="ghost"
               className="size-8.5"
               onClick={() => onMonthChange(addMonths(calendarMonth, 1))}
+              aria-label={i18n.nextMonth}
             >
               <ChevronRightIcon className="size-4" />
             </Button>
@@ -747,6 +755,8 @@ interface DateSelectorDayPickerProps {
   hoverDate?: Date
   showTwoMonths?: boolean
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6
+  /** Locale date-fns untuk kalender dan label tanggal aksesibel, mis. `id`. */
+  locale?: Locale
   className?: string
 }
 
@@ -760,6 +770,7 @@ function DateSelectorDayPicker({
   hoverDate,
   showTwoMonths = true,
   weekStartsOn,
+  locale,
   className,
 }: DateSelectorDayPickerProps) {
   const { i18n } = useDateSelectorContext()
@@ -826,6 +837,9 @@ function DateSelectorDayPicker({
       const year = date.getFullYear()
       return `${i18n.months[monthIndex]} ${year}`
     },
+    // react-day-picker v9 membaca `formatCaption` (v8: `formatMonthCaption`); keduanya dipertahankan.
+    formatCaption: (date: Date) =>
+      `${i18n.months[date.getMonth()]} ${date.getFullYear()}`,
   }
 
   return (
@@ -839,6 +853,7 @@ function DateSelectorDayPicker({
           numberOfMonths={isMobile ? 1 : showTwoMonths ? 2 : 1}
           showOutsideDays={true}
           weekStartsOn={weekStartsOn}
+          locale={locale}
           formatters={formatters}
           className="w-full shrink-0 p-0"
           classNames={{
@@ -859,6 +874,7 @@ function DateSelectorDayPicker({
           numberOfMonths={isMobile ? 1 : showTwoMonths ? 2 : 1}
           showOutsideDays={true}
           weekStartsOn={weekStartsOn}
+          locale={locale}
           formatters={formatters}
           className="w-full shrink-0 p-0"
           classNames={{
@@ -1023,6 +1039,8 @@ export interface DateSelectorProps {
   dayDateFormat?: string
   dayDateFormats?: string[]
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6
+  /** Locale date-fns untuk kalender dan label tanggal aksesibel, mis. `id`. */
+  locale?: Locale
 }
 
 export function DateSelector({
@@ -1046,6 +1064,7 @@ export function DateSelector({
   dayDateFormat = "MM/dd/yyyy",
   dayDateFormats,
   weekStartsOn,
+  locale,
 }: DateSelectorProps) {
   const mergedI18n = useMemo(
     () => ({ ...DEFAULT_DATE_SELECTOR_I18N, ...i18nOverride }),
@@ -1228,6 +1247,9 @@ export function DateSelector({
           <div className="relative">
             <Input
               type="text"
+              name="tanggal"
+              autoComplete="off"
+              aria-label={label ?? mergedI18n.selectDate}
               value={inputHint ? inputValue : displayValue}
               readOnly={!inputHint}
               placeholder={
@@ -1241,6 +1263,7 @@ export function DateSelector({
               <button
                 type="button"
                 onClick={clearSelection}
+                aria-label={mergedI18n.clear}
                 className={cn(
                   // Base Styles
                   "rounded-full absolute end-2.5 top-1/2 size-4 -translate-y-1/2 cursor-pointer",
@@ -1276,6 +1299,7 @@ export function DateSelector({
               hoverDate={hoverDate}
               showTwoMonths={showTwoMonths}
               weekStartsOn={weekStartsOn}
+              locale={locale}
             />
           </div>
         ) : (
