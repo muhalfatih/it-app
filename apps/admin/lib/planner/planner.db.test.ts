@@ -106,7 +106,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const before = (await qry.getEntry(id))!.assignments
     const keep = before.find((a) => a.userId === s1)!
     await mut.updateEntry(
-      id,
+      id, admin,
       input({
         name: "Video Profil 2",
         assignments: [
@@ -130,7 +130,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const foreign = (await qry.getEntry(other.id))!.assignments[0]!
     await expect(
       mut.updateEntry(
-        id,
+        id, admin,
         input({ assignments: [{ id: String(foreign.id), ...row(s1) }] })
       )
     ).rejects.toThrow("Penugasan tidak valid")
@@ -141,7 +141,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const old = (await qry.getEntry(id))!.assignments[0]!
     await accounts.setDisabled(s1, true)
     await mut.updateEntry(
-      id,
+      id, admin,
       input({
         name: "Diubah",
         assignments: [{ id: String(old.id), ...row(s1) }],
@@ -149,7 +149,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     )
     await expect(
       mut.updateEntry(
-        id,
+        id, admin,
         input({
           assignments: [{ id: String(old.id), ...row(s1) }, row(s1)],
         })
@@ -170,12 +170,12 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const old = (await qry.getEntry(id))!.assignments[0]!
     const keepRow = { id: String(old.id), ...row(s1) }
     await mut.updateEntry(
-      id,
+      id, admin,
       input({ name: "Sama", assignments: [keepRow], channelIds: [ch1] })
     )
     await expect(
       mut.updateEntry(
-        id,
+        id, admin,
         input({ assignments: [keepRow], channelIds: [ch1, ch2] })
       )
     ).rejects.toThrow("sudah dinonaktifkan")
@@ -207,7 +207,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const old = (await qry.getEntry(id))!.assignments[0]!
     await accounts.setDisabled(s1, true)
     await expect(
-      mut.updateEntry(id, input({ assignments: [{ id: String(old.id), ...row(s1, "2026-11-25", "2026-11-26") }] }))
+      mut.updateEntry(id, admin, input({ assignments: [{ id: String(old.id), ...row(s1, "2026-11-25", "2026-11-26") }] }))
     ).rejects.toThrow("sudah dinonaktifkan")
   })
 
@@ -219,25 +219,25 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
       .set({ active: false })
       .where(orm.eq(tables.taskType.id, Number(tt)))
     const keep = { id: String(old.id), ...row(s1) }
-    await mut.updateEntry(id, input({ name: "Sama", assignments: [keep] }))
+    await mut.updateEntry(id, admin, input({ name: "Sama", assignments: [keep] }))
     await expect(
-      mut.updateEntry(id, input({ assignments: [keep, row(s2)] }))
+      mut.updateEntry(id, admin, input({ assignments: [keep, row(s2)] }))
     ).rejects.toThrow("Jenis sudah dinonaktifkan")
     await expect(
-      mut.updateEntry(id, input({ assignments: [{ ...keep, start: "2026-11-30", end: "2026-11-30" }] }))
+      mut.updateEntry(id, admin, input({ assignments: [{ ...keep, start: "2026-11-30", end: "2026-11-30" }] }))
     ).rejects.toThrow("Jenis sudah dinonaktifkan")
   })
 
   it("formulir basi (versi lama) ditolak dan tidak menimpa", async () => {
     const { id } = await mut.createEntry(input(), admin)
     const v1 = (await qry.getEntry(id))!.updatedAt
-    await mut.updateEntry(id, input({ name: "Dari A" }), v1)
+    await mut.updateEntry(id, admin, input({ name: "Dari A" }), v1)
     await expect(
-      mut.updateEntry(id, input({ name: "Dari B" }), v1)
+      mut.updateEntry(id, admin, input({ name: "Dari B" }), v1)
     ).rejects.toThrow("sudah diubah orang lain")
     expect((await qry.getEntry(id))!.name).toBe("Dari A")
     const v2 = (await qry.getEntry(id))!.updatedAt
-    await mut.updateEntry(id, input({ name: "Dari B" }), v2)
+    await mut.updateEntry(id, admin, input({ name: "Dari B" }), v2)
   })
 
   it("id jenis atau kanal di luar int4 / bukan angka ditolak oleh skema, bukan 500", async () => {
@@ -251,13 +251,13 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const old = (await qry.getEntry(id))!.assignments[0]!
     const dup = { id: String(old.id), ...row(s1) }
     await expect(
-      mut.updateEntry(id, input({ assignments: [dup, dup] }))
+      mut.updateEntry(id, admin, input({ assignments: [dup, dup] }))
     ).rejects.toThrow("Penugasan tidak valid")
   })
 
   it("id entri yang bukan bilangan bulat valid → Entri tidak ditemukan", async () => {
     for (const bad of [Number.NaN, 1.5, -1, 0, 2 ** 40]) {
-      await expect(mut.updateEntry(bad, input())).rejects.toThrow(
+      await expect(mut.updateEntry(bad, admin, input())).rejects.toThrow(
         "Entri tidak ditemukan"
       )
       await expect(
@@ -267,7 +267,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
   })
 
   it("update/delete entri yang tidak ada → Entri tidak ditemukan", async () => {
-    await expect(mut.updateEntry(999999, input())).rejects.toThrow(
+    await expect(mut.updateEntry(999999, admin, input())).rejects.toThrow(
       "Entri tidak ditemukan"
     )
     await expect(

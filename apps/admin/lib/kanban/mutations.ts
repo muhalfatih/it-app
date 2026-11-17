@@ -204,6 +204,72 @@ export async function uncheckChannel(
   })
 }
 
+/**
+ * Dipanggil di dalam transaksi updateEntry Planner, setelah kanal entri ditulis (§4.6):
+ * publikasi mengikuti kanal entri, tahap Disetujui/Telah Tayang disesuaikan, ganti nama dicatat.
+ */
+export async function reconcileCardAfterEntryUpdate(
+  tx: Tx,
+  entryId: number,
+  change: {
+    oldName: string
+    newName: string
+    oldChannelIds: number[]
+    newChannelIds: number[]
+  },
+  actorId: string
+): Promise<void> {
+  const [card] = await tx
+    .select({ id: contentCard.id, stage: contentCard.stage })
+    .from(contentCard)
+    .where(eq(contentCard.entryId, entryId))
+    .for("update")
+  if (!card) return
+  const stage = card.stage as ContentStage
+  const keep = new Set(change.newChannelIds)
+
+  const done = await publishedIds(tx, card.id)
+  const dropped = done.filter((c) => !keep.has(c))
+  for (const channelId of dropped)
+    await tx
+      .delete(contentCardPublication)
+      .where(
+        and(
+          eq(contentCardPublication.cardId, card.id),
+          eq(contentCardPublication.channelId, channelId)
+        )
+      )
+  const remaining = done.filter((c) => keep.has(c))
+  const complete = isFullyPublished(change.newChannelIds, remaining)
+
+  if (stage === "disetujui" && complete) {
+    await setStage(tx, card.id, "tayang")
+    await logEvent(tx, card.id, actorId, {
+      kind: "otomatis",
+      fromStage: "disetujui",
+      toStage: "tayang",
+      note: "Kanal dihapus di Planner",
+    })
+  } else if (stage === "tayang" && !complete) {
+    await setStage(tx, card.id, "disetujui")
+    await logEvent(tx, card.id, actorId, {
+      kind: "otomatis",
+      fromStage: "tayang",
+      toStage: "disetujui",
+      note: "Kanal ditambah di Planner",
+    })
+  }
+
+  if (
+    change.oldName !== change.newName &&
+    (stage === "disetujui" || stage === "tayang")
+  )
+    await logEvent(tx, card.id, actorId, {
+      kind: "catatan_sistem",
+      note: `Diubah setelah disetujui: "${change.oldName}" → "${change.newName}"`,
+    })
+}
+
 export async function addComment(
   cardId: number,
   body: string,

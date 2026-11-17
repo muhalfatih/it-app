@@ -208,6 +208,61 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     expect(rows[0]).toMatchObject({ body: "Bagus", authorId: D.id })
   })
 
+  describe("sinkron dari updateEntry Planner (§4.6)", () => {
+    const entryInput = (patch: Record<string, unknown>) => ({
+      name: "Video Profil",
+      activityStart: null,
+      activityEnd: null,
+      publishDate: "2026-11-20",
+      assignments: [{ personId: K.id, taskTypeId: tt, start: "2026-11-16", end: "2026-11-17" }],
+      channelIds: [chLink, chPlain],
+      ...patch,
+    })
+
+    it("buang kanal yang belum dicentang → sisa lengkap → tayang otomatis", async () => {
+      const { cardId, entryId } = await card("disetujui")
+      await mut.checkChannel(cardId, chPlain, null, K)
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chPlain] }))
+      expect(await stageOf(cardId)).toBe("tayang")
+      expect((await events(cardId)).at(-1)).toMatchObject({ kind: "otomatis", toStage: "tayang", actorId: M.id })
+    })
+
+    it("tambah kanal ke kartu tayang → kembali disetujui", async () => {
+      const { cardId, entryId } = await card("disetujui", [chPlain])
+      await mut.checkChannel(cardId, chPlain, null, K)
+      expect(await stageOf(cardId)).toBe("tayang")
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chPlain, chLink] }))
+      expect(await stageOf(cardId)).toBe("disetujui")
+      expect((await events(cardId)).at(-1)).toMatchObject({ kind: "otomatis", fromStage: "tayang", toStage: "disetujui" })
+    })
+
+    it("ubah nama setelah disetujui mencatat catatan sistem; tahap tetap", async () => {
+      const { cardId, entryId } = await card("disetujui")
+      await planner.updateEntry(entryId, M.id, entryInput({ name: "Video Profil Baru" }))
+      expect(await stageOf(cardId)).toBe("disetujui")
+      const last = (await events(cardId)).at(-1)!
+      expect(last.kind).toBe("catatan_sistem")
+      expect(last.note).toContain("Diubah setelah disetujui")
+      expect(last.note).toContain("Video Profil")
+      expect(last.note).toContain("Video Profil Baru")
+    })
+
+    it("ubah nama di draft tidak mencatat apa pun", async () => {
+      const { cardId, entryId } = await card("draft")
+      await planner.updateEntry(entryId, M.id, entryInput({ name: "Lain" }))
+      expect(await events(cardId)).toHaveLength(0)
+    })
+
+    it("kanal tercentang yang dibuang ikut menghapus publikasinya", async () => {
+      const { cardId, entryId } = await card("disetujui")
+      await mut.checkChannel(cardId, chPlain, null, K)
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chLink] }))
+      const pubs = await dbm.db.select().from(t.contentCardPublication).where(orm.eq(t.contentCardPublication.cardId, cardId))
+      expect(pubs).toHaveLength(0)
+      expect(await stageOf(cardId)).toBe("disetujui")
+    })
+  })
+
   it("hapus entri ikut menghapus event, komentar, publikasi", async () => {
     const { cardId, entryId } = await card("disetujui")
     await mut.checkChannel(cardId, chPlain, null, K)

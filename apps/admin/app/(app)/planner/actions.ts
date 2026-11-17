@@ -19,7 +19,7 @@ export const saveEntry = withPermission(
     let savedId: number | undefined = id ?? undefined
     const result = await guarded("/planner", async () => {
       if (id === null) savedId = (await createEntry(input, user!.id)).id
-      else await updateEntry(id, input, version)
+      else await updateEntry(id, user!.id, input, version)
     })
     if ("error" in result || savedId === undefined) return result
     revalidatePath(`/planner/${savedId}`)
