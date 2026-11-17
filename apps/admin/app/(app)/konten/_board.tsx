@@ -160,8 +160,15 @@ export function Board({
                             }
                           />
                         )
+                        // useSortable memasang role=button/tabindex=0, padahal listener keyboard ada di handle: tab stop kosong.
                         return (
-                          <KanbanItem key={card.id} value={String(card.id)}>
+                          <KanbanItem
+                            key={card.id}
+                            value={String(card.id)}
+                            tabIndex={-1}
+                            role={undefined}
+                            aria-roledescription={undefined}
+                          >
                             {/* Tanpa handle, kartu tidak bisa diseret (tanpa opacity bawaan disabled). */}
                             {movable ? <KanbanItemHandle>{cardEl}</KanbanItemHandle> : cardEl}
                           </KanbanItem>
