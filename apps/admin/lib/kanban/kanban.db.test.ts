@@ -263,6 +263,35 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     })
   })
 
+  describe("listBoard", () => {
+    it("Telah Tayang > 30 hari disembunyikan kecuali allPublished; tahap lain tetap", async () => {
+      const qry = await import("./queries")
+      const old = new Date(Date.now() - 31 * 24 * 3600 * 1000)
+      const { cardId: tayangLama } = await card("tayang")
+      const { cardId: ideLama } = await card("ide")
+      const { cardId: tayangBaru } = await card("disetujui", [chPlain])
+      await mut.checkChannel(tayangBaru, chPlain, null, K)
+      await dbm.db
+        .update(t.contentCard)
+        .set({ stageChangedAt: old })
+        .where(orm.inArray(t.contentCard.id, [tayangLama, ideLama]))
+
+      const ids = (cards: { id: number }[]) => cards.map((c) => c.id).sort()
+      expect(ids(await qry.listBoard({ allPublished: false }))).toEqual([ideLama, tayangBaru].sort())
+      expect(ids(await qry.listBoard({ allPublished: true }))).toEqual([tayangLama, ideLama, tayangBaru].sort())
+    })
+
+    it("membawa kanal, penugasan unik per orang, dan jumlah centang", async () => {
+      const qry = await import("./queries")
+      const { cardId } = await card("disetujui")
+      await mut.checkChannel(cardId, chPlain, null, K)
+      const [c] = await qry.listBoard({ allPublished: false })
+      expect(c).toMatchObject({ id: cardId, stage: "disetujui", name: "Video Profil", publishedCount: 1 })
+      expect(c!.channels.map((x) => x.id).sort()).toEqual([chLink, chPlain].sort())
+      expect(c!.assignees).toEqual([{ id: K.id, name: "uji.khusus" }])
+    })
+  })
+
   it("hapus entri ikut menghapus event, komentar, publikasi", async () => {
     const { cardId, entryId } = await card("disetujui")
     await mut.checkChannel(cardId, chPlain, null, K)

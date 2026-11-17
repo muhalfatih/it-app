@@ -20,7 +20,7 @@ import type { Period, PlannerEntry, StaffMember } from "./types"
 type EntryRow = typeof plannerEntry.$inferSelect
 
 /** Muat penugasan, kanal, dan tahap untuk entri-entri ini (3 query). */
-async function hydrate(rows: EntryRow[]): Promise<PlannerEntry[]> {
+export async function hydrate(rows: EntryRow[]): Promise<PlannerEntry[]> {
   if (rows.length === 0) return []
   const ids = rows.map((r) => r.id)
   const [assignments, channels, cards] = await Promise.all([
