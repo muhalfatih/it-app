@@ -28,10 +28,12 @@ const MATRIX: [Permission, string][] = [
   ["tugas_manajer.kelola", "M"],
   ["kanban.lihat", "DMSK"],
   ["kanban.isi", "MSK"],
-  ["kanban.ide_ke_draft", "S"],
+  // PRD #3 dan #4: Manajer diberi hak cadangan.
+  ["kanban.ide_ke_draft", "MS"],
   ["kanban.draft_ke_review", "M"],
   ["kanban.review_ke_disetujui", "D"],
   ["kanban.tayang", "MSK"],
+  ["kanban.batal_tayang", "M"],
   ["absensi.isi", "M"],
   ["absensi.rekap.semua", "DM"],
   ["absensi.rekap.sendiri", "SK"],
