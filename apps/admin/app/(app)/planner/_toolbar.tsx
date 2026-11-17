@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react"
 
-import { Button } from "@workspace/ui/components/button"
+import { buttonVariants } from "@workspace/ui/components/button"
 import { ButtonGroup } from "@workspace/ui/components/button-group"
 import { Label } from "@workspace/ui/components/label"
 import { Switch } from "@workspace/ui/components/switch"
@@ -22,6 +22,15 @@ type PlannerToolbarProps = {
   newHref: string | null
 }
 
+/**
+ * Tautan bergaya tombol: tetap <a> asli (tanpa role="button") supaya dibacakan sebagai tautan.
+ * data-slot="button" agar ButtonGroup tetap menyatukan sudutnya.
+ */
+const linkButton = (
+  variant: "default" | "outline",
+  size?: "default" | "icon"
+) => ({ "data-slot": "button", className: buttonVariants({ variant, size }) })
+
 export function PlannerToolbar(props: PlannerToolbarProps) {
   const router = useRouter()
   const go = (href: string) => router.push(href)
@@ -32,54 +41,45 @@ export function PlannerToolbar(props: PlannerToolbarProps) {
         <nav aria-label="Tampilan Planner">
           <ButtonGroup>
             {props.tabs.map((t) => (
-              <Button
+              <Link
                 key={t.value}
-                variant={t.value === props.active ? "default" : "outline"}
+                href={t.href}
                 aria-current={t.value === props.active ? "page" : undefined}
-                render={<Link href={t.href} />}
-                nativeButton={false}
+                {...linkButton(t.value === props.active ? "default" : "outline")}
               >
                 {t.label}
-              </Button>
+              </Link>
             ))}
           </ButtonGroup>
         </nav>
         {props.newHref && (
-          <Button render={<Link href={props.newHref} />} nativeButton={false}>
+          <Link href={props.newHref} {...linkButton("default")}>
             <PlusIcon data-icon="inline-start" />
             Entri baru
-          </Button>
+          </Link>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2">
           <ButtonGroup>
-            <Button
-              variant="outline"
-              size="icon"
+            <Link
+              href={props.prevHref}
               aria-label="Periode sebelumnya"
-              render={<Link href={props.prevHref} />}
-              nativeButton={false}
+              {...linkButton("outline", "icon")}
             >
               <ChevronLeftIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
+            </Link>
+            <Link
+              href={props.nextHref}
               aria-label="Periode berikutnya"
-              render={<Link href={props.nextHref} />}
-              nativeButton={false}
+              {...linkButton("outline", "icon")}
             >
               <ChevronRightIcon />
-            </Button>
+            </Link>
           </ButtonGroup>
-          <Button
-            variant="outline"
-            render={<Link href={props.todayHref} />}
-            nativeButton={false}
-          >
+          <Link href={props.todayHref} {...linkButton("outline")}>
             Hari ini
-          </Button>
+          </Link>
           <h2 className="ml-1 text-base font-medium tabular-nums">
             {props.title}
           </h2>
@@ -87,32 +87,31 @@ export function PlannerToolbar(props: PlannerToolbarProps) {
         <div className="flex flex-wrap items-center gap-4 sm:ml-auto">
           {props.rentang && (
             <ButtonGroup>
-              <Button
-                variant={props.rentang.active === "pekan" ? "default" : "outline"}
+              <Link
+                href={props.rentang.pekanHref}
                 aria-current={props.rentang.active === "pekan" ? "true" : undefined}
-                render={<Link href={props.rentang.pekanHref} />}
-                nativeButton={false}
+                {...linkButton(props.rentang.active === "pekan" ? "default" : "outline")}
               >
                 Pekan
-              </Button>
-              <Button
-                variant={props.rentang.active === "bulan" ? "default" : "outline"}
+              </Link>
+              <Link
+                href={props.rentang.bulanHref}
                 aria-current={props.rentang.active === "bulan" ? "true" : undefined}
-                render={<Link href={props.rentang.bulanHref} />}
-                nativeButton={false}
+                {...linkButton(props.rentang.active === "bulan" ? "default" : "outline")}
               >
                 Bulan
-              </Button>
+              </Link>
             </ButtonGroup>
           )}
-          <div className="flex items-center gap-2">
+          {/* Label membungkus switch: seluruh baris (min 44px) jadi area sentuh. */}
+          <Label htmlFor="planner-saya" className="min-h-11 cursor-pointer">
             <Switch
               id="planner-saya"
               checked={props.saya}
               onCheckedChange={() => go(props.sayaHref)}
             />
-            <Label htmlFor="planner-saya">Pekerjaan saya saja</Label>
-          </div>
+            Pekerjaan saya saja
+          </Label>
         </div>
       </div>
     </div>

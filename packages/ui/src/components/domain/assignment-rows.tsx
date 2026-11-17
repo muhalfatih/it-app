@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { eachDayOfInterval, format, parseISO } from "date-fns"
+import { differenceInCalendarDays, format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import { CalendarIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
@@ -48,6 +48,8 @@ type AssignmentRowsProps = {
   onChange: (value: Assignment[]) => void
   people: Option[]
   taskTypes: Option[]
+  /** Mode baca saja: sembunyikan kontrol tambah/hapus baris dan petunjuk ubah. */
+  readOnly?: boolean
 }
 
 // Desktop: satu baris per penugasan. HP: orang + hapus, lalu jenis, lalu tanggal + durasi.
@@ -63,13 +65,10 @@ function rangeLabel({ start, end }: Assignment) {
   return end && end !== start ? `${fmt(start)} – ${fmt(end)}` : fmt(start)
 }
 
-/** Jumlah hari kerja (Senin–Sabtu) dalam rentang penugasan. */
-function workDays({ start, end }: Assignment) {
+/** Jumlah hari kalender (inklusif) dalam rentang penugasan. */
+function dayCount({ start, end }: Assignment) {
   if (!start) return 0
-  return eachDayOfInterval({
-    start: parseISO(start),
-    end: parseISO(end ?? start),
-  }).filter((d) => d.getDay() !== 0).length
+  return differenceInCalendarDays(parseISO(end ?? start), parseISO(start)) + 1
 }
 
 /** Penugasan lain milik orang yang sama dengan rentang tanggal beririsan. */
@@ -142,6 +141,7 @@ function AssignmentRows({
   onChange,
   people,
   taskTypes,
+  readOnly = false,
 }: AssignmentRowsProps) {
   const baseId = React.useId()
   const counter = React.useRef(0)
@@ -172,9 +172,11 @@ function AssignmentRows({
             {incomplete} belum lengkap
           </Badge>
         ) : null}
-        <span className="ml-auto text-xs text-muted-foreground">
-          Ubah langsung di tiap baris
-        </span>
+        {!readOnly && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            Ubah langsung di tiap baris
+          </span>
+        )}
       </FrameHeader>
       <FramePanel className="p-0!">
         <div
@@ -193,7 +195,9 @@ function AssignmentRows({
 
         {value.length === 0 ? (
           <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-            Belum ada penugasan. Tambahkan baris di bawah.
+            {readOnly
+              ? "Belum ada penugasan."
+              : "Belum ada penugasan. Tambahkan baris di bawah."}
           </p>
         ) : (
           <ul className="divide-y">
@@ -226,17 +230,22 @@ function AssignmentRows({
                       onValueChange={(personId) => update(index, { personId })}
                     />
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Hapus baris ${n}${name ? `: ${name}` : ""}`}
-                    className="sm:order-last"
-                    onClick={() =>
-                      onChange(value.filter((_, i) => i !== index))
-                    }
-                  >
-                    <Trash2Icon />
-                  </Button>
+                  {readOnly ? (
+                    // Pengganti sel kolom hapus supaya tata letak grid tetap.
+                    <span aria-hidden className="sm:order-last" />
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Hapus baris ${n}${name ? `: ${name}` : ""}`}
+                      className="sm:order-last"
+                      onClick={() =>
+                        onChange(value.filter((_, i) => i !== index))
+                      }
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  )}
                   <div className="col-span-2 sm:col-span-1">
                     <OptionSelect
                       label={`Jenis tugas, baris ${n}`}
@@ -295,7 +304,7 @@ function AssignmentRows({
                       </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {workDays(row)} hari
+                        {dayCount(row)} hari
                       </span>
                     )}
                   </div>
@@ -305,17 +314,19 @@ function AssignmentRows({
           </ul>
         )}
 
-        <div className="border-t p-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-muted-foreground"
-            onClick={add}
-          >
-            <PlusIcon data-icon="inline-start" />
-            Tambah penugasan
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="border-t p-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground"
+              onClick={add}
+            >
+              <PlusIcon data-icon="inline-start" />
+              Tambah penugasan
+            </Button>
+          </div>
+        )}
       </FramePanel>
     </Frame>
   )

@@ -112,7 +112,8 @@ function EventCalendarAgendaView({
             const items = [...(bucket?.allDay ?? []), ...(bucket?.timed ?? [])]
             const zoned = toZoned(day, settings.timeZone)
             const weekday = format(zoned, "EEEE", { locale: settings.locale })
-            const dayDate = format(zoned, "MMMM d, yyyy", {
+            // Kustomisasi proyek: "PPP" mengikuti urutan locale (id: "23 November 2026"); tertimpa bila `add --overwrite`.
+            const dayDate = format(zoned, "PPP", {
               locale: settings.locale,
             })
             return (
