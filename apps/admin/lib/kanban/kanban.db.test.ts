@@ -137,6 +137,55 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     await expect(mut.moveCard(Number.NaN, "ide", "draft", M)).rejects.toThrow("Kartu tidak ditemukan")
   })
 
+  it("tahap tujuan kosong atau sembarang ditolak; kartu tayang tidak berubah", async () => {
+    const { cardId } = await card("tayang")
+    const before = (await dbm.db.select().from(t.contentCard).where(orm.eq(t.contentCard.id, cardId)))[0]!
+    for (const bad of [undefined, "x", null]) {
+      await expect(mut.moveCard(cardId, "tayang", bad as never, K)).rejects.toThrow()
+      await expect(mut.moveCard(cardId, "x" as never, "tayang", K)).rejects.toThrow()
+    }
+    const after = (await dbm.db.select().from(t.contentCard).where(orm.eq(t.contentCard.id, cardId)))[0]!
+    expect(after.stage).toBe("tayang")
+    expect(after.stageChangedAt).toEqual(before.stageChangedAt)
+    expect(await events(cardId)).toHaveLength(0)
+  })
+
+  it("Direktur Disetujui→Review tanpa centang berhasil", async () => {
+    const { cardId } = await card("disetujui")
+    await mut.moveCard(cardId, "disetujui", "review", D, "Ulang")
+    expect(await stageOf(cardId)).toBe("review")
+  })
+
+  it("batal centang di disetujui: tahap tetap disetujui", async () => {
+    const { cardId } = await card("disetujui")
+    await mut.checkChannel(cardId, chPlain, null, K)
+    expect(await mut.uncheckChannel(cardId, chPlain, "Keliru", M)).toEqual({ stage: "disetujui" })
+    expect(await stageOf(cardId)).toBe("disetujui")
+  })
+
+  it("dua centang kanal sama bersamaan: satu berhasil, satu ditolak", async () => {
+    const { cardId } = await card("disetujui")
+    const r = await Promise.allSettled([
+      mut.checkChannel(cardId, chPlain, null, K),
+      mut.checkChannel(cardId, chPlain, null, S),
+    ])
+    expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1)
+    const rej = r.find((x) => x.status === "rejected") as PromiseRejectedResult
+    expect(String(rej.reason)).toContain("Kanal sudah dicentang")
+  })
+
+  it("dua perpindahan dari tahap sama bersamaan: satu berhasil, satu ditolak", async () => {
+    const { cardId } = await card("ide")
+    const r = await Promise.allSettled([
+      mut.moveCard(cardId, "ide", "draft", S),
+      mut.moveCard(cardId, "ide", "draft", M),
+    ])
+    expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1)
+    const rej = r.find((x) => x.status === "rejected") as PromiseRejectedResult
+    expect(String(rej.reason)).toContain("Kartu sudah dipindah orang lain")
+    expect(await events(cardId)).toHaveLength(1)
+  })
+
   it("caption terkunci sejak review", async () => {
     const { cardId } = await card("review")
     await expect(mut.saveCaption(cardId, "Teks", K)).rejects.toThrow()
@@ -260,6 +309,45 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
       const pubs = await dbm.db.select().from(t.contentCardPublication).where(orm.eq(t.contentCardPublication.cardId, cardId))
       expect(pubs).toHaveLength(0)
       expect(await stageOf(cardId)).toBe("disetujui")
+    })
+
+    it("kanal tercentang yang dibuang tercatat batal_centang dengan link lama", async () => {
+      const { cardId, entryId } = await card("disetujui")
+      await mut.checkChannel(cardId, chPlain, null, K)
+      await mut.checkChannel(cardId, chLink, "https://youtu.be/x", K)
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chLink] }))
+      const ev = (await events(cardId)).filter((e) => e.kind === "batal_centang" && e.channelId === chPlain)
+      expect(ev).toHaveLength(1)
+      expect(ev[0]!.note).toContain("Kanal dihapus di Planner")
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chPlain] }))
+      const link = (await events(cardId)).find((e) => e.kind === "batal_centang" && e.channelId === chLink)
+      expect(link!.note).toContain("https://youtu.be/x")
+    })
+
+    it("buang dan tambah kanal sekaligus pada kartu tayang → disetujui, publikasi terhapus + event", async () => {
+      const { cardId, entryId } = await card("disetujui", [chPlain])
+      await mut.checkChannel(cardId, chPlain, null, K)
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chLink] }))
+      expect(await stageOf(cardId)).toBe("disetujui")
+      const pubs = await dbm.db.select().from(t.contentCardPublication).where(orm.eq(t.contentCardPublication.cardId, cardId))
+      expect(pubs).toHaveLength(0)
+      expect((await events(cardId)).some((e) => e.kind === "batal_centang" && e.channelId === chPlain)).toBe(true)
+    })
+
+    it("kartu tayang: buang kanal tercentang, sisa lengkap → tetap tayang", async () => {
+      const { cardId, entryId } = await card("disetujui")
+      await mut.checkChannel(cardId, chPlain, null, K)
+      await mut.checkChannel(cardId, chLink, "https://youtu.be/x", K)
+      expect(await stageOf(cardId)).toBe("tayang")
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chLink] }))
+      expect(await stageOf(cardId)).toBe("tayang")
+    })
+
+    it("kartu review: kanal berubah tidak mengubah tahap dan tanpa event otomatis", async () => {
+      const { cardId, entryId } = await card("review")
+      await planner.updateEntry(entryId, M.id, entryInput({ channelIds: [chPlain] }))
+      expect(await stageOf(cardId)).toBe("review")
+      expect(await events(cardId)).toHaveLength(0)
     })
   })
 

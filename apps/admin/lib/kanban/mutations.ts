@@ -1,5 +1,5 @@
 // Mutasi Kanban (server-only): satu transaksi per aksi, aturan diperiksa terhadap tahap di database.
-import type { z } from "zod"
+import { z } from "zod"
 
 import type { Permission } from "@workspace/auth/permissions"
 import { db } from "@workspace/db/client"
@@ -12,7 +12,11 @@ import {
   contentCardPublication,
   plannerEntryChannel,
 } from "@workspace/db/schema"
-import type { CardEventKind, ContentStage } from "@workspace/db/schema/stages"
+import {
+  CONTENT_STAGES,
+  type CardEventKind,
+  type ContentStage,
+} from "@workspace/db/schema/stages"
 
 import { UserError } from "@/lib/setting-crud"
 
@@ -91,6 +95,10 @@ export async function moveCard(
   actor: Actor,
   note?: string
 ): Promise<void> {
+  // Nilai dari klien: tahap di luar daftar tidak boleh lolos ke perbandingan targets.
+  const stageSchema = z.enum(CONTENT_STAGES, { error: "Tahap tidak valid" })
+  parse(stageSchema, from)
+  parse(stageSchema, to)
   await db.transaction(async (tx) => {
     const card = await lockCard(tx, cardId)
     if (card.stage !== from)
@@ -100,10 +108,10 @@ export async function moveCard(
       card.stage,
       (await publishedIds(tx, cardId)).length
     )
-    if (to === targets.forward) {
+    if (targets.forward !== undefined && to === targets.forward) {
       await setStage(tx, cardId, to)
       await logEvent(tx, cardId, actor.id, { kind: "maju", fromStage: from, toStage: to })
-    } else if (to === targets.back) {
+    } else if (targets.back !== undefined && to === targets.back) {
       const text = parse(noteSchema, note ?? "")
       await setStage(tx, cardId, to)
       await logEvent(tx, cardId, actor.id, { kind: "kembali", fromStage: from, toStage: to, note: text })
@@ -215,7 +223,6 @@ export async function reconcileCardAfterEntryUpdate(
   change: {
     oldName: string
     newName: string
-    oldChannelIds: number[]
     newChannelIds: number[]
   },
   actorId: string
@@ -229,9 +236,11 @@ export async function reconcileCardAfterEntryUpdate(
   const stage = card.stage as ContentStage
   const keep = new Set(change.newChannelIds)
 
-  const done = await publishedIds(tx, card.id)
-  const dropped = done.filter((c) => !keep.has(c))
-  for (const channelId of dropped)
+  const pubs = await tx
+    .select({ channelId: contentCardPublication.channelId, url: contentCardPublication.url })
+    .from(contentCardPublication)
+    .where(eq(contentCardPublication.cardId, card.id))
+  for (const { channelId, url } of pubs.filter((p) => !keep.has(p.channelId))) {
     await tx
       .delete(contentCardPublication)
       .where(
@@ -240,7 +249,13 @@ export async function reconcileCardAfterEntryUpdate(
           eq(contentCardPublication.channelId, channelId)
         )
       )
-  const remaining = done.filter((c) => keep.has(c))
+    await logEvent(tx, card.id, actorId, {
+      kind: "batal_centang",
+      channelId,
+      note: url ? `Kanal dihapus di Planner (link: ${url})` : "Kanal dihapus di Planner",
+    })
+  }
+  const remaining = pubs.map((p) => p.channelId).filter((c) => keep.has(c))
   const complete = isFullyPublished(change.newChannelIds, remaining)
 
   if (stage === "disetujui" && complete) {

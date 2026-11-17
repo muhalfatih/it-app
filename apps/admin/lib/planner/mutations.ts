@@ -214,7 +214,6 @@ export async function updateEntry(
       {
         oldName: entry.name,
         newName: input.name,
-        oldChannelIds: [...oldChannelIds],
         newChannelIds: input.channelIds,
       },
       actorId
