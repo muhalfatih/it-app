@@ -144,7 +144,7 @@ Video Profil Sekolah                       [Review 🔒]
 
 - Tombol majukan/kembalikan dari `allowedMoves`; kembalikan dan batalkan centang membuka `Dialog` dengan catatan wajib.
 - Kartu dikembalikan → caption terbuka lagi bagi pemegang `kanban.isi` (mengikuti tahap).
-- Catatan revisi terakhir ditampilkan menonjol (`Alert`) di atas caption saat kartu di Ide/Draft hasil pengembalian.
+- Catatan revisi terakhir ditampilkan menonjol (`Alert`) di atas caption saat kartu berada di tahap hasil pengembalian (Ide, Draft, atau Review setelah Disetujui → Review), sampai kartu dimajukan lagi. *Keputusan pengguna.*
 - Waktu ditampilkan dalam WIB, format "12 Nov 14.20".
 
 ### Aturan proyek yang berlaku
