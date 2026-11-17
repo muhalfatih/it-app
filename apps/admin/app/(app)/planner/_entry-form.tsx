@@ -105,6 +105,15 @@ export function EntryForm({
   const [initialValues] = React.useState(values)
   const dirty = values !== initialValues
 
+  // Peringatan browser saat menutup/memuat ulang tab dengan perubahan belum disimpan.
+  // Navigasi internal (sidebar, tombol Back) tidak tercakup; tombol Batal punya dialognya sendiri.
+  React.useEffect(() => {
+    if (!dirty || readOnly) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener("beforeunload", warn)
+    return () => window.removeEventListener("beforeunload", warn)
+  }, [dirty, readOnly])
+
   function submit(event: React.FormEvent) {
     event.preventDefault()
     setServerError(null)
@@ -217,6 +226,7 @@ export function EntryForm({
               onChange={setAssignments}
               people={options.people}
               taskTypes={options.taskTypes}
+              readOnly={readOnly}
             />
             <FieldError id={errorId("assignments")}>{errors.assignments}</FieldError>
           </FieldSet>

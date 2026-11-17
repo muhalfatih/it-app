@@ -5,7 +5,7 @@ import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 
 import { requirePermission } from "@workspace/auth/session"
-import { Button } from "@workspace/ui/components/button"
+import { buttonVariants } from "@workspace/ui/components/button"
 import { PartitionGrid } from "@workspace/ui/components/domain/partition-grid"
 import {
   Empty,
@@ -92,10 +92,14 @@ export default async function PlannerPage({
         </EmptyHeader>
         {canEdit && (
           <EmptyContent>
-            <Button render={<Link href="/planner/baru" />} nativeButton={false}>
+            <Link
+              href="/planner/baru"
+              data-slot="button"
+              className={buttonVariants()}
+            >
               <PlusIcon data-icon="inline-start" />
               Entri baru
-            </Button>
+            </Link>
           </EmptyContent>
         )}
       </Empty>

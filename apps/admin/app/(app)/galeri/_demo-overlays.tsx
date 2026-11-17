@@ -97,7 +97,6 @@ import {
   SheetTrigger,
 } from "@workspace/ui/components/sheet"
 import { Separator } from "@workspace/ui/components/separator"
-import { Toaster } from "@workspace/ui/components/sonner"
 import { Textarea } from "@workspace/ui/components/textarea"
 import {
   Tooltip,
@@ -332,7 +331,6 @@ function CardSheet() {
 export function OverlaysDemo() {
   return (
     <>
-      <Toaster />
       <div className="grid min-w-0 gap-4 lg:grid-cols-2">
         <Frame stacked className="min-w-0">
           <FrameHeader>

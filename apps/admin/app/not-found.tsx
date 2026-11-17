@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { Button } from "@workspace/ui/components/button"
+import { buttonVariants } from "@workspace/ui/components/button"
 import {
   Empty,
   EmptyContent,
@@ -23,9 +23,9 @@ export default function NotFound() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button render={<Link href="/" />} nativeButton={false}>
+          <Link href="/" data-slot="button" className={buttonVariants()}>
             Kembali ke beranda
-          </Button>
+          </Link>
         </EmptyContent>
       </Empty>
     </div>

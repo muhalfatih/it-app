@@ -55,7 +55,9 @@ export function CalendarView({ events, start }: CalendarViewProps) {
       // shortcut: kalender belum punya mode "hanya sehari penuh"; grid jam dipadatkan jadi satu jam, ganti bila mode itu ada.
       dayStartHour={8}
       dayEndHour={9}
-      className="h-110"
+      // shortcut: lajur jam (anak terakhir time grid) disembunyikan lewat classNames karena tidak ada prop untuk itu; periksa lagi bila struktur event-calendar berubah.
+      classNames={{ timeGrid: "[&>div:last-child]:hidden" }}
+      className={mobile ? "h-110" : undefined}
     >
       <EventCalendarContent />
     </EventCalendar>
