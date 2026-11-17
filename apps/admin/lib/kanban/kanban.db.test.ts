@@ -292,6 +292,41 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     })
   })
 
+  describe("getCard", () => {
+    it("null untuk id tidak ada", async () => {
+      const qry = await import("./queries")
+      expect(await qry.getCard(999999)).toBeNull()
+    })
+
+    it("catatan revisi terakhir hanya saat kartu masih di tahap hasil pengembalian", async () => {
+      const qry = await import("./queries")
+      const { cardId } = await card("draft")
+      await mut.moveCard(cardId, "draft", "review", M)
+      await mut.moveCard(cardId, "review", "draft", M, "Perbaiki judul")
+      const c = (await qry.getCard(cardId))!
+      expect(c.lastReturnNote).toBe("Perbaiki judul")
+      expect(c.events.map((e) => e.kind)).toEqual(["kembali", "maju"])
+      expect(c.events[0]).toMatchObject({ actorName: "uji.manajer", toStage: "draft" })
+      await mut.moveCard(cardId, "draft", "review", M)
+      expect((await qry.getCard(cardId))!.lastReturnNote).toBeNull()
+    })
+
+    it("kanal membawa wajib link dan publikasi; komentar terlama dulu", async () => {
+      const qry = await import("./queries")
+      const { cardId } = await card("disetujui")
+      await mut.checkChannel(cardId, chLink, "https://youtu.be/x", K)
+      await mut.addComment(cardId, "Pertama", D)
+      await mut.addComment(cardId, "Kedua", K)
+      const c = (await qry.getCard(cardId))!
+      const yt = c.channels.find((x) => x.id === chLink)!
+      expect(yt).toMatchObject({ requiresLink: true, publication: { url: "https://youtu.be/x", checkedByName: "uji.khusus" } })
+      expect(c.channels.find((x) => x.id === chPlain)!.publication).toBeNull()
+      expect(c.comments.map((x) => x.body)).toEqual(["Pertama", "Kedua"])
+      expect(c.assignments[0]).toMatchObject({ personName: "uji.khusus", taskTypeName: "Editing" })
+      expect(c.events[0]).toMatchObject({ kind: "centang", channelName: "YouTube" })
+    })
+  })
+
   it("hapus entri ikut menghapus event, komentar, publikasi", async () => {
     const { cardId, entryId } = await card("disetujui")
     await mut.checkChannel(cardId, chPlain, null, K)
