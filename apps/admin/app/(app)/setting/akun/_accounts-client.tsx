@@ -109,7 +109,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@workspace/ui/components/sheet"
-import { Toaster } from "@workspace/ui/components/sonner"
 import { Spinner } from "@workspace/ui/components/spinner"
 import {
   ToggleGroup,
@@ -725,7 +724,6 @@ export function AccountsClient({
 
   return (
     <>
-      <Toaster />
       <DataGrid
         table={table}
         recordCount={accounts.length}

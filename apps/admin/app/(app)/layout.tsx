@@ -3,6 +3,7 @@ import { requireUser } from "@workspace/auth/session"
 import { AppSidebar } from "@workspace/ui/components/app-sidebar"
 import { ThemeToggle } from "@workspace/ui/components/domain/theme-toggle"
 import { Separator } from "@workspace/ui/components/separator"
+import { Toaster } from "@workspace/ui/components/sonner"
 import {
   SidebarInset,
   SidebarProvider,
@@ -44,6 +45,8 @@ export default async function AppLayout({
         </header>
         {children}
       </SidebarInset>
+      {/* Satu Toaster untuk seluruh area aplikasi (toast dari halaman mana pun). */}
+      <Toaster />
     </SidebarProvider>
   )
 }
