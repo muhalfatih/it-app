@@ -4,6 +4,7 @@ import { and, eq, inArray, ne } from "@workspace/db/orm"
 import {
   channel,
   contentCard,
+  contentCardMedia,
   plannerAssignment,
   plannerEntry,
   plannerEntryChannel,
@@ -15,6 +16,7 @@ import type { Permission } from "@workspace/auth/permissions"
 import type { ContentStage } from "@workspace/db/schema/stages"
 
 import { reconcileCardAfterEntryUpdate } from "@/lib/kanban/mutations"
+import { removeObjects } from "@/lib/storage"
 import { UserError } from "@/lib/setting-crud"
 
 import { canDeleteEntry, needsNameConfirm } from "./rules"
@@ -227,7 +229,7 @@ export async function deleteEntry(
   confirmName?: string
 ): Promise<void> {
   assertEntryId(id)
-  await db.transaction(async (tx) => {
+  const keys = await db.transaction(async (tx) => {
     const [row] = await tx
       .select({ name: plannerEntry.name, stage: contentCard.stage })
       .from(plannerEntry)
@@ -240,6 +242,14 @@ export async function deleteEntry(
       throw new UserError("Anda tidak berwenang menghapus entri ini")
     if (needsNameConfirm(stage) && confirmName?.trim() !== row.name)
       throw new UserError("Ketik nama konten persis untuk menghapus")
+    const media = await tx
+      .select({ key: contentCardMedia.objectKey })
+      .from(contentCardMedia)
+      .innerJoin(contentCard, eq(contentCard.id, contentCardMedia.cardId))
+      .where(eq(contentCard.entryId, id))
     await tx.delete(plannerEntry).where(eq(plannerEntry.id, id))
+    return media.flatMap((m) => (m.key ? [m.key] : []))
   })
+  // Gagal hapus di storage tidak menggagalkan penghapusan; penyapu yatim menangkapnya.
+  await removeObjects(keys).catch((e) => console.error("removeObjects gagal", e))
 }
