@@ -77,9 +77,9 @@ describe.skipIf(!TEST_DB)("hapus entri dan penyapu (database uji)", () => {
       .from(t.contentCard)
       .where(orm.eq(t.contentCard.entryId, entryId))
     await dbm.db.insert(t.contentCardMedia).values([
-      { cardId: c!.id, position: 1, source: "file", objectKey: "cards/1/a", createdBy: userId },
-      { cardId: c!.id, position: 2, source: "file", objectKey: "cards/1/b", createdBy: userId },
-      { cardId: c!.id, position: 3, source: "embed", url: "https://youtu.be/x", createdBy: userId },
+      { cardId: c!.id, position: 1, source: "file", objectKey: "cards/1/a", mediaKind: "video", mime: "video/mp4", size: 1, originalName: "x.mp4", createdBy: userId },
+      { cardId: c!.id, position: 2, source: "file", objectKey: "cards/1/b", mediaKind: "video", mime: "video/mp4", size: 1, originalName: "x.mp4", createdBy: userId },
+      { cardId: c!.id, position: 3, source: "embed", url: "https://youtu.be/x", provider: "youtube", createdBy: userId },
     ])
     return entryId
   }
