@@ -44,3 +44,10 @@ export type CardDetail = Omit<BoardCard, "channels"> & {
   /** Catatan pengembalian terakhir, selama kartu belum dimajukan lagi. */
   lastReturnNote: string | null
 }
+
+export type EmbedProvider = "youtube" | "drive" | "tautan"
+
+export type CardMedia = { id: number; position: number } & (
+  | { source: "file"; mediaKind: "image" | "video"; mime: string; size: number; originalName: string }
+  | { source: "embed"; url: string; provider: EmbedProvider; ref: string | null }
+)

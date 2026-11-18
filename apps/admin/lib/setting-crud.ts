@@ -6,10 +6,11 @@ import { db } from "@workspace/db/client"
 import { asc, eq } from "@workspace/db/orm"
 import { building, channel, taskType, unit } from "@workspace/db/schema"
 
+import { UserError } from "@/lib/user-error"
+
 export type CrudResult = { ok: true } | { error: string }
 
-/** Galat yang pesannya aman ditampilkan ke pengguna (aturan bisnis, bukan bug). */
-export class UserError extends Error {}
+export { UserError }
 type Table = typeof unit | typeof building | typeof taskType | typeof channel
 
 export const nameSchema = z
