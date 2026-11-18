@@ -306,7 +306,12 @@ export function CardMediaSection({
         onReorder={onReorder}
         onRemove={onRemove}
         onEmbed={onEmbed}
-        onSetThumbnail={(id) => void run(() => setThumbnailAction(cardId, Number(id)))}
+        // ★ pada pilihan yang aktif = kembali ke thumbnail bawaan.
+        onSetThumbnail={(id) =>
+          void run(() =>
+            setThumbnailAction(cardId, Number(id) === thumbnailMediaId ? null : Number(id))
+          )
+        }
         onOpen={(id) => {
           const i = lightboxItems.findIndex((m) => m.id === id)
           if (i < 0) return

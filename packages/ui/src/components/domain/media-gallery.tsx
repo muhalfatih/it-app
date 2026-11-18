@@ -288,7 +288,7 @@ function MediaLightbox({
                   allow="fullscreen; picture-in-picture"
                   allowFullScreen
                   referrerPolicy="strict-origin-when-cross-origin"
-                  className="aspect-video max-h-full w-full max-w-5xl rounded-lg border-0 bg-black"
+                  className="aspect-video max-h-full w-full max-w-5xl rounded-lg border-0 bg-invert"
                 />
               </div>
             ) : (

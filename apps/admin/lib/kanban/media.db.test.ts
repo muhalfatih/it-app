@@ -310,7 +310,9 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
     await mut.removeMedia(id, p.id, K)
     expect(await thumb()).toBeNull()
     expect(removed).toEqual([[p.objectKey]])
+    await mut.setThumbnail(id, p.id, K)
     await mut.setThumbnail(id, null, K)
+    expect(await thumb()).toBeNull()
   })
 
   it("semua mutasi ditolak di tahap Review", async () => {

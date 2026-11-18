@@ -167,7 +167,9 @@ function MediaUpload({
     () => true,
     () => false
   )
-  const slots = maxFiles - items.length
+  // Ubin gagal tidak memakai slot: bisa dihapus atau dicoba ulang tanpa memblokir unggahan lain.
+  const used = items.filter((item) => item.status !== "error").length
+  const slots = maxFiles - used
   const full = slots <= 0
 
   function pick(list: FileList | File[]) {
@@ -419,7 +421,7 @@ function MediaUpload({
                 {formatSize(maxSize)} per file.
               </p>
               <p className="text-xs text-muted-foreground tabular-nums">
-                {items.length} dari {maxFiles} file
+                {used} dari {maxFiles} file
               </p>
             </div>
             <input
