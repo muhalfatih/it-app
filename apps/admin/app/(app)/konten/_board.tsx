@@ -200,6 +200,7 @@ export function Board({
                           <ContentCard
                             title={card.name}
                             href={`/konten/${card.id}`}
+                            thumbnailUrl={card.thumbnailUrl ?? undefined}
                             publishDate={card.publishLabel}
                             channels={card.channels.map((c) => c.name)}
                             assignees={card.assignees}

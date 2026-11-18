@@ -54,6 +54,34 @@ export function embedThumb(m: EmbedRef): string | null {
 
 export const mediaSrc = (id: number): string => `/api/media/${id}`
 
+type MediaRow = {
+  id: number
+  position: number
+  source: string
+  mediaKind: string | null
+  mime: string | null
+  size: number | null
+  originalName: string | null
+  url: string | null
+  provider: string | null
+  providerRef: string | null
+}
+
+/** Baris DB -> CardMedia; kolom per cabang dijamin oleh CHECK di skema. */
+export function toCardMedia(r: MediaRow): CardMedia {
+  const base = { id: r.id, position: r.position }
+  return r.source === "file"
+    ? {
+        ...base,
+        source: "file",
+        mediaKind: r.mediaKind as "image" | "video",
+        mime: r.mime ?? "",
+        size: r.size ?? 0,
+        originalName: r.originalName ?? "berkas",
+      }
+    : { ...base, source: "embed", url: r.url ?? "", provider: r.provider as EmbedProvider, ref: r.providerRef }
+}
+
 export function canBeThumbnail(m: CardMedia): boolean {
   return m.source === "file" ? m.mediaKind === "image" : m.provider === "youtube"
 }

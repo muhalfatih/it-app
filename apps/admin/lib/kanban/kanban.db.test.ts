@@ -380,6 +380,47 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     })
   })
 
+  describe("media di kartu", () => {
+    const photo = (cardId: number, position: number, key: string) =>
+      dbm.db
+        .insert(t.contentCardMedia)
+        .values({ cardId, createdBy: K.id, position, source: "file", objectKey: key, mediaKind: "image", mime: "image/jpeg", size: 10, originalName: key + ".jpg" })
+        .returning()
+        .then((r) => r[0]!.id)
+    const yt = (cardId: number, position: number) =>
+      dbm.db
+        .insert(t.contentCardMedia)
+        .values({ cardId, createdBy: K.id, position, source: "embed", url: "https://youtu.be/abcdefghijk", provider: "youtube", providerRef: "abcdefghijk" })
+        .returning()
+        .then((r) => r[0]!.id)
+
+    it("getCard mengembalikan media terurut position", async () => {
+      const qry = await import("./queries")
+      const { cardId } = await card("ide")
+      const b = await photo(cardId, 1, "b")
+      const a = await photo(cardId, 0, "a")
+      const c = (await qry.getCard(cardId))!
+      expect(c.media.map((m) => m.id)).toEqual([a, b])
+      expect(c.thumbnailMediaId).toBeNull()
+    })
+
+    it("listBoard: thumbnailUrl foto pilihan, ubin YouTube, atau null", async () => {
+      const qry = await import("./queries")
+      const { cardId: withPhoto } = await card("ide")
+      await photo(withPhoto, 0, "a")
+      const chosen = await photo(withPhoto, 1, "b")
+      await dbm.db.update(t.contentCard).set({ thumbnailMediaId: chosen }).where(orm.eq(t.contentCard.id, withPhoto))
+      const { cardId: onlyYt } = await card("ide")
+      await yt(onlyYt, 0)
+      const { cardId: empty } = await card("ide")
+
+      const by = new Map((await qry.listBoard({ allPublished: false })).map((c) => [c.id, c.thumbnailUrl]))
+      expect(by.get(withPhoto)).toBe(`/api/media/${chosen}`)
+      expect(by.get(onlyYt)).toBe("https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg")
+      expect(by.get(empty)).toBeNull()
+    })
+  })
+
   describe("getCard", () => {
     it("null untuk id tidak ada", async () => {
       const qry = await import("./queries")

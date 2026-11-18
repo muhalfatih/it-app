@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { canBeThumbnail, effectiveThumbnail, embedSrc, embedThumb, mediaSrc, parseEmbed, parseMediaId } from "./media"
+import { toCardMedia, canBeThumbnail, effectiveThumbnail, embedSrc, embedThumb, mediaSrc, parseEmbed, parseMediaId } from "./media"
 import type { CardMedia } from "./types"
 
 const ID = "dQw4w9WgXcQ"
@@ -88,4 +88,16 @@ describe("parseMediaId", () => {
   it.each(["0", "-1", "1.5", "abc", "", "2147483648", "1e3", "99999999999"])("menolak %s", (s) =>
     expect(parseMediaId(s)).toBeNull()
   )
+})
+
+describe("toCardMedia", () => {
+  const nul = { mediaKind: null, mime: null, size: null, originalName: null, url: null, provider: null, providerRef: null }
+  it("berkas dan sematan", () => {
+    expect(toCardMedia({ ...nul, id: 1, position: 0, source: "file", mediaKind: "image", mime: "image/jpeg", size: 5, originalName: "a.jpg" })).toEqual({
+      id: 1, position: 0, source: "file", mediaKind: "image", mime: "image/jpeg", size: 5, originalName: "a.jpg",
+    })
+    expect(toCardMedia({ ...nul, id: 2, position: 1, source: "embed", url: "https://youtu.be/x", provider: "youtube", providerRef: "abcdefghijk" })).toEqual({
+      id: 2, position: 1, source: "embed", url: "https://youtu.be/x", provider: "youtube", ref: "abcdefghijk",
+    })
+  })
 })
