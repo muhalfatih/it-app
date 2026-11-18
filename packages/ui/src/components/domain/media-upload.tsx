@@ -24,11 +24,15 @@ import {
   SortableItemHandle,
 } from "@workspace/ui/components/reui/sortable"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import {
+  ACCEPT,
+  MAX_MEDIA_SIZE,
+  mediaKindOf,
+  type MediaKind,
+} from "@workspace/ui/lib/media-format"
 import { cn } from "@workspace/ui/lib/utils"
 
 const noop = () => () => {}
-
-type MediaKind = "image" | "video"
 
 type MediaUploadItem = {
   id: string
@@ -42,20 +46,6 @@ type MediaUploadItem = {
   /** 0–100, dipakai saat `status` "uploading". */
   progress?: number
   error?: string
-}
-
-/** Batas dari rancangan Kanban putaran 2: JPG, PNG, WEBP, MP4, MOV, 500 MB per file. */
-const MAX_MEDIA_SIZE = 500 * 1024 * 1024
-const ACCEPT = ".jpg,.jpeg,.png,.webp,.mp4,.mov"
-
-/** Menentukan jenis dari MIME, lalu dari ekstensi (MOV kadang tanpa MIME). Null bila tidak didukung. */
-function mediaKindOf(file: File): MediaKind | null {
-  if (["image/jpeg", "image/png", "image/webp"].includes(file.type))
-    return "image"
-  if (["video/mp4", "video/quicktime"].includes(file.type)) return "video"
-  if (/\.(jpe?g|png|webp)$/i.test(file.name)) return "image"
-  if (/\.(mp4|mov)$/i.test(file.name)) return "video"
-  return null
 }
 
 function formatSize(bytes: number) {
