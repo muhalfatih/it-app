@@ -6,6 +6,7 @@ import {
   contentCard,
   contentCardComment,
   contentCardEvent,
+  contentCardMedia,
   contentCardPublication,
   plannerEntry,
   plannerEntryChannel,
@@ -164,4 +165,21 @@ export async function listBoard(opts: {
       publishedCount: publishedBy.get(r.cardId) ?? 0,
     }
   })
+}
+
+/** Berkas media (source `file`) untuk route pemutaran; null bila tidak ada atau bukan berkas. */
+export async function getMediaFile(
+  id: number
+): Promise<{ key: string; mime: string; originalName: string } | null> {
+  const [m] = await db
+    .select({
+      source: contentCardMedia.source,
+      key: contentCardMedia.objectKey,
+      mime: contentCardMedia.mime,
+      originalName: contentCardMedia.originalName,
+    })
+    .from(contentCardMedia)
+    .where(eq(contentCardMedia.id, id))
+  if (!m || m.source !== "file" || !m.key || !m.mime) return null
+  return { key: m.key, mime: m.mime, originalName: m.originalName ?? "berkas" }
 }

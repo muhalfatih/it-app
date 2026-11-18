@@ -71,3 +71,10 @@ export function effectiveThumbnail(media: CardMedia[], thumbnailMediaId: number 
   const yt = sorted.find((m) => m.source === "embed" && m.provider === "youtube")
   return yt ? thumbOf(yt) : null
 }
+
+/** Id media dari URL: bilangan bulat 1..2147483647 (rentang `serial`), selain itu null. */
+export function parseMediaId(raw: string): number | null {
+  if (!/^\d{1,10}$/.test(raw)) return null
+  const n = Number(raw)
+  return n >= 1 && n <= 2147483647 ? n : null
+}

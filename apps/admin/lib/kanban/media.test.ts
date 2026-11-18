@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { canBeThumbnail, effectiveThumbnail, embedSrc, embedThumb, mediaSrc, parseEmbed } from "./media"
+import { canBeThumbnail, effectiveThumbnail, embedSrc, embedThumb, mediaSrc, parseEmbed, parseMediaId } from "./media"
 import type { CardMedia } from "./types"
 
 const ID = "dQw4w9WgXcQ"
@@ -81,4 +81,11 @@ describe("canBeThumbnail", () => {
     expect(canBeThumbnail(vid(1, 0))).toBe(false)
     expect(canBeThumbnail(link(1, 0))).toBe(false)
   })
+})
+
+describe("parseMediaId", () => {
+  it.each(["1", "42", "2147483647"])("menerima %s", (s) => expect(parseMediaId(s)).toBe(Number(s)))
+  it.each(["0", "-1", "1.5", "abc", "", "2147483648", "1e3", "99999999999"])("menolak %s", (s) =>
+    expect(parseMediaId(s)).toBeNull()
+  )
 })
