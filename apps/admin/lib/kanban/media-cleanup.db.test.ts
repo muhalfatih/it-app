@@ -91,6 +91,23 @@ describe.skipIf(!TEST_DB)("hapus entri dan penyapu (database uji)", () => {
     expect([...removed[0]!].sort()).toEqual(["cards/1/a", "cards/1/b"])
   })
 
+  it("deleteEntry menunggu kunci kartu: file yang disisipkan transaksi lain ikut dihapus", async () => {
+    const entryId = await cardWithMedia()
+    const [c] = await dbm.db.select().from(t.contentCard).where(orm.eq(t.contentCard.entryId, entryId))
+    let done = false
+    let del: Promise<void> = Promise.resolve()
+    await dbm.db.transaction(async (tx) => {
+      await tx.select().from(t.contentCard).where(orm.eq(t.contentCard.id, c!.id)).for("update")
+      del = planner.deleteEntry(entryId, permissionsFor(["manajer"])).then(() => void (done = true))
+      await new Promise((r) => setTimeout(r, 300))
+      expect(done).toBe(false)
+      await tx.insert(t.contentCardMedia).values({ cardId: c!.id, position: 9, source: "file", objectKey: "cards/1/baru", mediaKind: "video", mime: "video/mp4", size: 1, originalName: "x.mp4", createdBy: userId })
+    })
+    await del
+    expect(removed).toHaveLength(1)
+    expect(removed[0]).toContain("cards/1/baru")
+  })
+
   it("deleteEntry tetap sukses bila removeObjects gagal", async () => {
     const entryId = await cardWithMedia()
     removeFails = true

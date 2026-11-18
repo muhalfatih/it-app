@@ -242,6 +242,8 @@ export async function deleteEntry(
       throw new UserError("Anda tidak berwenang menghapus entri ini")
     if (needsNameConfirm(stage) && confirmName?.trim() !== row.name)
       throw new UserError("Ketik nama konten persis untuk menghapus")
+    // Kunci kartu dulu agar tidak balapan dengan finishUpload (lockCard): file baru ikut terkumpul.
+    await tx.select({ id: contentCard.id }).from(contentCard).where(eq(contentCard.entryId, id)).for("update")
     const media = await tx
       .select({ key: contentCardMedia.objectKey })
       .from(contentCardMedia)
