@@ -5,6 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
+  ExternalLinkIcon,
   ImageIcon,
   PlayIcon,
   RotateCcwIcon,
@@ -26,7 +27,8 @@ import { cn } from "@workspace/ui/lib/utils"
 
 type MediaItem = {
   id: string
-  kind: "image" | "video"
+  kind: "image" | "video" | "embed"
+  /** File foto/video. Untuk `kind` "embed" boleh kosong. */
   src: string
   /** Nama file, ditampilkan di lightbox. */
   name: string
@@ -35,7 +37,34 @@ type MediaItem = {
   poster?: string
   /** Sudah diformat, mis. "0:42". */
   duration?: string
+  /** `kind` "embed": URL untuk iframe (mis. YouTube nocookie, Drive preview). */
+  embedSrc?: string
+  /** `kind` "embed" tanpa `embedSrc`: tautan yang dibuka di tab baru. */
+  href?: string
+  /** URL unduhan untuk foto/video (mis. endpoint yang menyetel nama file asli). Bawaan `src`. */
+  downloadHref?: string
 }
+
+/** Gambar kecil item (strip lightbox dan galeri); sematan tanpa sampul memakai ikon. */
+function ItemThumb({ item }: { item: MediaItem }) {
+  const src = item.kind === "image" ? item.src : item.poster
+  if (!src)
+    return (
+      <span className="flex size-full items-center justify-center bg-muted text-muted-foreground">
+        {item.kind === "embed" ? (
+          <ExternalLinkIcon aria-hidden className="size-4" />
+        ) : (
+          <PlayIcon aria-hidden className="size-4" />
+        )}
+      </span>
+    )
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- thumbnail file konten
+    <img src={src} alt="" className="size-full object-cover" />
+  )
+}
+
+const KIND_LABEL = { image: "Foto", video: "Video", embed: "Tautan" } as const
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 5
@@ -171,6 +200,7 @@ function MediaLightbox({
   const [view, setView] = React.useState<View>(FIT)
   const item = items[index]
   const isImage = item?.kind === "image"
+  const [failedVideo, setFailedVideo] = React.useState<string | null>(null)
 
   const go = (next: number) => {
     setView(FIT)
@@ -211,21 +241,25 @@ function MediaLightbox({
               {item.name}
             </DialogTitle>
             <DialogDescription className="text-xs text-invert-foreground/70 tabular-nums">
-              {index + 1} / {items.length} ·{" "}
-              {isImage
-                ? "Foto"
-                : `Video${item.duration ? ` · ${item.duration}` : ""}`}
+              {index + 1} / {items.length} · {KIND_LABEL[item.kind]}
+              {item.kind === "video" && item.duration
+                ? ` · ${item.duration}`
+                : ""}
             </DialogDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Unduh ${item.name}`}
-            render={<a href={item.src} download={item.name} />}
-            nativeButton={false}
-          >
-            <DownloadIcon />
-          </Button>
+          {item.kind !== "embed" && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Unduh ${item.name}`}
+              render={
+                <a href={item.downloadHref ?? item.src} download={item.name} />
+              }
+              nativeButton={false}
+            >
+              <DownloadIcon />
+            </Button>
+          )}
           <DialogClose
             render={
               <Button variant="ghost" size="icon-sm" aria-label="Tutup" />
@@ -244,10 +278,69 @@ function MediaLightbox({
               view={view}
               onViewChange={setView}
             />
+          ) : item.kind === "embed" ? (
+            item.embedSrc ? (
+              <div className="flex size-full items-center justify-center">
+                <iframe
+                  key={item.id}
+                  src={item.embedSrc}
+                  title={item.name}
+                  allow="fullscreen; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="aspect-video max-h-full w-full max-w-5xl rounded-lg border-0 bg-black"
+                />
+              </div>
+            ) : (
+              <div className="flex size-full flex-col items-center justify-center gap-3 text-center">
+                <p className="text-sm text-invert-foreground/70">
+                  Tautan ini tidak bisa ditampilkan di sini.
+                </p>
+                {item.href && (
+                  <Button
+                    variant="secondary"
+                    render={
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                    nativeButton={false}
+                  >
+                    <ExternalLinkIcon data-icon="inline-start" />
+                    Buka di tab baru
+                  </Button>
+                )}
+              </div>
+            )
+          ) : failedVideo === item.id ? (
+            <div
+              role="alert"
+              className="flex size-full flex-col items-center justify-center gap-3 text-center"
+            >
+              <p className="text-sm">
+                Video ini tidak bisa diputar di browser ini.
+              </p>
+              <Button
+                variant="secondary"
+                render={
+                  <a
+                    href={item.downloadHref ?? item.src}
+                    download={item.name}
+                  />
+                }
+                nativeButton={false}
+              >
+                <DownloadIcon data-icon="inline-start" />
+                Unduh
+              </Button>
+            </div>
           ) : (
             <div className="flex size-full items-center justify-center">
               <video
                 key={item.id}
+                onError={() => setFailedVideo(item.id)}
                 src={item.src}
                 poster={item.poster}
                 controls
@@ -342,12 +435,7 @@ function MediaLightbox({
                   "relative size-12 shrink-0 overflow-hidden rounded-md opacity-60 ring-2 ring-transparent transition-opacity outline-none hover:opacity-100 focus-visible:ring-ring aria-current:opacity-100 aria-current:ring-invert-foreground"
                 )}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail file konten */}
-                <img
-                  src={m.kind === "image" ? m.src : (m.poster ?? "")}
-                  alt=""
-                  className="size-full object-cover"
-                />
+                <ItemThumb item={m} />
                 {m.kind === "video" ? (
                   <PlayIcon
                     aria-hidden
@@ -392,25 +480,23 @@ function MediaGallery({
           >
             <button
               type="button"
-              aria-label={`Buka ${item.kind === "video" ? "video" : "foto"} ${item.name}`}
+              aria-label={`Buka ${KIND_LABEL[item.kind].toLowerCase()} ${item.name}`}
               onClick={() => {
                 setIndex(i)
                 setOpen(true)
               }}
               className="group relative block aspect-square w-full overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail file konten */}
-              <img
-                src={item.kind === "image" ? item.src : (item.poster ?? "")}
-                alt=""
-                className="size-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 motion-reduce:transition-none"
-              />
-              {item.kind === "video" ? (
+              <span className="block size-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 motion-reduce:transition-none">
+                <ItemThumb item={item} />
+              </span>
+              {item.kind === "video" ||
+              (item.kind === "embed" && item.poster) ? (
                 <>
                   <span className="absolute inset-0 m-auto flex size-10 items-center justify-center rounded-full bg-invert/70 text-invert-foreground">
                     <PlayIcon aria-hidden className="size-4 fill-current" />
                   </span>
-                  {item.duration ? (
+                  {item.kind === "video" && item.duration ? (
                     <Badge
                       variant="invert"
                       size="sm"
@@ -420,12 +506,12 @@ function MediaGallery({
                     </Badge>
                   ) : null}
                 </>
-              ) : (
+              ) : item.kind === "image" ? (
                 <ImageIcon
                   aria-hidden
                   className="absolute right-2 bottom-2 size-3.5 text-invert-foreground opacity-0 drop-shadow transition-opacity group-hover:opacity-100"
                 />
-              )}
+              ) : null}
             </button>
           </li>
         ))}

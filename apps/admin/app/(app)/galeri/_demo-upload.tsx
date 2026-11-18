@@ -31,6 +31,40 @@ const SEED: MediaUploadItem[] = [
     kind: "image",
     src: "/galeri/foto-3.svg",
     status: "done",
+    thumbnail: true,
+  },
+  {
+    id: "e1",
+    name: "Teaser Hari Pahlawan",
+    size: 0,
+    kind: "video",
+    src: "/galeri/video-poster.svg",
+    status: "done",
+    source: "embed",
+    provider: "youtube",
+    href: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+  },
+  {
+    id: "e2",
+    name: "Naskah sambutan",
+    size: 0,
+    kind: "image",
+    src: "",
+    status: "done",
+    source: "embed",
+    provider: "drive",
+    href: "https://drive.google.com/file/d/abc/view",
+  },
+  {
+    id: "e3",
+    name: "Berita upacara",
+    size: 0,
+    kind: "image",
+    src: "",
+    status: "done",
+    source: "embed",
+    provider: "tautan",
+    href: "https://www.example.com/berita/upacara",
   },
 ]
 
@@ -75,36 +109,79 @@ export function UploadDemo() {
   }
 
   return (
-    <MediaUpload
-      items={items}
-      onAdd={(files) => {
-        const added = files.map(({ file, kind }) => {
-          const src = URL.createObjectURL(file)
-          urls.current.add(src)
+    <div className="flex flex-col gap-6">
+      <MediaUpload
+        items={items}
+        onEmbed={async (url) => {
+          let host = ""
+          try {
+            host = new URL(url).hostname.replace(/^www\./, "")
+          } catch {
+            return "Tautan tidak valid. Mulai dengan https://."
+          }
           const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-          return {
-            id,
-            name: file.name,
-            size: file.size,
-            kind,
-            src,
-            status: "uploading",
-            progress: 0,
-          } satisfies MediaUploadItem
-        })
-        setItems((prev) => [...prev, ...added])
-        added.forEach((it) => simulate(it.id))
-      }}
-      onReorder={(ids) =>
-        setItems((prev) =>
-          ids.flatMap((id) => prev.find((it) => it.id === id) ?? [])
-        )
-      }
-      onRemove={(id) => {
-        clearInterval(timers.current.get(id))
-        timers.current.delete(id)
-        setItems((prev) => prev.filter((it) => it.id !== id))
-      }}
-    />
+          setItems((prev) => [
+            ...prev,
+            {
+              id,
+              name: host,
+              size: 0,
+              kind: "image",
+              src: "",
+              status: "done",
+              source: "embed",
+              provider: "tautan",
+              href: url,
+            },
+          ])
+          return null
+        }}
+        onSetThumbnail={(id) =>
+          setItems((prev) =>
+            prev.map((it) => ({ ...it, thumbnail: it.id === id }))
+          )
+        }
+        onAdd={(files) => {
+          const added = files.map(({ file, kind }) => {
+            const src = URL.createObjectURL(file)
+            urls.current.add(src)
+            const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+            return {
+              id,
+              name: file.name,
+              size: file.size,
+              kind,
+              src,
+              status: "uploading",
+              progress: 0,
+            } satisfies MediaUploadItem
+          })
+          setItems((prev) => [...prev, ...added])
+          added.forEach((it) => simulate(it.id))
+        }}
+        onReorder={(ids) =>
+          setItems((prev) =>
+            ids.flatMap((id) => prev.find((it) => it.id === id) ?? [])
+          )
+        }
+        onRemove={(id) => {
+          clearInterval(timers.current.get(id))
+          timers.current.delete(id)
+          setItems((prev) => prev.filter((it) => it.id !== id))
+        }}
+      />
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-muted-foreground">
+          Terkunci (<code>disabled</code>): hanya lihat.
+        </p>
+        <MediaUpload
+          disabled
+          items={SEED}
+          onAdd={() => {}}
+          onReorder={() => {}}
+          onRemove={() => {}}
+        />
+      </div>
+    </div>
   )
 }

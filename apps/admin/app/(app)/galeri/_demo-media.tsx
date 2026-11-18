@@ -96,7 +96,26 @@ export function MediaDemo() {
     }
   }, [])
 
-  const items: MediaItem[] = videoUrl
+  const embeds: MediaItem[] = [
+    {
+      id: "e1",
+      kind: "embed",
+      src: "",
+      poster: "/galeri/video-poster.svg",
+      embedSrc: "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ",
+      name: "Teaser Hari Pahlawan (YouTube)",
+      alt: "Video YouTube Teaser Hari Pahlawan",
+    },
+    {
+      id: "e2",
+      kind: "embed",
+      src: "",
+      href: "https://www.example.com/berita/upacara",
+      name: "Berita upacara (tautan)",
+      alt: "Tautan berita upacara",
+    },
+  ]
+  const base: MediaItem[] = videoUrl
     ? [
         PHOTOS[0]!,
         {
@@ -111,6 +130,7 @@ export function MediaDemo() {
         ...PHOTOS.slice(1),
       ]
     : PHOTOS
+  const items = [...base, ...embeds]
 
   return (
     <div className="flex flex-col gap-2">
