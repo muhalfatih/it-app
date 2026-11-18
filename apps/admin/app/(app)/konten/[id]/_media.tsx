@@ -111,7 +111,9 @@ export function CardMediaSection({
           const codec = await videoCodecOf(
             (o, l) => file.slice(o, o + l).arrayBuffer().then((b) => new Uint8Array(b)),
             file.size
-          )
+          ).catch(() => {
+            throw new Error(`${file.name}: file tidak bisa dibaca. Coba lagi.`)
+          })
           const err = codecError(file.name, codec)
           if (err) return patch(item.id, { status: "error", error: err })
         }

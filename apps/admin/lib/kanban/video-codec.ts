@@ -54,7 +54,14 @@ function codecOfMoov(b: Uint8Array, moov: Box): VideoCodec | null {
   return null
 }
 
-export async function videoCodecOf(read: Read, size: number): Promise<VideoCodec | null> {
+export async function videoCodecOf(readRaw: Read, size: number): Promise<VideoCodec | null> {
+  // Galat baca (storage/File) diteruskan; hanya struktur kotak rusak yang jadi null.
+  let readErr: { e: unknown } | null = null
+  const read: Read = (o, l) =>
+    readRaw(o, l).catch((e) => {
+      readErr = { e }
+      throw e
+    })
   try {
     let o = 0
     for (let i = 0; i < MAX_ITER && o + 8 <= size; i++) {
@@ -73,7 +80,8 @@ export async function videoCodecOf(read: Read, size: number): Promise<VideoCodec
       o += len
     }
     return null
-  } catch {
+  } catch (e) {
+    if (readErr) throw (readErr as { e: unknown }).e
     return null
   }
 }

@@ -84,11 +84,12 @@ describe("videoCodecOf", () => {
     expect(await run(cat(ftyp, u32(60 * 1024 * 1024), enc("moov"), new Uint8Array(10)))).toBeNull()
   })
 
-  it("read yang melempar -> null", async () => {
-    const r = await videoCodecOf(async () => {
-      throw new Error("x")
-    }, 100)
-    expect(r).toBeNull()
+  it("read yang melempar -> galat diteruskan, bukan null", async () => {
+    await expect(
+      videoCodecOf(async () => {
+        throw new Error("x")
+      }, 100)
+    ).rejects.toThrow("x")
   })
 })
 

@@ -57,6 +57,14 @@ export async function startUpload(
   return { key, url, fields }
 }
 
+async function keyOwned(q: Tx | typeof db, cardId: number, key: string) {
+  const [r] = await q
+    .select({ id: contentCardMedia.id })
+    .from(contentCardMedia)
+    .where(and(eq(contentCardMedia.cardId, cardId), eq(contentCardMedia.objectKey, key)))
+  return !!r
+}
+
 export async function finishUpload(
   cardId: number,
   key: string,
@@ -66,11 +74,15 @@ export async function finishUpload(
   // Kunci milik kartu lain / tidak sah: tolak tanpa menyentuh objeknya.
   const parsed = parseObjectKey(cardId, key)
   if (!parsed) throw new UserError(NOT_UPLOADED)
+  // Izin dulu (sebelum storage dibaca), lalu finish ulang untuk key yang sudah tersimpan = sukses.
+  if (!actor.permissions.has("kanban.isi")) throw new UserError(LOCKED)
+  if (await keyOwned(db, cardId, key)) return
   const stat = await statObject(key)
   if (!stat) throw new UserError(NOT_UPLOADED)
 
   const discard = async (message: string): Promise<never> => {
-    await removeObjects([key]).catch((e) => console.error("removeObjects gagal", e))
+    if (!(await keyOwned(db, cardId, key)))
+      await removeObjects([key]).catch((e) => console.error("removeObjects gagal", e))
     throw new UserError(message)
   }
   const name = originalName.trim().slice(0, 200) || "berkas"
@@ -85,6 +97,7 @@ export async function finishUpload(
   try {
     await db.transaction(async (tx) => {
       await lockEditable(tx, cardId, actor, LOCKED_AFTER_UPLOAD)
+      if (await keyOwned(tx, cardId, key)) return // finish ganda yang menang balapan
       const position = await nextPosition(tx, cardId)
       await tx.insert(contentCardMedia).values({
         cardId,
@@ -100,11 +113,7 @@ export async function finishUpload(
     })
   } catch (e) {
     // Jangan hapus objek yang sudah punya baris (finish ganda).
-    const [owned] = await db
-      .select({ id: contentCardMedia.id })
-      .from(contentCardMedia)
-      .where(eq(contentCardMedia.objectKey, key))
-    if (!owned) await removeObjects([key]).catch((x) => console.error("removeObjects gagal", x))
+    if (!(await keyOwned(db, cardId, key))) await removeObjects([key]).catch((x) => console.error("removeObjects gagal", x))
     throw e
   }
 }

@@ -65,6 +65,7 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
   let accounts: typeof import("@workspace/auth/accounts")
   let planner: typeof import("../planner/mutations")
   let mut: typeof import("./media-mutations")
+  let storage: typeof import("@/lib/storage")
 
   type Actor = { id: string; permissions: ReadonlySet<import("@workspace/auth/permissions").Permission> }
   let M: Actor, K: Actor, V: Actor
@@ -78,6 +79,7 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
     accounts = await import("@workspace/auth/accounts")
     planner = await import("../planner/mutations")
     mut = await import("./media-mutations")
+    storage = await import("@/lib/storage")
   })
 
   async function mk(username: string, roles: Role[]): Promise<Actor> {
@@ -176,6 +178,54 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
     const key2 = await uploaded(id)
     await mut.finishUpload(id, key2, "b.mp4", K)
     expect((await rows(id)).map((x) => x.objectKey)).toEqual([key, null, key2])
+  })
+
+  it("finishUpload dua kali untuk key yang sama: keduanya sukses, satu baris, objek tidak dihapus", async () => {
+    const id = await card()
+    const key = await uploaded(id)
+    await mut.finishUpload(id, key, "a.mp4", K)
+    await mut.finishUpload(id, key, "a.mp4", K)
+    await Promise.all([mut.finishUpload(id, key, "a.mp4", K), mut.finishUpload(id, key, "a.mp4", K)])
+    expect(await rows(id)).toHaveLength(1)
+    expect(removed).toEqual([])
+    expect(store.has(key)).toBe(true)
+  })
+
+  it("finish kedua saat readRange melempar: baris tetap, objek tidak dihapus", async () => {
+    const id = await card()
+    const key = await uploaded(id)
+    await mut.finishUpload(id, key, "a.mp4", K)
+    const spy = vi.mocked(storage.readRange)
+    const orig = spy.getMockImplementation()!
+    spy.mockRejectedValue(new Error("minio mati"))
+    try {
+      await expect(mut.finishUpload(id, key, "a.mp4", K)).resolves.toBeUndefined()
+    } finally {
+      spy.mockImplementation(orig)
+    }
+    expect(await rows(id)).toHaveLength(1)
+    expect(removed).toEqual([])
+  })
+
+  it("finishUpload tanpa kanban.isi: ditolak sebelum storage dibaca", async () => {
+    const id = await card()
+    const key = await uploaded(id)
+    vi.mocked(storage.statObject).mockClear()
+    vi.mocked(storage.readRange).mockClear()
+    await expect(mut.finishUpload(id, key, "a.mp4", V)).rejects.toThrow()
+    expect(storage.statObject).not.toHaveBeenCalled()
+    expect(storage.readRange).not.toHaveBeenCalled()
+    expect(removed).toEqual([])
+  })
+
+  it("readRange melempar pada unggahan baru: galat diteruskan, objek tidak dihapus", async () => {
+    const id = await card()
+    const key = await uploaded(id)
+    vi.mocked(storage.readRange).mockRejectedValueOnce(new Error("minio mati"))
+    await expect(mut.finishUpload(id, key, "a.mp4", K)).rejects.toThrow(new Error("minio mati"))
+    expect(removed).toEqual([])
+    expect(store.has(key)).toBe(true)
+    expect(await rows(id)).toHaveLength(0)
   })
 
   it("kartu pindah ke Review di antara start dan finish: ditolak, objek dihapus", async () => {
