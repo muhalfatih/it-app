@@ -64,6 +64,7 @@ import { ChartDemo } from "./_demo-chart"
 import { FormsDemo } from "./_demo-forms"
 import { KanbanDemo } from "./_demo-kanban"
 import { MediaDemo } from "./_demo-media"
+import { UploadDemo } from "./_demo-upload"
 import { MiscDemo } from "./_demo-misc"
 import { OverlaysDemo } from "./_demo-overlays"
 import { PlannerDemo } from "./_demo-planner"
@@ -237,6 +238,10 @@ export default async function GaleriPage() {
 
       <Section title="Media konten">
         <MediaDemo />
+      </Section>
+
+      <Section title="Unggah media konten">
+        <UploadDemo />
       </Section>
 
       <Section title="Riwayat kartu">
