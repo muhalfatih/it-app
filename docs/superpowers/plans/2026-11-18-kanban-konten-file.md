@@ -19,7 +19,7 @@
 - Sematan: YouTube → `https://www.youtube-nocookie.com/embed/ID`, sampul `https://i.ytimg.com/vi/ID/hqdefault.jpg`; Drive → `https://drive.google.com/file/d/ID/preview`; lainnya `tautan` (tidak pernah di-iframe, buka tab baru `rel="noopener noreferrer"`). Hanya `http(s)`.
 - Pesan tolak HEVC persis: `"{nama}: kodek HEVC tidak bisa diputar di semua browser. Ekspor ulang ke MP4 (H.264), atau di iPhone pilih Pengaturan › Kamera › Format › Paling Kompatibel."` Kodek lain: `"{nama}: kodek video tidak didukung. Ekspor ulang ke MP4 (H.264)."`
 - UI: hanya komponen `@workspace/ui`; perubahan komponen di `packages/ui/src/components/domain/`; warna dari token; skill `frontend-design:frontend-design` sebelum kode tampilan, `anthropic-skills:web-design-guidelines` sesudahnya. Tidak ada komponen di `apps/admin/components`.
-- Dependensi baru hanya `minio` (di `apps/admin`).
+- Dependensi baru: `minio` (di `apps/admin`) dan devDependency `tsx` (untuk skrip `media:sweep`, disetujui pengguna).
 
 ## Review Focus
 
