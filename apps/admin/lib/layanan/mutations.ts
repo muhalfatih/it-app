@@ -18,6 +18,7 @@ import { listReporters } from "@/lib/report/queries"
 import { removeObjects } from "@/lib/storage"
 import { UserError } from "@/lib/user-error"
 
+import { verifyRundown } from "./rundown"
 import { staffFor, type RequestRow } from "./queries"
 import { approveTasksSchema, reasonSchema, requestInputSchema } from "./schema"
 
@@ -57,8 +58,7 @@ async function activeTaskTypes(ids: number[]): Promise<Map<number, string>> {
 
 export async function createRequest(userId: string, raw: unknown): Promise<{ id: number }> {
   const input = parse(requestInputSchema, raw)
-  // Task 5 memasang verifyRundown di sini; sampai itu, lampiran belum diterima.
-  if (input.rundownKey !== null) throw new UserError("Lampiran rundown belum didukung")
+  const rundown = input.rundownKey ? await verifyRundown(input.rundownKey) : null
   const [u] = await db
     .select({ active: unit.active })
     .from(unit)
@@ -66,6 +66,13 @@ export async function createRequest(userId: string, raw: unknown): Promise<{ id:
   if (!u?.active) throw new UserError("Unit tidak valid atau sudah dinonaktifkan")
   await activeTaskTypes(input.needs.map((n) => n.taskTypeId))
   return db.transaction(async (tx) => {
+    if (input.rundownKey) {
+      const [used] = await tx
+        .select({ id: serviceRequest.id })
+        .from(serviceRequest)
+        .where(eq(serviceRequest.rundownKey, input.rundownKey))
+      if (used) throw new UserError("Berkas rundown sudah dipakai pengajuan lain")
+    }
     const [r] = await tx
       .insert(serviceRequest)
       .values({
@@ -76,6 +83,12 @@ export async function createRequest(userId: string, raw: unknown): Promise<{ id:
         waNumber: input.waNumber,
         feeAgreed: input.feeAgreed,
         requestedBy: userId,
+        ...(rundown && {
+          rundownKey: input.rundownKey,
+          rundownName: input.rundownName?.trim().slice(0, 200) || "rundown",
+          rundownMime: rundown.mime,
+          rundownSize: rundown.size,
+        }),
       })
       .returning({ id: serviceRequest.id })
     await tx.insert(serviceRequestStaff).values(

@@ -144,6 +144,15 @@ export async function getRequestFor(
   }
 }
 
+/** Kunci objek rundown; hanya dipanggil setelah `getRequestFor` lolos. */
+export async function rundownKeyOf(id: number): Promise<string | null> {
+  const [r] = await db
+    .select({ key: serviceRequest.rundownKey })
+    .from(serviceRequest)
+    .where(eq(serviceRequest.id, id))
+  return r?.key ?? null
+}
+
 function listQuery() {
   return db
     .select({

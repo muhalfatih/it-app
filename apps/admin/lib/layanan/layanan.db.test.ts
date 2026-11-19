@@ -1,9 +1,18 @@
 // Tes integrasi Pengajuan SDM terhadap database KHUSUS uji (dilewati bila bukan *_test).
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Role } from "@workspace/db/schema/roles"
 
 import { UserError } from "@/lib/user-error"
+
+const store = new Map<string, { size: number; mime: string }>()
+vi.mock("@/lib/storage", () => ({
+  statObject: vi.fn(async (key: string) => {
+    const o = store.get(key)
+    return o ? { ...o, lastModified: new Date() } : null
+  }),
+  removeObjects: vi.fn(async () => {}),
+}))
 
 const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
 
@@ -140,6 +149,25 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
         request({ needs: [{ taskTypeId: edit }], rundownKey: "requests/x.pdf" })
       )
     ).rejects.toBeInstanceOf(UserError)
+  })
+
+  it("createRequest memverifikasi rundown dan menolak kunci terpakai atau milik kartu", async () => {
+    const U = "123e4567-e89b-12d3-a456-426614174001"
+    const key = `requests/${U}.pdf`
+    const bad = (k: string) =>
+      expect(mut.createRequest(pengaju, request({ rundownKey: k }))).rejects.toBeInstanceOf(UserError)
+    await bad(key) // belum diunggah
+    await bad("cards/1/x.png")
+    store.set(key, { size: 1234, mime: "image/png" })
+    await bad(key) // MIME tidak cocok
+    store.set(key, { size: 1234, mime: "application/pdf" })
+    const { id } = await mut.createRequest(
+      pengaju,
+      request({ rundownKey: key, rundownName: "rundown.pdf" })
+    )
+    const row = await load(id)
+    expect(row).toMatchObject({ rundownMime: "application/pdf", rundownSize: 1234 })
+    await bad(key) // sudah dipakai pengajuan lain
   })
 
   it("approveWithTasks membuat satu tugas tertaut per baris", async () => {
