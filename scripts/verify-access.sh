@@ -5,6 +5,7 @@
 #
 # Pakai (server dev/produksi harus berjalan, akun SDM Khusus uji aktif & sudah ganti kata sandi):
 #   BASE_URL=http://localhost:3000 VERIFY_SDM_USERNAME=... VERIFY_SDM_PASSWORD=... scripts/verify-access.sh
+# Opsional: VERIFY_OTHER_USERNAME/PASSWORD (Staf Unit Lain) dan VERIFY_DIREKTUR_USERNAME/PASSWORD (Direktur).
 # Langkah "akun dinonaktifkan" memakai psql di container docker compose `db`.
 set -euo pipefail
 
@@ -29,7 +30,7 @@ status() { # status <path> [cookie-jar]
 psql_db() { docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"; }
 
 echo "== Tanpa sesi"
-for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /; do
+for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /tugas /absensi /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
@@ -51,6 +52,10 @@ check "GET /planner/baru (tanpa planner.ubah) -> ditolak" "307 $BASE_URL/?akses=
 check "GET /konten (diizinkan) -> 200" "200" "$(status /konten "$JAR")"
 check "GET /konten/999999 (tidak ada) -> 404" "404" "$(status /konten/999999 "$JAR")"
 check "GET /api/media/999999 (tidak ada) -> 404" "404" "$(status /api/media/999999 "$JAR")"
+check "GET /laporan (diizinkan) -> 200" "200" "$(status /laporan "$JAR")"
+for path in /laporan/tim /tugas /tugas/baru /absensi /absensi/libur; do
+  check "GET $path (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$JAR")"
+done
 
 echo "== Staf Unit Lain (opsional: VERIFY_OTHER_USERNAME / VERIFY_OTHER_PASSWORD)"
 if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; then
@@ -61,9 +66,35 @@ if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; the
   check "login staf unit lain" "200" "$code"
   check "GET /planner (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner "$OTHER_JAR")"
   check "GET /konten (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /konten "$OTHER_JAR")"
+  check "GET /laporan (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /laporan "$OTHER_JAR")"
   rm -f "$OTHER_JAR"
 else
   echo "SKIP  staf unit lain (variabel VERIFY_OTHER_* tidak diisi)"
+fi
+
+echo "== Direktur (opsional: VERIFY_DIREKTUR_USERNAME / VERIFY_DIREKTUR_PASSWORD)"
+if [[ -n "${VERIFY_DIREKTUR_USERNAME:-}" && -n "${VERIFY_DIREKTUR_PASSWORD:-}" ]]; then
+  DIR_JAR="$(mktemp)"
+  code=$(curl -s -o /dev/null -w "%{http_code}" -c "$DIR_JAR" -X POST "$BASE_URL/api/auth/sign-in/username" \
+    -H "content-type: application/json" -H "origin: $BASE_URL" \
+    --data "{\"username\":\"$VERIFY_DIREKTUR_USERNAME\",\"password\":\"$VERIFY_DIREKTUR_PASSWORD\"}")
+  check "login direktur" "200" "$code"
+  check "GET /laporan (direktur tidak mengisi) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /laporan "$DIR_JAR")"
+  check "GET /laporan/tim (direktur) -> 200" "200" "$(status /laporan/tim "$DIR_JAR")"
+  for path in /tugas /absensi /absensi/libur; do
+    check "GET $path (direktur) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$DIR_JAR")"
+  done
+  # Direktur melihat rekap tanpa tombol Buka kunci (hanya Manajer yang boleh membuka kunci).
+  body=$(curl -s -b "$DIR_JAR" "$BASE_URL/laporan/tim")
+  if [[ "$body" == *"Buka kunci"* ]]; then
+    printf "FAIL  /laporan/tim (direktur) memuat tombol Buka kunci\n"
+    fail=1
+  else
+    printf "PASS  /laporan/tim (direktur) tanpa tombol Buka kunci\n"
+  fi
+  rm -f "$DIR_JAR"
+else
+  echo "SKIP  direktur (variabel VERIFY_DIREKTUR_* tidak diisi)"
 fi
 
 echo "== Endpoint Better Auth yang ditutup (akun hanya diubah Manajer)"
