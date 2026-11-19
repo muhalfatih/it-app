@@ -8,7 +8,7 @@ import type {
 import { todayWib } from "../planner/rules"
 import type { IsoDate } from "../planner/types"
 
-/** Placeholder go-live modul; dikonfirmasi pengguna saat rilis. */
+/** Tanggal go-live modul laporan harian (dikonfirmasi pengguna: 2026-12-01). */
 export const REPORT_START_DATE: IsoDate = "2026-12-01"
 
 const DAY_MS = 86_400_000
