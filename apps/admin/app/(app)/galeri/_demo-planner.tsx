@@ -131,3 +131,22 @@ export function PlannerDemo() {
     </div>
   )
 }
+
+/** `AssignmentRows` mode `fields="type"`: formulir pengaju Pengajuan SDM (jenis tugas saja). */
+export function NeedsDemo() {
+  const [needs, setNeeds] = React.useState<Assignment[]>([
+    { id: "n1", personId: "", taskTypeId: "dokumentasi" },
+    { id: "n2", personId: "", taskTypeId: "" },
+  ])
+  return (
+    <div className="max-w-xl">
+      <AssignmentRows
+        fields="type"
+        value={needs}
+        onChange={setNeeds}
+        people={[]}
+        taskTypes={TASK_TYPES}
+      />
+    </div>
+  )
+}

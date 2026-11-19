@@ -67,7 +67,7 @@ import { MediaDemo } from "./_demo-media"
 import { UploadDemo } from "./_demo-upload"
 import { MiscDemo } from "./_demo-misc"
 import { OverlaysDemo } from "./_demo-overlays"
-import { PlannerDemo } from "./_demo-planner"
+import { NeedsDemo, PlannerDemo } from "./_demo-planner"
 import { ReuiDemo } from "./_demo-reui"
 import { RecapGrid } from "./_demo-tables"
 import { TabsCalendarDemo } from "./_demo-tabs-calendar"
@@ -230,6 +230,10 @@ export default async function GaleriPage() {
 
       <Section title="Planner: kalender pekanan, daftar, penugasan">
         <PlannerDemo />
+      </Section>
+
+      <Section title="Kebutuhan SDM (penugasan mode jenis)">
+        <NeedsDemo />
       </Section>
 
       <Section title="Kanban konten">
