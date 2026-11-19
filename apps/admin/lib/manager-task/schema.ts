@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid")
+const isoDate = z.iso.date({ error: "Tanggal tidak valid" })
 
 export const managerTaskSchema = z
   .object({

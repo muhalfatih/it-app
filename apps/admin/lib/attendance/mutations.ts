@@ -9,7 +9,7 @@ import {
   type AttendanceStatus,
 } from "@workspace/db/schema/stages"
 
-import { todayWib } from "@/lib/planner/rules"
+import { todayWib, validDate } from "@/lib/planner/rules"
 import type { IsoDate } from "@/lib/planner/types"
 import { listReporters } from "@/lib/report/queries"
 import { isWorkday } from "@/lib/report/rules"
@@ -24,6 +24,7 @@ const holidayName = z
   .max(80, { message: "Nama maksimal 80 karakter" })
 
 const UNIQUE_VIOLATION = "23505"
+const BAD_DATE = "Tanggal tidak valid"
 
 export async function setAttendance(
   actorId: string,
@@ -32,6 +33,7 @@ export async function setAttendance(
   status: AttendanceStatus
 ): Promise<void> {
   if (!ATTENDANCE_STATUSES.includes(status)) throw new UserError("Status tidak valid")
+  if (!validDate(date)) throw new UserError(BAD_DATE)
   if (date > todayWib()) throw new UserError("Tanggal belum tiba")
   if (!isWorkday(date, await holidaySet(date, date)))
     throw new UserError("Hari itu hari libur atau Minggu")
@@ -48,6 +50,7 @@ export async function setAttendance(
 
 export async function addHoliday(date: IsoDate, name: string): Promise<void> {
   const parsed = holidayName.parse(name)
+  if (!validDate(date)) throw new UserError(BAD_DATE)
   try {
     await db.insert(holiday).values({ date, name: parsed })
   } catch (error) {

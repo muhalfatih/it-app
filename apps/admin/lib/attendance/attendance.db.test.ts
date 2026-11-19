@@ -89,6 +89,18 @@ describe.skipIf(!TEST_DB)("absensi (database uji)", () => {
     expect(await qry.listHolidays()).toEqual([])
   })
 
+  it("tanggal yang bukan tanggal kalender ditolak dengan pesan jelas", async () => {
+    await expect(mut.setAttendance(boss, s1, "2026-13-45", "izin")).rejects.toThrow(
+      "Tanggal tidak valid"
+    )
+    await expect(mut.setAttendance(boss, s1, "2026-11-0", "izin")).rejects.toThrow(
+      "Tanggal tidak valid"
+    )
+    await expect(mut.addHoliday("2026-02-30", "Libur")).rejects.toThrow(
+      "Tanggal tidak valid"
+    )
+  })
+
   it("attendanceOf mengembalikan peta tanggal → status dalam rentang", async () => {
     await mut.setAttendance(boss, s1, MON, "izin")
     const m = await qry.attendanceOf(s1, "2026-11-01", "2026-11-30")

@@ -94,6 +94,15 @@ describe.skipIf(!TEST_DB)("tugas dari manajer (database uji)", () => {
     ).rejects.toThrow("Pilih minimal satu staf")
   })
 
+  it("menolak tanggal yang bukan tanggal kalender", async () => {
+    await expect(
+      mut.createManagerTask(boss, input({ startDate: "2026-13-45" }))
+    ).rejects.toThrow("Tanggal tidak valid")
+    await expect(
+      mut.createManagerTask(boss, input({ endDate: "2026-02-30" }))
+    ).rejects.toThrow("Tanggal tidak valid")
+  })
+
   it("hapus menghilangkan tugas dari managerTasksFor", async () => {
     const { id } = await mut.createManagerTask(boss, input())
     await mut.deleteManagerTask(id)
