@@ -36,6 +36,13 @@
       "when": 1794990157346,
       "tag": "0004_cool_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795052504605,
+      "tag": "0005_colorful_betty_brant",
+      "breakpoints": true
     }
   ]
 }
