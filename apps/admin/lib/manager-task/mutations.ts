@@ -24,21 +24,39 @@ async function parse(input: ManagerTaskInput) {
   }
 }
 
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
+
+/** Insert tugas + penerima; pemanggil sudah memvalidasi orang (dipakai juga persetujuan Layanan). */
+export async function insertManagerTask(
+  tx: Tx,
+  row: {
+    title: string
+    note: string | null
+    startDate: string
+    endDate: string
+    createdBy: string
+    serviceRequestId?: number
+  },
+  assigneeIds: string[]
+): Promise<number> {
+  const [t] = await tx
+    .insert(managerTask)
+    .values(row)
+    .returning({ id: managerTask.id })
+  await tx
+    .insert(managerTaskAssignee)
+    .values(assigneeIds.map((userId) => ({ taskId: t!.id, userId })))
+  return t!.id
+}
+
 export async function createManagerTask(
   actorId: string,
   input: ManagerTaskInput
 ): Promise<{ id: number }> {
   const { ids, row } = await parse(input)
-  return db.transaction(async (tx) => {
-    const [t] = await tx
-      .insert(managerTask)
-      .values({ ...row, createdBy: actorId })
-      .returning({ id: managerTask.id })
-    await tx
-      .insert(managerTaskAssignee)
-      .values(ids.map((userId) => ({ taskId: t!.id, userId })))
-    return { id: t!.id }
-  })
+  return db.transaction(async (tx) => ({
+    id: await insertManagerTask(tx, { ...row, createdBy: actorId }, ids),
+  }))
 }
 
 export async function updateManagerTask(
