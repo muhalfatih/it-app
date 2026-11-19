@@ -39,7 +39,11 @@ export const removeTask = withPermission(
     const result = await guarded("/tugas", () =>
       deleteManagerTask(id, user!.id, cancelNote)
     )
-    if ("ok" in result) revalidatePath("/laporan")
+    if ("ok" in result) {
+      revalidatePath("/laporan")
+      // Susunan SDM pengajuan tertaut dibaca dari tugas; detailnya ikut berubah.
+      revalidatePath("/layanan/sdm", "layout")
+    }
     return result
   }
 )

@@ -1,6 +1,6 @@
 // Query Tugas dari Manajer (server-only).
 import { db } from "@workspace/db/client"
-import { and, desc, eq, inArray, lte } from "@workspace/db/orm"
+import { and, count, desc, eq, inArray, lte, ne } from "@workspace/db/orm"
 import {
   dailyReportAnswer,
   managerTask,
@@ -73,11 +73,20 @@ export async function listManagerTasks(): Promise<ManagerTaskRow[]> {
   )
 }
 
-export async function getManagerTask(id: number): Promise<ManagerTaskRow | null> {
+/** `isLastLinked`: tugas tertaut terakhir pengajuannya; menghapusnya membatalkan pengajuan. */
+export async function getManagerTask(
+  id: number
+): Promise<(ManagerTaskRow & { isLastLinked: boolean }) | null> {
   const [row] = await hydrate(
     await db.select().from(managerTask).where(eq(managerTask.id, id))
   )
-  return row ?? null
+  if (!row) return null
+  if (row.serviceRequestId === null) return { ...row, isLastLinked: false }
+  const [others] = await db
+    .select({ n: count() })
+    .from(managerTask)
+    .where(and(eq(managerTask.serviceRequestId, row.serviceRequestId), ne(managerTask.id, id)))
+  return { ...row, isLastLinked: others!.n === 0 }
 }
 
 /** Tugas penerima ini dengan startDate ≤ date (yang lewat juga, untuk Tertunda). */

@@ -47,7 +47,7 @@ export default async function TugasPage({ params }: Props) {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Ubah tugas</h1>
         <div className="ml-auto">
-          <DeleteTask id={task.id} title={task.title} />
+          <DeleteTask id={task.id} title={task.title} isLastLinked={task.isLastLinked} />
         </div>
       </div>
       {/* key: remount saat data server berubah supaya state formulir ikut segar. */}

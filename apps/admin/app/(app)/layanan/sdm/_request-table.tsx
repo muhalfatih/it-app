@@ -22,7 +22,7 @@ import type { RequestListRow } from "@/lib/layanan/queries"
 import { STATUS_LABELS } from "@/lib/layanan/rules"
 import type { ServiceStatus } from "@/lib/layanan/types"
 
-const STATUS_VARIANT = {
+export const STATUS_VARIANT = {
   diajukan: "info-light",
   disetujui: "success-light",
   ditolak: "destructive-light",
@@ -30,7 +30,7 @@ const STATUS_VARIANT = {
 } as const satisfies Record<ServiceStatus, string>
 
 /** "5 Des 2026" atau "28 Nov – 2 Des 2026". */
-function rangeLabel(start: string, end: string): string {
+export function rangeLabel(start: string, end: string): string {
   const f = (iso: string, p: string) =>
     format(parseISO(iso), p, { locale: localeId })
   return start === end

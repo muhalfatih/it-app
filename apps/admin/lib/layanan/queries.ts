@@ -144,6 +144,16 @@ export async function getRequestFor(
   }
 }
 
+/** Jenis tugas kebutuhan pengaju, urut posisi; untuk mengisi awal form persetujuan. */
+export async function needTypeIds(id: number): Promise<number[]> {
+  const rows = await db
+    .select({ id: serviceRequestStaff.taskTypeId })
+    .from(serviceRequestStaff)
+    .where(eq(serviceRequestStaff.requestId, id))
+    .orderBy(asc(serviceRequestStaff.position))
+  return rows.map((r) => r.id)
+}
+
 /** Kunci objek rundown; hanya dipanggil setelah `getRequestFor` lolos. */
 export async function rundownKeyOf(id: number): Promise<string | null> {
   const [r] = await db

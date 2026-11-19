@@ -18,6 +18,7 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { Field, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 
 import { removeEntry } from "./actions"
 
@@ -25,25 +26,35 @@ export function DeleteEntry({
   id,
   name,
   confirmByName,
+  linked = false,
 }: {
   id: number
   name: string
   /** Tahap terkunci: wajib mengetik nama konten persis. */
   confirmByName: boolean
+  /** Entri dari pengajuan SDM: catatan pembatalan wajib, pengajuan ikut dibatalkan. */
+  linked?: boolean
 }) {
   const router = useRouter()
   const inputId = React.useId()
+  const noteId = `${inputId}-note`
   const errorId = `${inputId}-error`
   const [open, setOpen] = React.useState(false)
   const [typed, setTyped] = React.useState("")
+  const [note, setNote] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [pending, startTransition] = React.useTransition()
-  const canConfirm = !confirmByName || typed.trim() === name
+  const canConfirm =
+    (!confirmByName || typed.trim() === name) && (!linked || note.trim() !== "")
 
   function confirm() {
     setError(null)
     startTransition(async () => {
-      const result = await removeEntry(id, confirmByName ? typed : undefined)
+      const result = await removeEntry(
+        id,
+        confirmByName ? typed : undefined,
+        linked ? note : undefined
+      )
       if ("error" in result) {
         setError(result.error)
         return
@@ -61,6 +72,7 @@ export function DeleteEntry({
         setOpen(next)
         if (!next) {
           setTyped("")
+          setNote("")
           setError(null)
         }
       }}
@@ -75,8 +87,23 @@ export function DeleteEntry({
           <AlertDialogDescription>
             Penugasan, kanal, dan kartu konten beserta filenya ikut terhapus.
             Tindakan ini tidak bisa dibatalkan.
+            {linked && " Pengajuan SDM yang tertaut ikut dibatalkan."}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {linked && (
+          <Field data-invalid={error ? true : undefined}>
+            <FieldLabel htmlFor={noteId}>Catatan pembatalan untuk pengaju</FieldLabel>
+            <Textarea
+              id={noteId}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={500}
+              required
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
+            />
+          </Field>
+        )}
         {confirmByName && (
           <Field data-invalid={error ? true : undefined}>
             <FieldLabel htmlFor={inputId}>Ketik nama konten</FieldLabel>

@@ -49,6 +49,7 @@ export default async function EntriPage({ params }: Props) {
               id={entry.id}
               name={entry.name}
               confirmByName={needsNameConfirm(entry.stage)}
+              linked={entry.serviceRequestId !== null}
             />
           </div>
         )}

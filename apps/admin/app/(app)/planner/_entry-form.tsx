@@ -36,6 +36,7 @@ import {
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
+import { Textarea } from "@workspace/ui/components/textarea"
 
 import { entryInputSchema } from "@/lib/planner/schema"
 import type { PlannerEntry } from "@/lib/planner/types"
@@ -66,20 +67,33 @@ function toErrors(issues: { path: PropertyKey[]; message: string }[]): Errors {
   return errors
 }
 
+/** Entri baru yang menyetujui pengajuan SDM (`/planner/baru?pengajuan=`). */
+export type EntryApproval = {
+  requestId: number
+  name: string
+  start: string
+  end: string
+  taskTypeIds: number[]
+}
+
 export function EntryForm({
   entry,
   options,
   readOnly = false,
+  approval,
 }: {
   entry?: PlannerEntry
   options: FormOptions
   readOnly?: boolean
+  approval?: EntryApproval
 }) {
   const router = useRouter()
   const formId = React.useId()
-  const [name, setName] = React.useState(entry?.name ?? "")
-  const [activityStart, setActivityStart] = React.useState(entry?.activityStart ?? "")
-  const [activityEnd, setActivityEnd] = React.useState(entry?.activityEnd ?? "")
+  const [name, setName] = React.useState(entry?.name ?? approval?.name ?? "")
+  const [activityStart, setActivityStart] = React.useState(
+    entry?.activityStart ?? approval?.start ?? ""
+  )
+  const [activityEnd, setActivityEnd] = React.useState(entry?.activityEnd ?? approval?.end ?? "")
   const [publishDate, setPublishDate] = React.useState(entry?.publishDate ?? "")
   const [assignments, setAssignments] = React.useState<Assignment[]>(
     () =>
@@ -89,11 +103,20 @@ export function EntryForm({
         taskTypeId: String(a.taskTypeId),
         start: a.start,
         end: a.end,
-      })) ?? []
+      })) ??
+      approval?.taskTypeIds.map((t, i) => ({
+        id: `kebutuhan-${i}`,
+        personId: "",
+        taskTypeId: String(t),
+        start: approval.start,
+        end: approval.end,
+      })) ??
+      []
   )
   const [channelIds, setChannelIds] = React.useState<number[]>(
     entry?.channels.map((c) => c.id) ?? []
   )
+  const [approvalNote, setApprovalNote] = React.useState("")
   const [errors, setErrors] = React.useState<Errors>({})
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [pending, startTransition] = React.useTransition()
@@ -101,7 +124,7 @@ export function EntryForm({
 
   const formRef = React.useRef<HTMLFormElement>(null)
   // Formulir di-remount saat data server berubah, jadi nilai awal cukup diambil sekali.
-  const values = JSON.stringify([name, activityStart, activityEnd, publishDate, assignments, channelIds])
+  const values = JSON.stringify([name, activityStart, activityEnd, publishDate, assignments, channelIds, approvalNote])
   const [initialValues] = React.useState(values)
   const dirty = values !== initialValues
 
@@ -138,13 +161,19 @@ export function EntryForm({
     setErrors({})
     startTransition(async () => {
       // updatedAt sebagai versi: server menolak bila entri sudah diubah orang lain.
-      const result = await saveEntry(entry?.id ?? null, parsed.data, entry?.updatedAt)
+      const result = await saveEntry(
+        entry?.id ?? null,
+        parsed.data,
+        entry?.updatedAt,
+        approval && { requestId: approval.requestId, note: approvalNote.trim() || null }
+      )
       if ("error" in result) {
         setServerError(result.error)
         return
       }
-      toast.success("Entri disimpan")
+      toast.success(approval ? "Pengajuan disetujui" : "Entri disimpan")
       if (entry) router.refresh()
+      else if (approval) router.push(`/layanan/sdm/${approval.requestId}`)
       else router.push(`/planner/${result.id}`)
     })
   }
@@ -153,7 +182,8 @@ export function EntryForm({
   const errorId = (key: keyof Errors) => `${formId}-${key}-error`
   const describedBy = (key: keyof Errors) =>
     errors[key] ? errorId(key) : undefined
-  const leave = () => router.push("/planner")
+  const leave = () =>
+    router.push(approval ? `/layanan/sdm/${approval.requestId}` : "/planner")
 
   return (
     <form ref={formRef} onSubmit={submit} noValidate className="flex max-w-3xl flex-col gap-6">
@@ -278,6 +308,19 @@ export function EntryForm({
             />
             <FieldError id={errorId("publishDate")}>{errors.publishDate}</FieldError>
           </Field>
+
+          {approval && (
+            <Field>
+              <FieldLabel htmlFor={`${formId}-approval-note`}>Catatan untuk pengaju</FieldLabel>
+              <Textarea
+                id={`${formId}-approval-note`}
+                value={approvalNote}
+                onChange={(e) => setApprovalNote(e.target.value)}
+                maxLength={500}
+              />
+              <FieldDescription>Opsional. Tampil di halaman detail pengajuan.</FieldDescription>
+            </Field>
+          )}
         </FieldGroup>
       </fieldset>
       {!readOnly && (
