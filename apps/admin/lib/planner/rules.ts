@@ -34,7 +34,7 @@ export function todayWib(now: Date = new Date()): IsoDate {
 }
 
 /** Hanya string tunggal yyyy-MM-dd yang benar-benar ada di kalender (tolak 2026-02-30). */
-function validDate(value: string | string[] | undefined): IsoDate | null {
+export function validDate(value: string | string[] | undefined): IsoDate | null {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
     return null
   const d = parseISO(value)
