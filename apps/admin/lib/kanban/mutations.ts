@@ -34,25 +34,25 @@ import {
 } from "./rules"
 
 export type Actor = { id: string; permissions: ReadonlySet<Permission> }
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 const NOT_FOUND = "Kartu tidak ditemukan"
 const FORBIDDEN_MOVE = "Anda tidak berwenang memindahkan kartu ini"
 const FORBIDDEN = "Anda tidak berwenang mengubah kartu ini"
 
 /** id dari klien: di luar rentang int4 sama saja dengan tidak ada. */
-const validId = (id: number) =>
+export const validId = (id: number) =>
   Number.isInteger(id) && id >= 1 && id <= 2_147_483_647
 
 /** Pesan zod pertama sebagai UserError, supaya tampil apa adanya di UI. */
-function parse<T>(schema: z.ZodType<T>, value: unknown): T {
+export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const r = schema.safeParse(value)
   if (!r.success) throw new UserError(r.error.issues[0]?.message ?? "Isian tidak valid")
   return r.data
 }
 
 /** Kunci baris kartu sampai transaksi selesai. */
-async function lockCard(tx: Tx, cardId: number) {
+export async function lockCard(tx: Tx, cardId: number) {
   if (!validId(cardId)) throw new UserError(NOT_FOUND)
   const [row] = await tx
     .select({ id: contentCard.id, stage: contentCard.stage, entryId: contentCard.entryId })

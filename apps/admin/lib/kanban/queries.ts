@@ -6,6 +6,7 @@ import {
   contentCard,
   contentCardComment,
   contentCardEvent,
+  contentCardMedia,
   contentCardPublication,
   plannerEntry,
   plannerEntryChannel,
@@ -16,7 +17,22 @@ import type { ContentStage } from "@workspace/db/schema/stages"
 import { hydrate } from "@/lib/planner/queries"
 import type { PlannerEntry } from "@/lib/planner/types"
 
-import type { BoardCard, CardDetail, CardEvent } from "./types"
+import { effectiveThumbnail, toCardMedia } from "./media"
+import type { BoardCard, CardDetail, CardEvent, CardMedia } from "./types"
+
+const mediaCols = {
+  id: contentCardMedia.id,
+  cardId: contentCardMedia.cardId,
+  position: contentCardMedia.position,
+  source: contentCardMedia.source,
+  mediaKind: contentCardMedia.mediaKind,
+  mime: contentCardMedia.mime,
+  size: contentCardMedia.size,
+  originalName: contentCardMedia.originalName,
+  url: contentCardMedia.url,
+  provider: contentCardMedia.provider,
+  providerRef: contentCardMedia.providerRef,
+}
 
 const assigneesOf = (entry: PlannerEntry) => [
   ...new Map(
@@ -34,7 +50,7 @@ export async function getCard(id: number): Promise<CardDetail | null> {
   if (!row) return null
 
   const checker = alias(user, "checker")
-  const [[entry], channels, events, comments] = await Promise.all([
+  const [[entry], channels, events, comments, mediaRows] = await Promise.all([
     hydrate([row.entry]),
     db
       .select({
@@ -85,7 +101,13 @@ export async function getCard(id: number): Promise<CardDetail | null> {
       .innerJoin(user, eq(user.id, contentCardComment.authorId))
       .where(eq(contentCardComment.cardId, id))
       .orderBy(asc(contentCardComment.id)),
+    db
+      .select(mediaCols)
+      .from(contentCardMedia)
+      .where(eq(contentCardMedia.cardId, id))
+      .orderBy(asc(contentCardMedia.position), asc(contentCardMedia.id)),
   ])
+  const media = mediaRows.map(toCardMedia)
 
   const stage = row.card.stage as ContentStage
   const typedEvents = events as CardEvent[]
@@ -99,6 +121,9 @@ export async function getCard(id: number): Promise<CardDetail | null> {
     publishDate: row.entry.publishDate,
     assignees: assigneesOf(entry!),
     publishedCount: channels.filter((c) => c.checkedAt !== null).length,
+    thumbnailUrl: effectiveThumbnail(media, row.card.thumbnailMediaId),
+    media,
+    thumbnailMediaId: row.card.thumbnailMediaId,
     caption: row.card.caption,
     activity: start && end ? { start, end } : null,
     assignments: entry!.assignments.map((a) => ({
@@ -130,7 +155,7 @@ export async function listBoard(opts: {
   allPublished: boolean
 }): Promise<BoardCard[]> {
   const rows = await db
-    .select({ entry: plannerEntry, cardId: contentCard.id })
+    .select({ entry: plannerEntry, cardId: contentCard.id, thumbnailMediaId: contentCard.thumbnailMediaId })
     .from(contentCard)
     .innerJoin(plannerEntry, eq(plannerEntry.id, contentCard.entryId))
     .where(
@@ -142,15 +167,21 @@ export async function listBoard(opts: {
   if (rows.length === 0) return []
 
   const cardIds = rows.map((r) => r.cardId)
-  const [entries, published] = await Promise.all([
+  const [entries, published, mediaRows] = await Promise.all([
     hydrate(rows.map((r) => r.entry)),
     db
       .select({ cardId: contentCardPublication.cardId, n: count() })
       .from(contentCardPublication)
       .where(inArray(contentCardPublication.cardId, cardIds))
       .groupBy(contentCardPublication.cardId),
+    db
+      .select(mediaCols)
+      .from(contentCardMedia)
+      .where(inArray(contentCardMedia.cardId, cardIds)),
   ])
   const publishedBy = new Map(published.map((p) => [p.cardId, p.n]))
+  const mediaBy = new Map<number, CardMedia[]>()
+  for (const m of mediaRows) mediaBy.set(m.cardId, [...(mediaBy.get(m.cardId) ?? []), toCardMedia(m)])
   return rows.map((r, i) => {
     const entry = entries[i]!
     return {
@@ -162,6 +193,24 @@ export async function listBoard(opts: {
       channels: entry.channels,
       assignees: assigneesOf(entry),
       publishedCount: publishedBy.get(r.cardId) ?? 0,
+      thumbnailUrl: effectiveThumbnail(mediaBy.get(r.cardId) ?? [], r.thumbnailMediaId),
     }
   })
+}
+
+/** Berkas media (source `file`) untuk route pemutaran; null bila tidak ada atau bukan berkas. */
+export async function getMediaFile(
+  id: number
+): Promise<{ key: string; mime: string; originalName: string } | null> {
+  const [m] = await db
+    .select({
+      source: contentCardMedia.source,
+      key: contentCardMedia.objectKey,
+      mime: contentCardMedia.mime,
+      originalName: contentCardMedia.originalName,
+    })
+    .from(contentCardMedia)
+    .where(eq(contentCardMedia.id, id))
+  if (!m || m.source !== "file" || !m.key || !m.mime) return null
+  return { key: m.key, mime: m.mime, originalName: m.originalName ?? "berkas" }
 }

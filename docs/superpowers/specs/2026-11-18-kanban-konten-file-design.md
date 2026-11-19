@@ -44,9 +44,11 @@ Kartu konten bisa diisi **foto/video** (unggah ke MinIO di server unit) dan **se
 
 ### Infrastruktur
 
+> **Pembaruan 18 Nov 2026:** image `minio/minio` dan `minio/mc` tidak lagi bisa ditarik. Server S3 lokal diganti **RustFS 1.0.6** (`rustfs/rustfs`, Apache-2.0), dengan init lewat `amazon/aws-cli` (bucket privat + bucket CORS hanya `APP_ORIGIN`). Diuji: presigned POST dengan batas ukuran dan tipe ditegakkan, range GET 206, tanda tangan palsu 403, origin asing 403. SeaweedFS ditolak (tidak menegakkan batas tipe; CORS terbuka untuk semua origin). Aplikasi tetap memakai paket `minio` lewat API S3; nama "MinIO" di bawah berarti server S3 ini. Kematangan RustFS untuk server produksi ditinjau sebelum deployment; cadangan: `bitnamilegacy/minio`.
+
 - `docker-compose.yml`: layanan `minio` (`minio/minio`, port `127.0.0.1:9000` API dan `127.0.0.1:9001` konsol, volume `miniodata`, healthcheck) + layanan sekali jalan `minio-init` (`minio/mc`) yang membuat bucket privat (tanpa akses anonim).
 - CORS MinIO: izinkan origin aplikasi (`MINIO_API_CORS_ALLOW_ORIGIN`), metode `POST`, `GET`, `HEAD`.
-- Env baru (`.env.example` + validasi saat start): `S3_ENDPOINT` (alamat internal yang dipakai server), `S3_PUBLIC_URL` (alamat yang dijangkau browser lewat reverse proxy, dipakai untuk menandatangani URL), `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_REGION` (bawaan `us-east-1`).
+- Env baru (`.env.example` + validasi saat start): `S3_ENDPOINT` (alamat internal yang dipakai server), `S3_PUBLIC_URL` (alamat yang dijangkau browser lewat reverse proxy, dipakai untuk menandatangani URL), `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_REGION` (bawaan `us-east-1`). `S3_PUBLIC_URL` harus berupa origin tanpa path (mis. `https://files.domain`): path dibuang saat menandatangani URL.
 - Modul `apps/admin/lib/storage.ts`: satu-satunya tempat yang bicara ke MinIO (`presignUpload`, `presignRead`, `statObject`, `removeObjects`). Dependensi baru: paket **`minio`** (SDK resmi, satu paket; *keputusan pembangun*, alternatif `@aws-sdk/client-s3` + presigner).
 - File dilayani dari origin MinIO yang **berbeda** dengan aplikasi, sehingga file yang menyamar (mis. HTML berekstensi .jpg) tidak menyentuh cookie sesi.
 
@@ -116,7 +118,7 @@ Aturan proyek: skill `frontend-design:frontend-design` sebelum kode, `anthropic-
 ```
 
 - Dapat diubah (`canEditContent`): `MediaUpload`, tersimpan per item langsung; hapus pakai konfirmasi (`AlertDialog`); ★ "Jadikan thumbnail" pada foto/YouTube, ubin thumbnail diberi penanda.
-- Terkunci: `MediaGallery` baca saja; klik → `MediaLightbox` (foto zoom, video `<video>` dari `/api/media/[id]`, YouTube/Drive di iframe, tautan lain buka tab baru). Unduh lewat `?unduh=1`.
+- Terkunci: `MediaUpload` dengan `disabled` (bukan `MediaGallery`; keputusan pembangun, diterima pengguna: urutan dan ubin sama dengan saat bisa diedit, lightbox tetap bisa dibuka), baca saja; klik → `MediaLightbox` (foto zoom, video `<video>` dari `/api/media/[id]`, YouTube/Drive di iframe, tautan lain buka tab baru). Unduh lewat `?unduh=1`.
 - Kosong & terkunci: "Belum ada konten."
 
 **Papan `/konten`**: `ContentCard` menerima `thumbnailUrl` dari thumbnail efektif (`/api/media/[id]` atau `thumbSrc` YouTube).

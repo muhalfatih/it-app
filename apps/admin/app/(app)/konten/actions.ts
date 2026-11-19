@@ -10,6 +10,14 @@ import {
 import type { ContentStage } from "@workspace/db/schema/stages"
 
 import {
+  addEmbed,
+  finishUpload,
+  removeMedia,
+  reorderMedia,
+  setThumbnail,
+  startUpload,
+} from "@/lib/kanban/media-mutations"
+import {
   addComment,
   checkChannel,
   moveCard,
@@ -19,12 +27,12 @@ import {
 import { guarded, type CrudResult } from "@/lib/setting-crud"
 
 /** Gerbang kanban.lihat; wewenang rinci diperiksa mutasi terhadap tahap di database. */
-const action = <A extends unknown[]>(
-  fn: (user: CurrentUser, cardId: number, ...args: A) => Promise<unknown>
+const action = <A extends unknown[], T = void>(
+  fn: (user: CurrentUser, cardId: number, ...args: A) => Promise<T>
 ) =>
   withPermission(
     "kanban.lihat",
-    async (cardId: number, ...args: A): Promise<CrudResult> => {
+    async (cardId: number, ...args: A): Promise<CrudResult<T>> => {
       const user = (await getCurrentUser())!
       const result = await guarded("/konten", () => fn(user, cardId, ...args))
       if ("ok" in result) {
@@ -56,4 +64,30 @@ export const uncheckChannelAction = action(
 
 export const addCommentAction = action((user, cardId, body: string) =>
   addComment(cardId, body, user)
+)
+
+export const startUploadAction = action(
+  (user, cardId, file: { name: string; size: number; mime: string }) =>
+    startUpload(cardId, file, user)
+)
+
+export const finishUploadAction = action(
+  (user, cardId, key: string, originalName: string) =>
+    finishUpload(cardId, key, originalName, user)
+)
+
+export const addEmbedAction = action((user, cardId, url: string) =>
+  addEmbed(cardId, url, user)
+)
+
+export const reorderMediaAction = action((user, cardId, ids: number[]) =>
+  reorderMedia(cardId, ids, user)
+)
+
+export const removeMediaAction = action((user, cardId, mediaId: number) =>
+  removeMedia(cardId, mediaId, user)
+)
+
+export const setThumbnailAction = action(
+  (user, cardId, mediaId: number | null) => setThumbnail(cardId, mediaId, user)
 )

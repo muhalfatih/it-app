@@ -33,6 +33,8 @@ for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /; d
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
+check "GET /api/media/1 (tanpa sesi) -> 401" "401" "$(status /api/media/1)"
+
 echo "== Masuk sebagai SDM Khusus ($USER_NAME)"
 code=$(curl -s -o /dev/null -w "%{http_code}" -c "$JAR" -X POST "$BASE_URL/api/auth/sign-in/username" \
   -H "content-type: application/json" -H "origin: $BASE_URL" \
@@ -48,6 +50,7 @@ check "GET /planner (diizinkan) -> 200" "200" "$(status /planner "$JAR")"
 check "GET /planner/baru (tanpa planner.ubah) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner/baru "$JAR")"
 check "GET /konten (diizinkan) -> 200" "200" "$(status /konten "$JAR")"
 check "GET /konten/999999 (tidak ada) -> 404" "404" "$(status /konten/999999 "$JAR")"
+check "GET /api/media/999999 (tidak ada) -> 404" "404" "$(status /api/media/999999 "$JAR")"
 
 echo "== Staf Unit Lain (opsional: VERIFY_OTHER_USERNAME / VERIFY_OTHER_PASSWORD)"
 if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; then

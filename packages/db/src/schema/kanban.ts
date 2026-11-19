@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm"
 import {
+  bigint,
   check,
   index,
   integer,
@@ -8,6 +9,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core"
 
 import { channel } from "./app"
@@ -99,4 +101,53 @@ export const contentCardPublication = pgTable(
       .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.cardId, t.channelId] })]
+)
+
+/** Media kartu: file di MinIO atau sematan (YouTube/Drive/tautan). */
+export const contentCardMedia = pgTable(
+  "content_card_media",
+  {
+    id: serial("id").primaryKey(),
+    cardId: integer("card_id")
+      .notNull()
+      .references(() => contentCard.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    source: text("source").notNull(),
+    objectKey: text("object_key"),
+    mediaKind: text("media_kind"),
+    mime: text("mime"),
+    size: bigint("size", { mode: "number" }),
+    originalName: text("original_name"),
+    url: text("url"),
+    provider: text("provider"),
+    providerRef: text("provider_ref"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("content_card_media_object_key_unique").on(t.objectKey),
+    check(
+      "content_card_media_source_check",
+      sql.raw(`source in ('file', 'embed')`)
+    ),
+    check(
+      "content_card_media_kind_check",
+      sql.raw(`media_kind is null or media_kind in ('image', 'video')`)
+    ),
+    check(
+      "content_card_media_provider_check",
+      sql.raw(`provider is null or provider in ('youtube', 'drive', 'tautan')`)
+    ),
+    check(
+      "content_card_media_shape_check",
+      sql.raw(
+        `(source = 'file' and object_key is not null and media_kind is not null and mime is not null and size is not null and original_name is not null) or (source = 'embed' and url is not null and provider is not null)`
+      )
+    ),
+    index("content_card_media_card_idx").on(t.cardId, t.position),
+  ]
 )

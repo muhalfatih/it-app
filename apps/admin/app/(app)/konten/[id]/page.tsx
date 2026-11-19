@@ -32,6 +32,7 @@ import {
   TimelineTitle,
 } from "@workspace/ui/components/reui/timeline"
 
+import { MAX_MEDIA_ITEMS } from "@/lib/kanban/media-rules"
 import { getCard } from "@/lib/kanban/queries"
 import {
   allowedMoves,
@@ -44,6 +45,7 @@ import type { CardEvent } from "@/lib/kanban/types"
 
 import { CaptionForm } from "./_caption"
 import { CommentForm } from "./_comments"
+import { CardMediaSection } from "./_media"
 import { PublishList } from "./_publish-list"
 import { StageActions } from "./_stage-actions"
 
@@ -178,6 +180,34 @@ export default async function KartuPage({ params }: Props) {
                   </ul>
                 </dd>
               </dl>
+            </FramePanel>
+          </Frame>
+
+          <Frame spacing="sm">
+            <FrameHeader className="flex flex-row items-center gap-2">
+              <FrameTitle>
+                Konten{" "}
+                <span className="font-normal text-muted-foreground tabular-nums">
+                  ({card.media.length} dari {MAX_MEDIA_ITEMS})
+                </span>
+              </FrameTitle>
+              {locked && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  Terkunci sejak Review
+                </span>
+              )}
+            </FrameHeader>
+            <FramePanel>
+              {!editable && card.media.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Belum ada konten.</p>
+              ) : (
+                <CardMediaSection
+                  cardId={card.id}
+                  media={card.media}
+                  thumbnailMediaId={card.thumbnailMediaId}
+                  disabled={!editable}
+                />
+              )}
             </FramePanel>
           </Frame>
 

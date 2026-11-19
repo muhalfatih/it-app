@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm"
 import {
+  type AnyPgColumn,
   check,
   date,
   index,
@@ -14,6 +15,7 @@ import {
 
 import { channel, taskType } from "./app"
 import { user } from "./auth"
+import { contentCardMedia } from "./kanban"
 import { CONTENT_STAGES } from "./stages"
 
 /** Entri Media Planner: satu konten dengan kegiatan (opsional), penugasan, kanal, dan tanggal tayang. */
@@ -98,6 +100,11 @@ export const contentCard = pgTable(
       .references(() => plannerEntry.id, { onDelete: "cascade" }),
     stage: text("stage").notNull().default("ide"),
     caption: text("caption"),
+    /** Thumbnail pilihan; null = bawaan (foto pertama / ubin YouTube). */
+    thumbnailMediaId: integer("thumbnail_media_id").references(
+      (): AnyPgColumn => contentCardMedia.id,
+      { onDelete: "set null" }
+    ),
     /** Diisi setiap tahap berubah; batas 30 hari kolom Telah Tayang. */
     stageChangedAt: timestamp("stage_changed_at", { withTimezone: true })
       .notNull()

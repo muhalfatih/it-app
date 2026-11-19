@@ -1,4 +1,4 @@
-# PostgreSQL untuk pengembangan lokal. Variabel dibaca dari .env di root repo.
+# PostgreSQL dan RustFS (penyimpanan file, API S3) untuk pengembangan lokal. Variabel dibaca dari .env di root repo.
 services:
   db:
     image: postgres:17
@@ -18,5 +18,47 @@ services:
       timeout: 3s
       retries: 10
 
+  # Server S3 (RustFS, pengganti MinIO yang image-nya tidak lagi tersedia). Aplikasi hanya memakai API S3.
+  rustfs:
+    image: rustfs/rustfs:1.0.6
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+      RUSTFS_CONSOLE_ENABLE: "true"
+      # Konsol hanya dibuka di localhost; jangan biarkan bawaan "*".
+      RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: http://localhost:9001
+    ports:
+      # Hanya bisa diakses dari mesin ini. 9000 = API S3, 9001 = konsol.
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - rustfsdata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Sekali jalan: bucket privat + CORS yang hanya mengizinkan origin aplikasi (browser mengunggah langsung).
+  rustfs-init:
+    image: amazon/aws-cli:2.41.0
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-rustfsadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-konten}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+    entrypoint: >
+      /bin/sh -c '
+      s3="aws --endpoint-url http://rustfs:9000 s3api";
+      $$s3 head-bucket --bucket "$$S3_BUCKET" 2>/dev/null || $$s3 create-bucket --bucket "$$S3_BUCKET";
+      $$s3 put-bucket-cors --bucket "$$S3_BUCKET" --cors-configuration "{\"CORSRules\":[{\"AllowedOrigins\":[\"$$APP_ORIGIN\"],\"AllowedMethods\":[\"GET\",\"HEAD\",\"POST\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\",\"Content-Length\",\"Content-Range\"],\"MaxAgeSeconds\":3600}]}"
+      && echo "bucket $$S3_BUCKET siap, CORS: $$APP_ORIGIN"'
+
 volumes:
   pgdata:
+  rustfsdata:

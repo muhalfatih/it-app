@@ -6,10 +6,11 @@ import { db } from "@workspace/db/client"
 import { asc, eq } from "@workspace/db/orm"
 import { building, channel, taskType, unit } from "@workspace/db/schema"
 
-export type CrudResult = { ok: true } | { error: string }
+import { UserError } from "@/lib/user-error"
 
-/** Galat yang pesannya aman ditampilkan ke pengguna (aturan bisnis, bukan bug). */
-export class UserError extends Error {}
+export type CrudResult<T = void> = { ok: true; data?: T } | { error: string }
+
+export { UserError }
 type Table = typeof unit | typeof building | typeof taskType | typeof channel
 
 export const nameSchema = z
@@ -21,14 +22,14 @@ export const nameSchema = z
 const UNIQUE_VIOLATION = "23505"
 
 /** Galat validasi & nama ganda jadi pesan; galat lain diteruskan. */
-export async function guarded(
+export async function guarded<T>(
   path: string,
-  fn: () => Promise<unknown>
-): Promise<CrudResult> {
+  fn: () => Promise<T>
+): Promise<CrudResult<T>> {
   try {
-    await fn()
+    const data = await fn()
     revalidatePath(path)
-    return { ok: true }
+    return { ok: true, data }
   } catch (error) {
     if (error instanceof UserError) return { error: error.message }
     if (error instanceof z.ZodError) {
