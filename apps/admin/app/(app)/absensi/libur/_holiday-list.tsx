@@ -72,6 +72,8 @@ export function HolidayList({
           <FieldLabel htmlFor={`${id}-tanggal`}>Tanggal</FieldLabel>
           <Input
             id={`${id}-tanggal`}
+            name="tanggal"
+            autoComplete="off"
             type="date"
             required
             value={date}
@@ -82,6 +84,9 @@ export function HolidayList({
           <FieldLabel htmlFor={`${id}-nama`}>Nama hari libur</FieldLabel>
           <Input
             id={`${id}-nama`}
+            name="nama"
+            autoComplete="off"
+            placeholder="Contoh: Hari Raya Idulfitri…"
             required
             maxLength={80}
             value={name}

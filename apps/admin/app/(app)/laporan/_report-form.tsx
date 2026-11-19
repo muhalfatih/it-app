@@ -77,14 +77,14 @@ function AnswerToggle({
       <ToggleGroupItem
         value="T"
         aria-label={`Tuntas: ${title}`}
-        className="h-11 min-w-12 aria-pressed:bg-success aria-pressed:text-white"
+        className="h-11 min-w-12 touch-manipulation aria-pressed:bg-success aria-pressed:text-white"
       >
         T
       </ToggleGroupItem>
       <ToggleGroupItem
         value="TL"
         aria-label={`Tindak lanjut: ${title}`}
-        className="h-11 min-w-12 aria-pressed:bg-warning aria-pressed:text-white"
+        className="h-11 min-w-12 touch-manipulation aria-pressed:bg-warning aria-pressed:text-white"
       >
         TL
       </ToggleGroupItem>
@@ -126,6 +126,8 @@ function OwnTaskTools({
       <form onSubmit={rename} className="flex w-full items-center gap-2">
         <Input
           aria-label="Judul tugas"
+          name="judul-tugas"
+          autoComplete="off"
           value={title}
           maxLength={120}
           onChange={(e) => setTitle(e.target.value)}
@@ -227,7 +229,9 @@ function AddOwnTask({ date, disabled }: { date: string; disabled: boolean }) {
     <form onSubmit={add} className="flex max-w-md items-center gap-2">
       <Input
         aria-label="Judul tugas sendiri"
-        placeholder="Apa yang kamu kerjakan?"
+        name="judul-tugas-sendiri"
+        autoComplete="off"
+        placeholder="Contoh: Rekap foto kegiatan…"
         value={title}
         maxLength={120}
         onChange={(e) => setTitle(e.target.value)}
@@ -315,7 +319,8 @@ export function ReportForm({
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        T = Tuntas, TL = Tindak Lanjut. Jawaban tersimpan saat dipilih.
+        T = Tuntas, TL = Tindak Lanjut.
+        {!locked && " Jawaban tersimpan saat dipilih."}
       </p>
       {SECTIONS.map((section) => {
         const rows = tasks.filter((t) => section.sources.includes(t.source))
@@ -328,7 +333,7 @@ export function ReportForm({
               {rows.map((t) => (
                 <li
                   key={t.key}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3"
+                  className="flex scroll-mb-24 flex-wrap items-center gap-x-3 gap-y-2 py-3"
                 >
                   <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
                     <span className="font-medium break-words">{t.title}</span>
@@ -372,6 +377,9 @@ export function ReportForm({
           <FieldLabel htmlFor="hambatan">Hambatan hari ini</FieldLabel>
           <Textarea
             id="hambatan"
+            name="hambatan"
+            autoComplete="off"
+            className="scroll-mb-24"
             rows={4}
             maxLength={2000}
             disabled={locked}
@@ -384,6 +392,9 @@ export function ReportForm({
           <FieldLabel htmlFor="prioritas">Prioritas esok</FieldLabel>
           <Textarea
             id="prioritas"
+            name="prioritas"
+            autoComplete="off"
+            className="scroll-mb-24"
             rows={4}
             maxLength={2000}
             disabled={locked}

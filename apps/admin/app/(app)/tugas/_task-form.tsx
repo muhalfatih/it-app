@@ -162,6 +162,7 @@ export function TaskForm({
             <FieldLabel htmlFor={`${formId}-title`}>Judul tugas</FieldLabel>
             <Input
               id={`${formId}-title`}
+              name="judul"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               aria-invalid={invalid("title")}
@@ -192,7 +193,7 @@ export function TaskForm({
                       ))}
                       <ComboboxChipsInput
                         id={`${formId}-staff`}
-                        placeholder={chosen.length ? "" : "Pilih satu atau lebih staf"}
+                        placeholder={chosen.length ? "" : "Pilih satu atau lebih staf…"}
                         aria-invalid={invalid("assignees")}
                         aria-describedby={describedBy("assignees")}
                       />
@@ -251,6 +252,8 @@ export function TaskForm({
             <FieldLabel htmlFor={`${formId}-note`}>Catatan (opsional)</FieldLabel>
             <Textarea
               id={`${formId}-note`}
+              name="catatan"
+              autoComplete="off"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               aria-invalid={invalid("note")}

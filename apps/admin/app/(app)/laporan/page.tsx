@@ -20,20 +20,9 @@ import { firstReportDay, type ReportState } from "@/lib/report/rules"
 
 import { DayNav } from "./_day-nav"
 import { ReportForm } from "./_report-form"
+import { STATE_BADGE } from "./_state"
 
 export const metadata: Metadata = { title: "Laporan Harian" }
-
-const BADGE: Partial<
-  Record<
-    ReportState,
-    { label: string; variant: "outline" | "success-light" | "warning-light" | "secondary" }
-  >
-> = {
-  terbuka: { label: "Belum dikirim", variant: "outline" },
-  dikirim: { label: "Dikirim", variant: "success-light" },
-  perlu_diperbarui: { label: "Perlu diperbarui", variant: "warning-light" },
-  terkunci: { label: "Terkunci", variant: "secondary" },
-}
 
 const EMPTY: Partial<Record<ReportState, { title: string; text: string }>> = {
   libur: {
@@ -69,8 +58,8 @@ export default async function LaporanPage({
   ])
   const nav = await loadNav(date, firstReportDay(me.createdAt), now)
 
-  const badge = BADGE[day.state]
   const empty = EMPTY[day.state]
+  const badge = empty ? null : STATE_BADGE[day.state]
   // 03.00 UTC = 10.00 WIB pada tanggal yang sama.
   const deadline = format(parseISO(day.deadline.toISOString().slice(0, 10)), "EEEE, d MMM", {
     locale: localeId,
@@ -111,7 +100,7 @@ export default async function LaporanPage({
                 Terkunci, hubungi Manajer untuk membuka.
               </AlertDescription>
             </Alert>
-          ) : (
+          ) : day.unlocked ? null : (
             <p className="text-sm text-muted-foreground">
               Batas pengisian: {deadline} pukul 10.00
             </p>
