@@ -16,7 +16,11 @@ import {
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
-import { Field, FieldLabel } from "@workspace/ui/components/field"
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from "@workspace/ui/components/field"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
 
@@ -87,8 +91,9 @@ export function DeleteTask({
               maxLength={500}
               required
               aria-invalid={error ? true : undefined}
-              aria-describedby={error ? errorId : undefined}
+              aria-describedby={error ? `${noteId}-hint ${errorId}` : `${noteId}-hint`}
             />
+            <FieldDescription id={`${noteId}-hint`}>Minimal 3 karakter.</FieldDescription>
           </Field>
         )}
         {error && (
@@ -100,7 +105,7 @@ export function DeleteTask({
           <AlertDialogCancel disabled={pending}>Batal</AlertDialogCancel>
           <Button
             variant="destructive"
-            disabled={pending || (isLastLinked && note.trim() === "")}
+            disabled={pending || (isLastLinked && note.trim().length < 3)}
             onClick={confirm}
           >
             {pending && <Spinner data-icon="inline-start" />}

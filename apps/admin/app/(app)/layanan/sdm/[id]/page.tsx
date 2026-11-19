@@ -28,7 +28,7 @@ import { getRequestFor } from "@/lib/layanan/queries"
 import { STATUS_LABELS } from "@/lib/layanan/rules"
 import type { ServiceStatus } from "@/lib/layanan/types"
 import { getEntry } from "@/lib/planner/queries"
-import { needsNameConfirm } from "@/lib/planner/rules"
+import { canDeleteEntry, needsNameConfirm } from "@/lib/planner/rules"
 
 import { rangeLabel, STATUS_VARIANT } from "../_request-table"
 import { CancelRequest, RejectRequest, WithdrawRequest } from "./_decision"
@@ -113,7 +113,10 @@ export default async function PengajuanDetailPage({ params }: Props) {
               <RejectRequest id={r.id} />
             </>
           )}
-          {isManager && r.status === "disetujui" && r.followUp && (
+          {isManager &&
+            r.status === "disetujui" &&
+            r.followUp &&
+            (!entry || canDeleteEntry(user.permissions, entry.stage)) && (
             <CancelRequest
               id={r.id}
               followUp={r.followUp}

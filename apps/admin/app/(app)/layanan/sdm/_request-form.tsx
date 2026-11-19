@@ -153,7 +153,7 @@ export function RequestForm({
   function focusFirstInvalid() {
     requestAnimationFrame(() =>
       formRef.current
-        ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+        ?.querySelector<HTMLElement>('[aria-invalid="true"], [data-error-focus]')
         ?.focus()
     )
   }
@@ -198,7 +198,9 @@ export function RequestForm({
 
   const invalid = (key: Key) => (errors[key] ? true : undefined)
   const errorId = (key: Key) => `${formId}-${key}-error`
-  const describedBy = (key: Key) => (errors[key] ? errorId(key) : undefined)
+  const describedBy = (key: Key, extra?: string) =>
+    [extra, errors[key] ? errorId(key) : undefined].filter(Boolean).join(" ") ||
+    undefined
 
   return (
     <form
@@ -301,7 +303,7 @@ export function RequestForm({
                 accept={rundownMimes.join(",")}
                 onChange={(e) => void pickRundown(e.target.files?.[0])}
                 aria-invalid={invalid("rundown")}
-                aria-describedby={`${formId}-rundown-desc ${describedBy("rundown") ?? ""}`}
+                aria-describedby={describedBy("rundown", `${formId}-rundown-desc`)}
               />
             ) : (
               <Item variant="outline" size="xs" className="flex-nowrap">
@@ -347,7 +349,7 @@ export function RequestForm({
               value={waNumber}
               onChange={(e) => setWaNumber(e.target.value)}
               aria-invalid={invalid("wa")}
-              aria-describedby={`${formId}-wa-desc ${describedBy("wa") ?? ""}`}
+              aria-describedby={describedBy("wa", `${formId}-wa-desc`)}
               className="sm:max-w-sm"
             />
             <FieldDescription id={`${formId}-wa-desc`}>
@@ -356,7 +358,13 @@ export function RequestForm({
             <FieldError id={errorId("wa")}>{errors.wa}</FieldError>
           </Field>
 
-          <Field data-invalid={invalid("needs")}>
+          {/* AssignmentRows tidak menerima aria-invalid; saat galat, Field-nya yang menerima fokus dan membacakan galat. */}
+          <Field
+            data-invalid={invalid("needs")}
+            data-error-focus={errors.needs ? "" : undefined}
+            tabIndex={errors.needs ? -1 : undefined}
+            aria-describedby={describedBy("needs")}
+          >
             <AssignmentRows
               fields="type"
               value={needs}
@@ -368,7 +376,7 @@ export function RequestForm({
               Pilih jenis tugas tiap SDM. Manajer memilih orangnya saat
               menyetujui.
             </FieldDescription>
-            <FieldError>{errors.needs}</FieldError>
+            <FieldError id={errorId("needs")}>{errors.needs}</FieldError>
           </Field>
 
           <Field orientation="horizontal" data-invalid={invalid("fee")}>

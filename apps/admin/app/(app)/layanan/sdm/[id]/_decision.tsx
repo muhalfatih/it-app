@@ -16,7 +16,12 @@ import {
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
-import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
@@ -56,7 +61,7 @@ function DecisionDialog({
   const [error, setError] = React.useState<string | null>(null)
   const [pending, startTransition] = React.useTransition()
   const canConfirm =
-    (!noteLabel || note.trim() !== "") &&
+    (!noteLabel || note.trim().length >= 3) &&
     (confirmName === undefined || typed.trim() === confirmName)
 
   function confirm() {
@@ -106,8 +111,9 @@ function DecisionDialog({
                   maxLength={500}
                   required
                   aria-invalid={error ? true : undefined}
-                  aria-describedby={described}
+                  aria-describedby={[`${id}-note-hint`, described].filter(Boolean).join(" ")}
                 />
+                <FieldDescription id={`${id}-note-hint`}>Minimal 3 karakter.</FieldDescription>
               </Field>
             )}
             {confirmName !== undefined && (
