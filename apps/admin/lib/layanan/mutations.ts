@@ -217,7 +217,9 @@ export async function cancelApprovedRequest(
   if (row.plannerEntryId !== null)
     return deleteEntry(row.plannerEntryId, permissions, confirmName, text, actorId)
   await db.transaction(async (tx) => {
-    await lockRow(tx, id)
+    const locked = await lockRow(tx, id)
+    // Disetujui via Planner di sela pembacaan awal dan kunci: jalur ini tidak menghapus entri.
+    if (locked.followUp !== "tugas") throw new UserError("Pengajuan tidak dalam status Disetujui")
     const ids = (
       await tx
         .select({ id: managerTask.id })

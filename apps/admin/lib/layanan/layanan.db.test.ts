@@ -522,6 +522,36 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
     expect((await load(c.id))?.status).toBe("diajukan")
   })
 
+  it("cancelApprovedRequest: jalur tugas menolak pengajuan yang disetujui via Planner saat menunggu kunci", async () => {
+    const c = await mut.createRequest(pengaju, request())
+    const entry = await planner.createEntry(await entryInput(), boss)
+    // Tautkan entri ke c selagi c terkunci: cancel sudah membaca plannerEntryId null.
+    let release!: () => void
+    const held = new Promise<void>((r) => (release = r))
+    let locked!: () => void
+    const ready = new Promise<void>((r) => (locked = r))
+    const holder = dbm.db.transaction(async (tx) => {
+      await tx.execute(orm.sql`select 1 from service_request where id = ${c.id} for update`)
+      locked()
+      await held
+      await tx.execute(
+        orm.sql`update service_request set status = 'disetujui', follow_up = 'planner', planner_entry_id = ${entry.id} where id = ${c.id}`
+      )
+    })
+    await ready
+    const cancel = mut.cancelApprovedRequest(boss, c.id, "Acara batal", manajer())
+    const settled = cancel.then(
+      () => null,
+      (e: unknown) => e
+    )
+    await new Promise((r) => setTimeout(r, 300))
+    release()
+    await holder
+    expect(await settled).toBeInstanceOf(UserError)
+    expect(await entryCount()).toBe(1)
+    expect((await load(c.id))?.status).toBe("disetujui")
+  })
+
   it("check constraint menolak disetujui tanpa tindak lanjut", async () => {
     await expect(
       dbm.db.insert(tables.serviceRequest).values({
