@@ -1,6 +1,4 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { addDays, format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 
@@ -10,8 +8,6 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@workspace/ui/components/alert"
-import { buttonVariants } from "@workspace/ui/components/button"
-import { ButtonGroup } from "@workspace/ui/components/button-group"
 
 import { attendanceFor, holidaySet } from "@/lib/attendance/queries"
 import { todayWib, validDate } from "@/lib/planner/rules"
@@ -19,6 +15,7 @@ import { listReporters } from "@/lib/report/queries"
 import { isWorkday } from "@/lib/report/rules"
 
 import { AttendanceTable } from "./_attendance-table"
+import { DateNav } from "./_date-nav"
 
 export const metadata: Metadata = { title: "Absensi" }
 
@@ -52,32 +49,12 @@ export default async function AbsensiPage({
           laporan harian orang itu.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <ButtonGroup>
-          <Link
-            href={`?tanggal=${prev}`}
-            aria-label="Hari sebelumnya"
-            className={buttonVariants({ variant: "outline", size: "icon" })}
-          >
-            <ChevronLeftIcon />
-          </Link>
-          {date < today ? (
-            <Link
-              href={`?tanggal=${next}`}
-              aria-label="Hari berikutnya"
-              className={buttonVariants({ variant: "outline", size: "icon" })}
-            >
-              <ChevronRightIcon />
-            </Link>
-          ) : null}
-        </ButtonGroup>
-        <Link href="/absensi" className={buttonVariants({ variant: "outline" })}>
-          Hari ini
-        </Link>
-        <h2 className="ml-1 text-base font-medium">
-          {format(parseISO(date), "EEEE, d MMM yyyy", { locale: localeId })}
-        </h2>
-      </div>
+      <DateNav
+        prevHref={`?tanggal=${prev}`}
+        nextHref={date < today ? `?tanggal=${next}` : null}
+        todayHref="/absensi"
+        title={format(parseISO(date), "EEEE, d MMM yyyy", { locale: localeId })}
+      />
       {workday ? null : (
         <Alert>
           <AlertTitle>Bukan hari kerja</AlertTitle>
