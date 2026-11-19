@@ -8,6 +8,7 @@ import {
   plannerAssignment,
   plannerEntry,
   plannerEntryChannel,
+  serviceRequest,
   taskType,
   user,
   userRole,
@@ -15,7 +16,9 @@ import {
 import type { Permission } from "@workspace/auth/permissions"
 import type { ContentStage } from "@workspace/db/schema/stages"
 
-import { reconcileCardAfterEntryUpdate } from "@/lib/kanban/mutations"
+import { parse, reconcileCardAfterEntryUpdate } from "@/lib/kanban/mutations"
+import { cancelRequestTx, lockPending } from "@/lib/layanan/mutations"
+import { approveTasksSchema } from "@/lib/layanan/schema"
 import { removeObjects } from "@/lib/storage"
 import { UserError } from "@/lib/setting-crud"
 
@@ -79,12 +82,23 @@ const assignmentValues = (a: EntryInput["assignments"][number]) => ({
   endDate: a.end,
 })
 
+/** Dengan `approval`: entri ini sekaligus menyetujui pengajuan SDM (tindak lanjut Planner). */
 export async function createEntry(
   raw: unknown,
-  userId: string
+  userId: string,
+  approval?: {
+    requestId: number
+    note: string | null
+    permissions: ReadonlySet<Permission>
+  }
 ): Promise<{ id: number }> {
   const input = entryInputSchema.parse(raw)
+  if (approval && !approval.permissions.has("layanan.setujui_sdm"))
+    throw new UserError("Anda tidak berwenang menyetujui pengajuan")
+  const note = approval ? parse(approveTasksSchema.shape.note, approval.note) : null
   return db.transaction(async (tx) => {
+    // Kunci pengajuan sebelum insert: bila kalah balapan, tidak ada entri/kartu Ide yatim.
+    if (approval) await lockPending(tx, approval.requestId)
     await assertActive(tx, {
       people: input.assignments.map((a) => a.personId),
       taskTypes: input.assignments.map((a) => Number(a.taskTypeId)),
@@ -108,6 +122,18 @@ export async function createEntry(
       .insert(plannerEntryChannel)
       .values(input.channelIds.map((channelId) => ({ entryId: id, channelId })))
     await tx.insert(contentCard).values({ entryId: id, stage: "ide" })
+    if (approval)
+      await tx
+        .update(serviceRequest)
+        .set({
+          status: "disetujui",
+          followUp: "planner",
+          plannerEntryId: id,
+          managerNote: note || null,
+          decidedBy: userId,
+          decidedAt: new Date(),
+        })
+        .where(eq(serviceRequest.id, approval.requestId))
     return { id }
   })
 }
@@ -226,7 +252,10 @@ export async function updateEntry(
 export async function deleteEntry(
   id: number,
   permissions: ReadonlySet<Permission>,
-  confirmName?: string
+  confirmName?: string,
+  /** Wajib bila entri tertaut ke pengajuan SDM; pengajuan ikut dibatalkan. */
+  cancelNote?: string,
+  actorId?: string
 ): Promise<void> {
   assertEntryId(id)
   const keys = await db.transaction(async (tx) => {
@@ -242,6 +271,14 @@ export async function deleteEntry(
       throw new UserError("Anda tidak berwenang menghapus entri ini")
     if (needsNameConfirm(stage) && confirmName?.trim() !== row.name)
       throw new UserError("Ketik nama konten persis untuk menghapus")
+    const [linked] = await tx
+      .select({ id: serviceRequest.id })
+      .from(serviceRequest)
+      .where(eq(serviceRequest.plannerEntryId, id))
+    if (linked) {
+      if (!actorId) throw new Error("deleteEntry: actorId wajib untuk entri tertaut")
+      await cancelRequestTx(tx, linked.id, cancelNote ?? "", actorId)
+    }
     // Kunci kartu dulu agar tidak balapan dengan finishUpload (lockCard): file baru ikut terkumpul.
     await tx.select({ id: contentCard.id }).from(contentCard).where(eq(contentCard.entryId, id)).for("update")
     const media = await tx

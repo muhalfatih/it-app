@@ -1,4 +1,5 @@
 // Mutasi Pengajuan SDM (server-only; dipanggil aksi server yang sudah dijaga izin).
+import type { Permission } from "@workspace/auth/permissions"
 import { db } from "@workspace/db/client"
 import { eq, inArray } from "@workspace/db/orm"
 import {
@@ -12,6 +13,7 @@ import {
 
 import { parse, validId } from "@/lib/kanban/mutations"
 import { insertManagerTask, type Tx } from "@/lib/manager-task/mutations"
+import { deleteEntry } from "@/lib/planner/mutations"
 import { listReporters } from "@/lib/report/queries"
 import { removeObjects } from "@/lib/storage"
 import { UserError } from "@/lib/user-error"
@@ -21,6 +23,7 @@ import { approveTasksSchema, reasonSchema, requestInputSchema } from "./schema"
 
 const NOT_FOUND = "Pengajuan tidak ditemukan"
 const DECIDED = "Pengajuan sudah diputuskan"
+const CANCEL_NOTE = "Isi catatan pembatalan untuk pengaju"
 
 async function lockRow(tx: Tx, id: number): Promise<RequestRow> {
   if (!validId(id)) throw new UserError(NOT_FOUND)
@@ -156,6 +159,7 @@ export async function cancelRequestTx(
   note: string,
   actorId: string
 ): Promise<void> {
+  if (!note?.trim()) throw new UserError(CANCEL_NOTE)
   const managerNote = parse(reasonSchema, note)
   const row = await lockRow(tx, id)
   if (row.status !== "disetujui") throw new UserError("Pengajuan tidak dalam status Disetujui")
@@ -179,4 +183,35 @@ export async function cancelRequestTx(
       decidedBy: actorId,
     })
     .where(eq(serviceRequest.id, id))
+}
+
+/** Tombol "Batalkan pengajuan": batalkan lalu hapus entri Planner atau semua tugas tertaut. */
+export async function cancelApprovedRequest(
+  actorId: string,
+  id: number,
+  note: unknown,
+  permissions: ReadonlySet<Permission>,
+  confirmName?: string
+): Promise<void> {
+  const text = typeof note === "string" ? note : ""
+  if (!validId(id)) throw new UserError(NOT_FOUND)
+  const [row] = await db
+    .select({ plannerEntryId: serviceRequest.plannerEntryId })
+    .from(serviceRequest)
+    .where(eq(serviceRequest.id, id))
+  if (!row) throw new UserError(NOT_FOUND)
+  // deleteEntry mengunci entri lalu pengajuan, dan memastikan pengajuan masih disetujui.
+  if (row.plannerEntryId !== null)
+    return deleteEntry(row.plannerEntryId, permissions, confirmName, text, actorId)
+  await db.transaction(async (tx) => {
+    await lockRow(tx, id)
+    const ids = (
+      await tx
+        .select({ id: managerTask.id })
+        .from(managerTask)
+        .where(eq(managerTask.serviceRequestId, id))
+    ).map((t) => t.id)
+    await cancelRequestTx(tx, id, text, actorId)
+    if (ids.length) await tx.delete(managerTask).where(inArray(managerTask.id, ids))
+  })
 }

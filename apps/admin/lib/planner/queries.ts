@@ -7,6 +7,7 @@ import {
   plannerAssignment,
   plannerEntry,
   plannerEntryChannel,
+  serviceRequest,
   taskType,
   user,
   userRole,
@@ -91,12 +92,18 @@ export async function listEntriesInPeriod(
   return hydrate(rows)
 }
 
-export async function getEntry(id: number): Promise<PlannerEntry | null> {
-  const rows = await db
-    .select()
-    .from(plannerEntry)
-    .where(eq(plannerEntry.id, id))
-  return (await hydrate(rows))[0] ?? null
+export async function getEntry(
+  id: number
+): Promise<(PlannerEntry & { serviceRequestId: number | null }) | null> {
+  const [rows, linked] = await Promise.all([
+    db.select().from(plannerEntry).where(eq(plannerEntry.id, id)),
+    db
+      .select({ id: serviceRequest.id })
+      .from(serviceRequest)
+      .where(eq(serviceRequest.plannerEntryId, id)),
+  ])
+  const entry = (await hydrate(rows))[0]
+  return entry ? { ...entry, serviceRequestId: linked[0]?.id ?? null } : null
 }
 
 /** Staf unit = akun dengan minimal satu peran selain direktur. */

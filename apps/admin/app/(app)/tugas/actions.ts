@@ -34,8 +34,11 @@ export const saveTask = withPermission(
 
 export const removeTask = withPermission(
   "tugas_manajer.kelola",
-  async (id: number): Promise<CrudResult> => {
-    const result = await guarded("/tugas", () => deleteManagerTask(id))
+  async (id: number, cancelNote?: string): Promise<CrudResult> => {
+    const user = await getCurrentUser()
+    const result = await guarded("/tugas", () =>
+      deleteManagerTask(id, user!.id, cancelNote)
+    )
     if ("ok" in result) revalidatePath("/laporan")
     return result
   }

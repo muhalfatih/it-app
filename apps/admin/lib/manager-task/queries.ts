@@ -17,6 +17,7 @@ export type ManagerTaskRow = {
   note: string | null
   startDate: IsoDate
   endDate: IsoDate
+  serviceRequestId: number | null
   assignees: { id: string; name: string; done: boolean }[]
 }
 
@@ -52,6 +53,7 @@ async function hydrate(
     note: t.note,
     startDate: t.startDate,
     endDate: t.endDate,
+    serviceRequestId: t.serviceRequestId,
     assignees: people
       .filter((p) => p.taskId === t.id)
       .map((p) => ({

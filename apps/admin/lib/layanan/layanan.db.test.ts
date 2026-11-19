@@ -24,7 +24,16 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
     perms = await import("@workspace/auth/permissions")
     mut = await import("./mutations")
     qry = await import("./queries")
+    planner = await import("@/lib/planner/mutations")
+    plannerQ = await import("@/lib/planner/queries")
+    tasks = await import("@/lib/manager-task/mutations")
+    tasksQ = await import("@/lib/manager-task/queries")
   })
+
+  let planner: typeof import("@/lib/planner/mutations")
+  let plannerQ: typeof import("@/lib/planner/queries")
+  let tasks: typeof import("@/lib/manager-task/mutations")
+  let tasksQ: typeof import("@/lib/manager-task/queries")
 
   let boss = ""
   let staf = ""
@@ -298,6 +307,189 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
       { name: "uji.staf", label: "Dokumentasi · Wisuda", start: "2026-12-02", end: "2026-12-03" },
       { name: "uji.staf", label: "Editing · Wisuda", start: "2026-12-04", end: "2026-12-05" },
     ])
+  })
+
+  const CANCEL_NOTE = "Isi catatan pembatalan untuk pengaju"
+  const manajer = () => perms.permissionsFor(["manajer"])
+
+  async function entryInput() {
+    const [ch] = await dbm.db
+      .insert(tables.channel)
+      .values({ name: `Kanal ${Math.random()}` })
+      .returning()
+    return {
+      name: "Wisuda",
+      activityStart: "2026-12-02",
+      activityEnd: "2026-12-03",
+      publishDate: "2026-12-04",
+      assignments: [
+        { personId: staf, taskTypeId: String(dok), start: "2026-12-02", end: "2026-12-03" },
+      ],
+      channelIds: [ch!.id],
+    }
+  }
+
+  const viaPlanner = async (id: number) =>
+    planner.createEntry(await entryInput(), boss, {
+      requestId: id,
+      note: "Lewat Planner",
+      permissions: manajer(),
+    })
+
+  const entryCount = async () =>
+    (await dbm.db.select({ n: orm.count() }).from(tables.plannerEntry))[0]!.n
+
+  it("createEntry dengan pengajuan: entri tertaut dan disetujui", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    await expect(
+      planner.createEntry(await entryInput(), boss, {
+        requestId: id,
+        note: null,
+        permissions: perms.permissionsFor(["sdm_strategi"]),
+      })
+    ).rejects.toBeInstanceOf(UserError)
+    const entry = await viaPlanner(id)
+    expect(await load(id)).toMatchObject({
+      status: "disetujui",
+      followUp: "planner",
+      plannerEntryId: entry.id,
+      managerNote: "Lewat Planner",
+      decidedBy: boss,
+    })
+    expect((await plannerQ.getEntry(entry.id))?.serviceRequestId).toBe(id)
+    const view = await qry.getRequestFor({ id: pengaju, permissions: new Set() }, id)
+    expect(view?.staff).toEqual([
+      { name: "uji.staf", label: "Dokumentasi", start: "2026-12-02", end: "2026-12-03" },
+    ])
+  })
+
+  it("createEntry pada pengajuan yang sudah disetujui lewat tugas: tanpa entri yatim", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, id, approval())
+    const before = await entryCount()
+    await expect(viaPlanner(id)).rejects.toThrow("Pengajuan sudah diputuskan")
+    expect(await entryCount()).toBe(before)
+    expect(await dbm.db.select().from(tables.contentCard)).toHaveLength(0)
+  })
+
+  it("createEntry bersamaan dengan approveWithTasks: tepat satu menang", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    const raw = await entryInput()
+    const results = await Promise.allSettled([
+      planner.createEntry(raw, boss, { requestId: id, note: null, permissions: manajer() }),
+      mut.approveWithTasks(boss, id, approval()),
+    ])
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1)
+    const failed = results.find((r) => r.status === "rejected") as PromiseRejectedResult
+    expect(failed.reason.message).toBe("Pengajuan sudah diputuskan")
+    const row = await load(id)
+    if (row?.followUp === "planner") {
+      expect(await entryCount()).toBe(1)
+      expect(await dbm.db.select().from(tables.managerTask)).toHaveLength(0)
+    } else {
+      expect(await entryCount()).toBe(0)
+      expect(await linkedTasks(id)).toHaveLength(2)
+    }
+  })
+
+  it("deleteEntry entri tertaut wajib catatan lalu membatalkan pengajuan", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    const entry = await viaPlanner(id)
+    await expect(planner.deleteEntry(entry.id, manajer(), undefined, undefined, boss)).rejects.toThrow(
+      CANCEL_NOTE
+    )
+    await expect(planner.deleteEntry(entry.id, manajer(), undefined, "   ", boss)).rejects.toThrow(
+      CANCEL_NOTE
+    )
+    expect(await entryCount()).toBe(1)
+    await planner.deleteEntry(entry.id, manajer(), undefined, "Acara batal", boss)
+    expect(await entryCount()).toBe(0)
+    const row = await load(id)
+    expect(row).toMatchObject({
+      status: "dibatalkan",
+      plannerEntryId: null,
+      managerNote: "Acara batal",
+      decidedBy: boss,
+    })
+    expect(row?.cancelledStaff).toEqual([
+      { name: "uji.staf", label: "Dokumentasi", start: "2026-12-02", end: "2026-12-03" },
+    ])
+  })
+
+  it("DELETE langsung entri/tugas tertaut ditolak FK", async () => {
+    const a = await mut.createRequest(pengaju, request())
+    const entry = await viaPlanner(a.id)
+    await expect(
+      dbm.db.execute(orm.sql`delete from planner_entry where id = ${entry.id}`)
+    ).rejects.toThrow()
+    const b = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, b.id, approval())
+    // FK ada di sisi tugas (manager_task -> service_request): yang ditolak adalah menghapus pengajuannya.
+    await expect(
+      dbm.db.execute(orm.sql`delete from service_request where id = ${b.id}`)
+    ).rejects.toThrow()
+  })
+
+  it("deleteManagerTask: bukan yang terakhir hapus biasa, yang terakhir wajib catatan", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, id, approval())
+    const [t1, t2] = await linkedTasks(id)
+    expect((await tasksQ.getManagerTask(t1!.id))?.serviceRequestId).toBe(id)
+    await tasks.deleteManagerTask(t1!.id, boss)
+    expect((await load(id))?.status).toBe("disetujui")
+    const view = await qry.getRequestFor({ id: pengaju, permissions: new Set() }, id)
+    expect(view?.staff).toHaveLength(1)
+    await expect(tasks.deleteManagerTask(t2!.id, boss)).rejects.toThrow(CANCEL_NOTE)
+    expect(await linkedTasks(id)).toHaveLength(1)
+    await tasks.deleteManagerTask(t2!.id, boss, "Acara batal")
+    expect(await dbm.db.select().from(tables.managerTask)).toHaveLength(0)
+    expect(await load(id)).toMatchObject({ status: "dibatalkan", managerNote: "Acara batal" })
+    expect((await load(id))?.cancelledStaff).toEqual([
+      { name: "uji.staf", label: "Editing · Wisuda", start: "2026-12-04", end: "2026-12-05" },
+    ])
+  })
+
+  it("dua tugas terakhir dihapus bersamaan dengan catatan: berakhir dibatalkan", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, id, approval())
+    const ts = await linkedTasks(id)
+    await Promise.allSettled(ts.map((t) => tasks.deleteManagerTask(t.id, boss, "Acara batal")))
+    expect((await load(id))?.status).toBe("dibatalkan")
+    expect(await linkedTasks(id)).toHaveLength(0)
+  })
+
+  it("dua tugas terakhir dihapus bersamaan tanpa catatan: tidak keduanya lolos", async () => {
+    const { id } = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, id, approval())
+    const ts = await linkedTasks(id)
+    const results = await Promise.allSettled(ts.map((t) => tasks.deleteManagerTask(t.id, boss)))
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1)
+    const failed = results.find((r) => r.status === "rejected") as PromiseRejectedResult
+    expect(failed.reason.message).toBe(CANCEL_NOTE)
+    expect((await load(id))?.status).toBe("disetujui")
+    expect(await linkedTasks(id)).toHaveLength(1)
+  })
+
+  it("cancelApprovedRequest: jalur tugas, jalur Planner, dan pengajuan diajukan", async () => {
+    const a = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, a.id, approval())
+    await expect(mut.cancelApprovedRequest(boss, a.id, "  ", manajer())).rejects.toThrow(CANCEL_NOTE)
+    await mut.cancelApprovedRequest(boss, a.id, "Acara batal", manajer())
+    expect(await dbm.db.select().from(tables.managerTask)).toHaveLength(0)
+    expect(await load(a.id)).toMatchObject({ status: "dibatalkan", managerNote: "Acara batal" })
+    expect((await load(a.id))?.cancelledStaff).toHaveLength(2)
+
+    const b = await mut.createRequest(pengaju, request())
+    await viaPlanner(b.id)
+    await mut.cancelApprovedRequest(boss, b.id, "Acara batal", manajer())
+    expect(await entryCount()).toBe(0)
+    expect((await load(b.id))?.status).toBe("dibatalkan")
+
+    const c = await mut.createRequest(pengaju, request())
+    await expect(
+      mut.cancelApprovedRequest(boss, c.id, "Acara batal", manajer())
+    ).rejects.toBeInstanceOf(UserError)
+    expect((await load(c.id))?.status).toBe("diajukan")
   })
 
   it("check constraint menolak disetujui tanpa tindak lanjut", async () => {

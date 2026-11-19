@@ -1,8 +1,9 @@
 // Mutasi Tugas dari Manajer (server-only; dipanggil aksi server yang sudah dijaga izin).
 import { db } from "@workspace/db/client"
-import { eq } from "@workspace/db/orm"
-import { managerTask, managerTaskAssignee } from "@workspace/db/schema"
+import { and, count, eq, ne } from "@workspace/db/orm"
+import { managerTask, managerTaskAssignee, serviceRequest } from "@workspace/db/schema"
 
+import { cancelRequestTx } from "@/lib/layanan/mutations"
 import { listReporters } from "@/lib/report/queries"
 import { UserError } from "@/lib/user-error"
 
@@ -78,6 +79,37 @@ export async function updateManagerTask(
   })
 }
 
-export async function deleteManagerTask(id: number): Promise<void> {
-  await db.delete(managerTask).where(eq(managerTask.id, id))
+/** Tugas tertaut terakhir sebuah pengajuan: `cancelNote` wajib dan pengajuan ikut dibatalkan. */
+export async function deleteManagerTask(
+  id: number,
+  actorId: string,
+  cancelNote?: string
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const linkOf = async () =>
+      (
+        await tx
+          .select({ requestId: managerTask.serviceRequestId })
+          .from(managerTask)
+          .where(eq(managerTask.id, id))
+      )[0]?.requestId
+    const requestId = await linkOf()
+    if (requestId != null) {
+      // Kunci pengajuan sebelum menghitung, agar dua hapus bersamaan tidak sama-sama "bukan yang terakhir".
+      await tx
+        .select({ id: serviceRequest.id })
+        .from(serviceRequest)
+        .where(eq(serviceRequest.id, requestId))
+        .for("update")
+      // Dibaca ulang: tugas bisa sudah dilepas/dihapus oleh transaksi yang tadi memegang kunci.
+      if ((await linkOf()) === requestId) {
+        const [others] = await tx
+          .select({ n: count() })
+          .from(managerTask)
+          .where(and(eq(managerTask.serviceRequestId, requestId), ne(managerTask.id, id)))
+        if (others!.n === 0) await cancelRequestTx(tx, requestId, cancelNote ?? "", actorId)
+      }
+    }
+    await tx.delete(managerTask).where(eq(managerTask.id, id))
+  })
 }
