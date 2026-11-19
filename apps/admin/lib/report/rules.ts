@@ -14,7 +14,7 @@ export const REPORT_START_DATE: IsoDate = "2026-12-01"
 const DAY_MS = 86_400_000
 const toMs = (d: IsoDate) => Date.parse(`${d}T00:00:00Z`)
 const fromMs = (ms: number): IsoDate => new Date(ms).toISOString().slice(0, 10)
-const addDays = (d: IsoDate, n: number): IsoDate => fromMs(toMs(d) + n * DAY_MS)
+export const addDays = (d: IsoDate, n: number): IsoDate => fromMs(toMs(d) + n * DAY_MS)
 
 export function isWorkday(date: IsoDate, holidays: ReadonlySet<IsoDate>): boolean {
   return new Date(toMs(date)).getUTCDay() !== 0 && !holidays.has(date)
