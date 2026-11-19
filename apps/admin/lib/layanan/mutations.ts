@@ -109,6 +109,12 @@ export async function rejectRequest(actorId: string, id: number, reason: unknown
   })
 }
 
+/** Dipotong ke batas judul Tugas dari Manajer (120) agar tugas tetap bisa diedit di halaman Tugas. */
+function taskTitle(jenis: string, activityName: string): string {
+  const t = `${jenis} · ${activityName}`
+  return t.length > 120 ? `${t.slice(0, 119).trimEnd()}…` : t
+}
+
 export async function approveWithTasks(actorId: string, id: number, raw: unknown): Promise<void> {
   const input = parse(approveTasksSchema, raw)
   const staff = new Set((await listReporters()).map((r) => r.id))
@@ -120,7 +126,7 @@ export async function approveWithTasks(actorId: string, id: number, raw: unknown
       await insertManagerTask(
         tx,
         {
-          title: `${names.get(r.taskTypeId)} · ${req.activityName}`,
+          title: taskTitle(names.get(r.taskTypeId)!, req.activityName),
           note: null,
           startDate: r.start,
           endDate: r.end,

@@ -167,6 +167,18 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
     ])
   })
 
+  it("judul tugas dari nama kegiatan panjang dipotong ke batas judul tugas", async () => {
+    const { managerTaskSchema } = await import("@/lib/manager-task/schema")
+    const longName = "K".repeat(120)
+    const { id } = await mut.createRequest(pengaju, request({ activityName: longName }))
+    await mut.approveWithTasks(boss, id, approval())
+    for (const t of await linkedTasks(id)) {
+      expect(t.title.length).toBeLessThanOrEqual(120)
+      expect(t.title.endsWith("…")).toBe(true)
+      expect(managerTaskSchema.shape.title.safeParse(t.title).success).toBe(true)
+    }
+  })
+
   it("dua persetujuan bersamaan: hanya satu menang", async () => {
     const { id } = await mut.createRequest(pengaju, request())
     const results = await Promise.allSettled([
