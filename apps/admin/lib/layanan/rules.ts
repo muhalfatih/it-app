@@ -36,6 +36,12 @@ export function normalizeWa(raw: string): string | null {
 const WIB_MS = 7 * 3_600_000
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 
+/** Tanggal `yyyy-MM-dd`, jam `HH:mm`, dan bulan `yyyy-MM` saat ini menurut WIB. */
+export function nowWib(now: Date = new Date()) {
+  const s = new Date(now.getTime() + WIB_MS).toISOString()
+  return { date: s.slice(0, 10), time: s.slice(11, 16), month: s.slice(0, 7) }
+}
+
 /** Senin pekan itu menurut WIB. */
 export function weekStartWib(d: Date): IsoDate {
   const t = new Date(d.getTime() + WIB_MS) // getUTC* di sini = jam dinding WIB

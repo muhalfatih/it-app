@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { complaintInputSchema, requestInputSchema } from "./schema"
-import { normalizeWa, summarizeComplaints, weekStartWib } from "./rules"
+import { normalizeWa, nowWib, summarizeComplaints, weekStartWib } from "./rules"
 
 afterEach(() => vi.useRealTimers())
 
@@ -83,5 +83,15 @@ describe("complaintInputSchema", () => {
     expect(
       complaintInputSchema.safeParse({ ...c, startedAt: new Date("2026-11-19T00:03:00Z") }).success
     ).toBe(true)
+  })
+})
+
+describe("nowWib", () => {
+  it("uses WIB wall clock across the date line", () => {
+    expect(nowWib(new Date("2026-11-30T17:30:00Z"))).toEqual({
+      date: "2026-12-01",
+      time: "00:30",
+      month: "2026-12",
+    })
   })
 })
