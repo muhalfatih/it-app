@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   type ReportTask,
   REPORT_START_DATE,
+  adjacentReportDay,
   dayScore,
   firstReportDay,
   isEditable,
@@ -166,5 +167,16 @@ describe("isEditable", () => {
     expect(
       isEditable({ ...e, now: new Date("2026-12-04T00:00:00Z"), unlocked: true, frozen: true })
     ).toBe(false)
+  })
+})
+
+describe("adjacentReportDay", () => {
+  const first = "2026-12-01"
+  const today = "2026-12-09"
+  it("melompati Minggu dan hari libur, berhenti di batas awal dan hari ini", () => {
+    expect(adjacentReportDay("2026-12-08", -1, H, first, today)).toBe("2026-12-05")
+    expect(adjacentReportDay("2026-12-05", 1, H, first, today)).toBe("2026-12-08")
+    expect(adjacentReportDay("2026-12-09", 1, H, first, today)).toBeNull()
+    expect(adjacentReportDay("2026-12-01", -1, H, first, today)).toBeNull()
   })
 })

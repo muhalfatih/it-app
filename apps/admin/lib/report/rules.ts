@@ -182,6 +182,24 @@ export function isEditable(i: {
   return !i.frozen && (i.unlocked || i.now < lockDeadline(i.date, i.holidays))
 }
 
+/** Hari laporan sebelum (-1) atau sesudah (+1) `date`; null bila lewat batas awal atau hari ini. */
+export function adjacentReportDay(
+  date: IsoDate,
+  dir: 1 | -1,
+  holidays: ReadonlySet<IsoDate>,
+  first: IsoDate,
+  today: IsoDate
+): IsoDate | null {
+  let d = date
+  // 400 hari lebih dari cukup melewati libur beruntun; kembali null bila tak ketemu.
+  for (let i = 0; i < 400; i++) {
+    d = addDays(d, dir)
+    if (d < first || d > today) return null
+    if (isReportDay(d, holidays, first, today)) return d
+  }
+  return null
+}
+
 const pct = new Intl.NumberFormat("id-ID", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,

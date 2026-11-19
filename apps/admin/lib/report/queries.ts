@@ -21,6 +21,7 @@ import type { IsoDate } from "@/lib/planner/types"
 import { UserError } from "@/lib/user-error"
 
 import {
+  adjacentReportDay,
   dayScore,
   firstReportDay,
   isEditable,
@@ -238,6 +239,21 @@ export async function loadDay(
     deadline: lockDeadline(date, holidays),
     editable,
     unlocked,
+  }
+}
+
+/** Tetangga hari laporan untuk navigasi tanggal; `first` = hari laporan pertama orang itu. */
+export async function loadNav(
+  date: IsoDate,
+  first: IsoDate,
+  now: Date = new Date()
+): Promise<{ prev: IsoDate | null; next: IsoDate | null; today: IsoDate }> {
+  const holidays = await allHolidays()
+  const today = todayWib(now)
+  return {
+    prev: adjacentReportDay(date, -1, holidays, first, today),
+    next: adjacentReportDay(date, 1, holidays, first, today),
+    today,
   }
 }
 
