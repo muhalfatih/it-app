@@ -25,6 +25,7 @@ const MATRIX: [Permission, string][] = [
   ["laporan.isi", "MSK"],
   ["laporan.rekap.semua", "DM"],
   ["laporan.rekap.sendiri", "SK"],
+  ["laporan.buka_kunci", "M"],
   ["tugas_manajer.kelola", "M"],
   ["kanban.lihat", "DMSK"],
   ["kanban.isi", "MSK"],
@@ -58,6 +59,12 @@ describe("matriks akses §3.3 (satu peran)", () => {
       })
     }
   }
+})
+
+it("hanya Manajer yang boleh membuka kunci laporan", () => {
+  expect(can(["manajer"], "laporan.buka_kunci")).toBe(true)
+  for (const role of ["direktur", "sdm_strategi", "sdm_khusus"] as const)
+    expect(can([role], "laporan.buka_kunci")).toBe(false)
 })
 
 describe("akun tanpa peran (Staf Unit Lain)", () => {

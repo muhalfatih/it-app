@@ -25,3 +25,33 @@ export const LOCKED_STAGES: readonly ContentStage[] = [
   "disetujui",
   "tayang",
 ]
+
+/** Status absensi (spesifikasi §7.1); tanpa baris = Hadir. */
+export const ATTENDANCE_STATUSES = [
+  "hadir",
+  "izin",
+  "izin_kegiatan",
+  "sakit",
+  "tanpa_keterangan",
+] as const
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number]
+
+/** Jawaban tugas di laporan harian: Tuntas / Tindak Lanjut. */
+export const ANSWER_STATUSES = ["T", "TL"] as const
+export type AnswerStatus = (typeof ANSWER_STATUSES)[number]
+
+export const TASK_SOURCES = ["rutin", "planner", "manajer", "sendiri"] as const
+export type TaskSource = (typeof TASK_SOURCES)[number]
+
+/** Salinan beku laporan harian yang sudah lewat batas kunci. */
+export type FrozenReport = {
+  tasks: {
+    key: string
+    source: TaskSource
+    title: string
+    status: AnswerStatus | null
+    overdueDays: number
+  }[]
+  obstacles: string
+  priorities: string
+}
