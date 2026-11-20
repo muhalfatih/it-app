@@ -105,7 +105,7 @@ describe.skipIf(!TEST_DB)("tugas dari manajer (database uji)", () => {
 
   it("hapus menghilangkan tugas dari managerTasksFor", async () => {
     const { id } = await mut.createManagerTask(boss, input())
-    await mut.deleteManagerTask(id)
+    await mut.deleteManagerTask(id, boss)
     expect(await qry.managerTasksFor(s1, "2026-12-03")).toEqual([])
     expect(await qry.getManagerTask(id)).toBeNull()
   })

@@ -30,7 +30,7 @@ status() { # status <path> [cookie-jar]
 psql_db() { docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"; }
 
 echo "== Tanpa sesi"
-for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /tugas /absensi /; do
+for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /tugas /absensi /layanan/sdm /layanan/internet /layanan/internet/rekap /layanan/sdm/persetujuan /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
@@ -52,6 +52,8 @@ check "GET /planner/baru (tanpa planner.ubah) -> ditolak" "307 $BASE_URL/?akses=
 check "GET /konten (diizinkan) -> 200" "200" "$(status /konten "$JAR")"
 check "GET /konten/999999 (tidak ada) -> 404" "404" "$(status /konten/999999 "$JAR")"
 check "GET /api/media/999999 (tidak ada) -> 404" "404" "$(status /api/media/999999 "$JAR")"
+check "GET /layanan/internet/rekap (SDM Khusus) -> 200" "200" "$(status /layanan/internet/rekap "$JAR")"
+check "GET /layanan/sdm/persetujuan (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /layanan/sdm/persetujuan "$JAR")"
 check "GET /laporan (diizinkan) -> 200" "200" "$(status /laporan "$JAR")"
 for path in /laporan/tim /tugas /tugas/baru /absensi /absensi/libur; do
   check "GET $path (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$JAR")"
@@ -67,6 +69,20 @@ if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; the
   check "GET /planner (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /planner "$OTHER_JAR")"
   check "GET /konten (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /konten "$OTHER_JAR")"
   check "GET /laporan (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /laporan "$OTHER_JAR")"
+  for path in /layanan/sdm /layanan/sdm/saya /layanan/internet; do
+    check "GET $path (staf unit lain) -> 200" "200" "$(status "$path" "$OTHER_JAR")"
+  done
+  for path in /layanan/sdm/persetujuan /layanan/internet/rekap; do
+    check "GET $path (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$OTHER_JAR")"
+  done
+  # Pengajuan milik orang lain harus 404 (keberadaannya tidak dibocorkan).
+  other_id=$(psql_db "select r.id from service_request r where r.requested_by <> (select id from \"user\" where username = '$VERIFY_OTHER_USERNAME') limit 1")
+  if [[ -n "$other_id" ]]; then
+    check "GET /layanan/sdm/$other_id (milik orang lain) -> 404" "404" "$(status "/layanan/sdm/$other_id" "$OTHER_JAR")"
+    check "GET /api/layanan/rundown/$other_id (milik orang lain) -> 404" "404" "$(status "/api/layanan/rundown/$other_id" "$OTHER_JAR")"
+  else
+    echo "SKIP  id milik orang lain (tidak ada service_request milik akun lain)"
+  fi
   rm -f "$OTHER_JAR"
 else
   echo "SKIP  staf unit lain (variabel VERIFY_OTHER_* tidak diisi)"

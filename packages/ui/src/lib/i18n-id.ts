@@ -2,6 +2,7 @@
 import type { EventCalendarI18nOverrides } from "@workspace/ui/components/reui/event-calendar/event-calendar-i18n"
 import type { DateSelectorI18nConfig } from "@workspace/ui/components/reui/date-selector"
 import type { DataGridI18nOverrides } from "@workspace/ui/components/reui/data-grid/data-grid-i18n"
+import type { TimePickerI18nOverrides } from "@workspace/ui/components/reui/time-picker"
 
 const BULAN = [
   "Januari",
@@ -119,5 +120,19 @@ export const DATA_GRID_I18N_ID: DataGridI18nOverrides = {
     filterSelectedCount: (count) => `${count} dipilih`,
     filterNoResults: "Tidak ada hasil.",
     filterClear: "Hapus filter",
+  },
+}
+
+export const TIME_PICKER_I18N_ID: TimePickerI18nOverrides = {
+  labels: {
+    placeholder: "Pilih jam",
+    hour: "Jam",
+    minute: "Menit",
+    second: "Detik",
+    now: "Sekarang",
+    clear: "Hapus",
+    confirm: "OK",
+    panelLabel: "Pilih jam",
+    openPicker: "Buka pemilih jam",
   },
 }

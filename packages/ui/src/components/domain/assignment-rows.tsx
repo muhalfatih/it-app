@@ -50,11 +50,16 @@ type AssignmentRowsProps = {
   taskTypes: Option[]
   /** Mode baca saja: sembunyikan kontrol tambah/hapus baris dan petunjuk ubah. */
   readOnly?: boolean
+  /** `"type"`: hanya jenis tugas per baris (formulir pengaju), tanpa orang/tanggal/durasi. */
+  fields?: "all" | "type"
 }
 
 // Desktop: satu baris per penugasan. HP: orang + hapus, lalu jenis, lalu tanggal + durasi.
 const ROW =
   "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.1fr)_5.5rem_2.25rem]"
+// Mode jenis saja: "SDM n", jenis, hapus (sama di HP dan desktop).
+const TYPE_ROW =
+  "grid grid-cols-[3.5rem_minmax(0,1fr)_2.25rem] items-center gap-x-2"
 
 const toIso = (date?: Date) => (date ? format(date, "yyyy-MM-dd") : undefined)
 
@@ -142,7 +147,9 @@ function AssignmentRows({
   people,
   taskTypes,
   readOnly = false,
+  fields = "all",
 }: AssignmentRowsProps) {
+  const typeOnly = fields === "type"
   const baseId = React.useId()
   const counter = React.useRef(0)
   const [focusId, setFocusId] = React.useState<string | null>(null)
@@ -156,14 +163,15 @@ function AssignmentRows({
   }
   const personName = (id: string) =>
     people.find((p) => p.value === id)?.label ?? ""
-  const incomplete = value.filter(
-    (r) => !r.personId || !r.taskTypeId || !r.start
-  ).length
+  const isMissing = (r: Assignment) =>
+    typeOnly ? !r.taskTypeId : !r.personId || !r.taskTypeId || !r.start
+  const incomplete = value.filter(isMissing).length
+  const noun = typeOnly ? "kebutuhan SDM" : "penugasan"
 
   return (
     <Frame spacing="xs">
       <FrameHeader className="flex flex-row flex-wrap items-center gap-2">
-        <FrameTitle>Penugasan</FrameTitle>
+        <FrameTitle>{typeOnly ? "Kebutuhan SDM" : "Penugasan"}</FrameTitle>
         <Badge variant="outline" size="sm">
           {value.length}
         </Badge>
@@ -179,25 +187,27 @@ function AssignmentRows({
         )}
       </FrameHeader>
       <FramePanel className="p-0!">
-        <div
-          aria-hidden
-          className={cn(
-            ROW,
-            "hidden border-b px-3 py-2 text-xs font-medium text-muted-foreground sm:grid"
-          )}
-        >
-          <span>Orang</span>
-          <span>Jenis tugas</span>
-          <span>Tanggal</span>
-          <span className="text-right">Durasi</span>
-          <span />
-        </div>
+        {!typeOnly && (
+          <div
+            aria-hidden
+            className={cn(
+              ROW,
+              "hidden border-b px-3 py-2 text-xs font-medium text-muted-foreground sm:grid"
+            )}
+          >
+            <span>Orang</span>
+            <span>Jenis tugas</span>
+            <span>Tanggal</span>
+            <span className="text-right">Durasi</span>
+            <span />
+          </div>
+        )}
 
         {value.length === 0 ? (
           <p className="px-3 py-6 text-center text-sm text-muted-foreground">
             {readOnly
-              ? "Belum ada penugasan."
-              : "Belum ada penugasan. Tambahkan baris di bawah."}
+              ? `Belum ada ${noun}.`
+              : `Belum ada ${noun}. Tambahkan baris di bawah.`}
           </p>
         ) : (
           <ul className="divide-y">
@@ -205,7 +215,39 @@ function AssignmentRows({
               const key = row.id ?? `baris-${index}`
               const name = personName(row.personId)
               const n = index + 1
-              const missing = !row.personId || !row.taskTypeId || !row.start
+              const missing = isMissing(row)
+              if (typeOnly)
+                return (
+                  <li key={key} className={cn(TYPE_ROW, "px-3 py-2")}>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      SDM {n}
+                    </span>
+                    <OptionSelect
+                      label={`Jenis tugas, SDM ${n}`}
+                      placeholder="Pilih jenis"
+                      options={taskTypes}
+                      value={row.taskTypeId}
+                      autoFocus={key === focusId}
+                      onValueChange={(taskTypeId) =>
+                        update(index, { taskTypeId })
+                      }
+                    />
+                    {readOnly ? (
+                      <span aria-hidden />
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Hapus SDM ${n}`}
+                        onClick={() =>
+                          onChange(value.filter((_, i) => i !== index))
+                        }
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    )}
+                  </li>
+                )
               const clash = !missing && overlaps(value, index)
               const selected: DateRange | undefined = row.start
                 ? {
@@ -323,7 +365,7 @@ function AssignmentRows({
               onClick={add}
             >
               <PlusIcon data-icon="inline-start" />
-              Tambah penugasan
+              {typeOnly ? "Tambah SDM" : "Tambah penugasan"}
             </Button>
           </div>
         )}

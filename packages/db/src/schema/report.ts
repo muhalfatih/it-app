@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core"
 
 import { user } from "./auth"
+import { serviceRequest } from "./service"
 import {
   ANSWER_STATUSES,
   ATTENDANCE_STATUSES,
@@ -67,6 +68,10 @@ export const managerTask = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
+    serviceRequestId: integer("service_request_id").references(
+      () => serviceRequest.id,
+      { onDelete: "restrict" }
+    ),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -77,6 +82,7 @@ export const managerTask = pgTable(
   },
   (t) => [
     check("manager_task_dates_check", sql`${t.endDate} >= ${t.startDate}`),
+    index("manager_task_service_request_idx").on(t.serviceRequestId),
   ]
 )
 
