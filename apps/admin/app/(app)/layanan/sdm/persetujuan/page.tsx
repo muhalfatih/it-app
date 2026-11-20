@@ -24,7 +24,7 @@ export default async function PersetujuanSdmPage() {
     <div className="flex min-w-0 flex-col gap-4 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">Persetujuan SDM</h1>
       <Tabs defaultValue="diajukan" className="min-w-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden">
           <TabsList>
             {SERVICE_STATUSES.map((s) => (
               <TabsTrigger key={s} value={s}>

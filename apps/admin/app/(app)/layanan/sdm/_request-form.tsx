@@ -269,6 +269,7 @@ export function RequestForm({
               items={units}
               value={unitId || null}
               onValueChange={(v) => setUnitId(v ?? "")}
+              disabled={units.length === 0}
             >
               <SelectTrigger
                 id={`${formId}-unit`}
@@ -276,7 +277,13 @@ export function RequestForm({
                 aria-invalid={invalid("unit")}
                 aria-describedby={describedBy("unit")}
               >
-                <SelectValue placeholder="Pilih unit" />
+                <SelectValue
+                  placeholder={
+                    units.length === 0
+                      ? "Belum ada unit; hubungi Manajer"
+                      : "Pilih unit"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>

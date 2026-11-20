@@ -29,6 +29,8 @@ export function WeekChart({
           tickMargin={8}
           interval={0}
           fontSize={12}
+          // Rentang penuh ("26 Okt – 1 Nov") bertumpuk di layar HP; tooltip tetap menampilkannya.
+          tickFormatter={(label: string) => label.split(" – ")[0] ?? label}
         />
         <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
         <ChartTooltip content={<ChartTooltipContent />} />
