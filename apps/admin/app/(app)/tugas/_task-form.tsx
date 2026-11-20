@@ -29,19 +29,19 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "@workspace/ui/components/combobox"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import { fromRange, toRange } from "@/lib/date-value"
 import { managerTaskSchema } from "@/lib/manager-task/schema"
 
 import { saveTask } from "./actions"
@@ -215,38 +215,28 @@ export function TaskForm({
             <FieldError id={errorId("assignees")}>{errors.assignees}</FieldError>
           </Field>
 
-          <FieldSet data-invalid={invalid("dates")}>
-            <FieldLegend variant="label">Rentang tanggal</FieldLegend>
+          <Field data-invalid={invalid("dates")}>
+            <FieldLabel id={`${formId}-dates-label`} htmlFor={`${formId}-dates`}>
+              Rentang tanggal
+            </FieldLabel>
+            <DateRangePicker
+              id={`${formId}-dates`}
+              aria-labelledby={`${formId}-dates-label ${formId}-dates`}
+              value={toRange(startDate, endDate)}
+              onChange={(r) => {
+                const range = fromRange(r)
+                setStartDate(range.start)
+                setEndDate(range.end)
+              }}
+              aria-invalid={invalid("dates")}
+              aria-describedby={describedBy("dates")}
+            />
             <FieldDescription>
               Tugas muncul di laporan tiap hari kerja dalam rentang ini. Tanggal
               mulai boleh di masa lalu.
             </FieldDescription>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor={`${formId}-start`}>Mulai</FieldLabel>
-                <Input
-                  id={`${formId}-start`}
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  aria-invalid={invalid("dates")}
-                  aria-describedby={describedBy("dates")}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${formId}-end`}>Selesai</FieldLabel>
-                <Input
-                  id={`${formId}-end`}
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  aria-invalid={invalid("dates")}
-                  aria-describedby={describedBy("dates")}
-                />
-              </Field>
-            </div>
             <FieldError id={errorId("dates")}>{errors.dates}</FieldError>
-          </FieldSet>
+          </Field>
 
           <Field data-invalid={invalid("note")}>
             <FieldLabel htmlFor={`${formId}-note`}>Catatan (opsional)</FieldLabel>

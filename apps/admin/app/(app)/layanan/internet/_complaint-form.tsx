@@ -1,10 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format, parseISO } from "date-fns"
-import { id as localeId } from "date-fns/locale"
 import {
-  CalendarIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   SendIcon,
@@ -35,20 +32,12 @@ import {
   FieldSet,
   FieldTitle,
 } from "@workspace/ui/components/field"
+import { Pattern as DatePicker } from "@workspace/ui/components/examples/c-calendar-24"
 import { Input } from "@workspace/ui/components/input"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@workspace/ui/components/popover"
 import {
   RadioGroup,
   RadioGroupItem,
 } from "@workspace/ui/components/radio-group"
-import {
-  DateSelector,
-  type DateSelectorValue,
-} from "@workspace/ui/components/reui/date-selector"
 import { TimePicker } from "@workspace/ui/components/reui/time-picker"
 import {
   Select,
@@ -60,11 +49,9 @@ import {
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
-import {
-  DATE_SELECTOR_I18N_ID,
-  TIME_PICKER_I18N_ID,
-} from "@workspace/ui/lib/i18n-id"
+import { TIME_PICKER_I18N_ID } from "@workspace/ui/lib/i18n-id"
 
+import { toDate, toIso } from "@/lib/date-value"
 import { ISSUE_LABELS, nowWib, OTHERS_LABELS } from "@/lib/layanan/rules"
 import { complaintInputSchema } from "@/lib/layanan/schema"
 import type { Issue, OthersAffected } from "@/lib/layanan/types"
@@ -105,29 +92,12 @@ export function ComplaintForm({
   const [issue, setIssue] = React.useState<Issue | "">("")
   const [date, setDate] = React.useState(now.date)
   const [time, setTime] = React.useState<string | null>(now.time)
-  const [dateOpen, setDateOpen] = React.useState(false)
   const [others, setOthers] = React.useState<OthersAffected | "">("")
   const [description, setDescription] = React.useState("")
   const [errors, setErrors] = React.useState<Errors>({})
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [done, setDone] = React.useState(false)
   const [pending, startTransition] = React.useTransition()
-
-  const dateValue = React.useMemo<DateSelectorValue>(
-    () => ({ period: "day", operator: "is", startDate: parseISO(date) }),
-    [date]
-  )
-  // DateSelector juga memanggil onChange saat dipasang; abaikan nilai yang sama.
-  const pickDate = React.useCallback(
-    (v: DateSelectorValue) => {
-      if (!v.startDate) return
-      const next = format(v.startDate, "yyyy-MM-dd")
-      if (next === date) return
-      setDate(next)
-      setDateOpen(false)
-    },
-    [date]
-  )
 
   React.useEffect(() => {
     if (done) doneRef.current?.focus()
@@ -313,42 +283,19 @@ export function ComplaintForm({
             <FieldLegend variant="label">Waktu mulai terjadi</FieldLegend>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor={`${formId}-date`}>Tanggal</FieldLabel>
-                <Popover open={dateOpen} onOpenChange={setDateOpen}>
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        id={`${formId}-date`}
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-start font-normal"
-                        aria-invalid={invalid("started")}
-                        aria-describedby={describedBy("started")}
-                      />
-                    }
-                  >
-                    <CalendarIcon data-icon="inline-start" />
-                    {format(parseISO(date), "EEEE, d MMMM yyyy", {
-                      locale: localeId,
-                    })}
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-auto">
-                    <DateSelector
-                      value={dateValue}
-                      onChange={pickDate}
-                      allowRange={false}
-                      periodTypes={["day"]}
-                      presetMode="is"
-                      showTwoMonths={false}
-                      dayDateFormat="dd/MM/yyyy"
-                      minYear={Number(now.date.slice(0, 4)) - 1}
-                      maxYear={Number(now.date.slice(0, 4))}
-                      weekStartsOn={1}
-                      locale={localeId}
-                      i18n={DATE_SELECTOR_I18N_ID}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FieldLabel id={`${formId}-date-label`} htmlFor={`${formId}-date`}>
+                  Tanggal
+                </FieldLabel>
+                <DatePicker
+                  id={`${formId}-date`}
+                  aria-labelledby={`${formId}-date-label ${formId}-date`}
+                  value={toDate(date)}
+                  // Klik ulang hari terpilih tidak mengosongkan tanggal (kolom wajib).
+                  onChange={(d) => d && setDate(toIso(d))}
+                  disabledDays={{ after: toDate(now.date)! }}
+                  aria-invalid={invalid("started")}
+                  aria-describedby={describedBy("started")}
+                />
               </Field>
               <Field>
                 <FieldLabel htmlFor={`${formId}-time`}>Jam (WIB)</FieldLabel>

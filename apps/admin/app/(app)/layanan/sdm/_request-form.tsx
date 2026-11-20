@@ -12,6 +12,7 @@ import {
 } from "@workspace/ui/components/alert"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 import {
   AssignmentRows,
   type Assignment,
@@ -49,6 +50,7 @@ import {
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
 
+import { fromRange, toRange } from "@/lib/date-value"
 import { uploadToStorage } from "@/lib/kanban/upload-client"
 import { requestInputSchema } from "@/lib/layanan/schema"
 
@@ -233,35 +235,26 @@ export function RequestForm({
             <FieldError id={errorId("activity")}>{errors.activity}</FieldError>
           </Field>
 
-          <FieldSet data-invalid={invalid("dates")}>
-            <FieldLegend variant="label">Tanggal kegiatan</FieldLegend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor={`${formId}-start`}>Mulai</FieldLabel>
-                <Input
-                  id={`${formId}-start`}
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  aria-invalid={invalid("dates")}
-                  aria-describedby={describedBy("dates")}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${formId}-end`}>Selesai</FieldLabel>
-                <Input
-                  id={`${formId}-end`}
-                  type="date"
-                  value={endDate}
-                  min={startDate || undefined}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  aria-invalid={invalid("dates")}
-                  aria-describedby={describedBy("dates")}
-                />
-              </Field>
-            </div>
+          <Field data-invalid={invalid("dates")}>
+            <FieldLabel id={`${formId}-dates-label`} htmlFor={`${formId}-dates`}>
+              Tanggal kegiatan
+            </FieldLabel>
+            <DateRangePicker
+              id={`${formId}-dates`}
+              // Nama tombol = label + tanggal terpilih (pola galeri).
+              aria-labelledby={`${formId}-dates-label ${formId}-dates`}
+              value={toRange(startDate, endDate)}
+              onChange={(r) => {
+                const range = fromRange(r)
+                setStartDate(range.start)
+                setEndDate(range.end)
+              }}
+              aria-invalid={invalid("dates")}
+              aria-describedby={describedBy("dates")}
+            />
+            <FieldDescription>Pilih satu hari, atau tanggal mulai dan selesai.</FieldDescription>
             <FieldError id={errorId("dates")}>{errors.dates}</FieldError>
-          </FieldSet>
+          </Field>
 
           <Field data-invalid={invalid("unit")}>
             <FieldLabel htmlFor={`${formId}-unit`}>Unit pengaju</FieldLabel>

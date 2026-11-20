@@ -18,6 +18,8 @@ import {
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Pattern as DatePicker } from "@workspace/ui/components/examples/c-calendar-24"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 import {
   AssignmentRows,
   type Assignment,
@@ -38,6 +40,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import { fromRange, toDate, toIso, toRange } from "@/lib/date-value"
 import { entryInputSchema } from "@/lib/planner/schema"
 import type { PlannerEntry } from "@/lib/planner/types"
 
@@ -211,37 +214,25 @@ export function EntryForm({
             <FieldError id={errorId("name")}>{errors.name}</FieldError>
           </Field>
 
-          <FieldSet data-invalid={invalid("activity")}>
-            <FieldLegend variant="label">Kegiatan (opsional)</FieldLegend>
-            <FieldDescription>
-              Isi mulai dan selesai bila konten meliput sebuah kegiatan.
-            </FieldDescription>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor={`${formId}-as`}>Mulai</FieldLabel>
-                <Input
-                  id={`${formId}-as`}
-                  type="date"
-                  value={activityStart}
-                  onChange={(e) => setActivityStart(e.target.value)}
-                  aria-invalid={invalid("activity")}
-                  aria-describedby={describedBy("activity")}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${formId}-ae`}>Selesai</FieldLabel>
-                <Input
-                  id={`${formId}-ae`}
-                  type="date"
-                  value={activityEnd}
-                  onChange={(e) => setActivityEnd(e.target.value)}
-                  aria-invalid={invalid("activity")}
-                  aria-describedby={describedBy("activity")}
-                />
-              </Field>
-            </div>
+          <Field data-invalid={invalid("activity")}>
+            <FieldLabel id={`${formId}-activity-label`} htmlFor={`${formId}-activity`}>
+              Kegiatan (opsional)
+            </FieldLabel>
+            <DateRangePicker
+              id={`${formId}-activity`}
+              aria-labelledby={`${formId}-activity-label ${formId}-activity`}
+              value={toRange(activityStart, activityEnd)}
+              onChange={(r) => {
+                const range = fromRange(r)
+                setActivityStart(range.start)
+                setActivityEnd(range.end)
+              }}
+              aria-invalid={invalid("activity")}
+              aria-describedby={describedBy("activity")}
+            />
+            <FieldDescription>Isi bila konten meliput sebuah kegiatan.</FieldDescription>
             <FieldError id={errorId("activity")}>{errors.activity}</FieldError>
-          </FieldSet>
+          </Field>
 
           {/* AssignmentRows tidak menerima aria-invalid; saat galat, fieldset-nya yang menerima fokus dan membacakan galat. */}
           <FieldSet
@@ -297,12 +288,14 @@ export function EntryForm({
           </FieldSet>
 
           <Field data-invalid={invalid("publishDate")} className="max-w-xs">
-            <FieldLabel htmlFor={`${formId}-pub`}>Tanggal tayang</FieldLabel>
-            <Input
+            <FieldLabel id={`${formId}-pub-label`} htmlFor={`${formId}-pub`}>
+              Tanggal tayang
+            </FieldLabel>
+            <DatePicker
               id={`${formId}-pub`}
-              type="date"
-              value={publishDate}
-              onChange={(e) => setPublishDate(e.target.value)}
+              aria-labelledby={`${formId}-pub-label ${formId}-pub`}
+              value={toDate(publishDate)}
+              onChange={(d) => setPublishDate(toIso(d))}
               aria-invalid={invalid("publishDate")}
               aria-describedby={describedBy("publishDate")}
             />

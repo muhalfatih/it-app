@@ -1,23 +1,7 @@
 // Label bahasa Indonesia untuk komponen @reui yang bawaannya berbahasa Inggris.
 import type { EventCalendarI18nOverrides } from "@workspace/ui/components/reui/event-calendar/event-calendar-i18n"
-import type { DateSelectorI18nConfig } from "@workspace/ui/components/reui/date-selector"
 import type { DataGridI18nOverrides } from "@workspace/ui/components/reui/data-grid/data-grid-i18n"
 import type { TimePickerI18nOverrides } from "@workspace/ui/components/reui/time-picker"
-
-const BULAN = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-]
 
 export const EVENT_CALENDAR_I18N_ID: EventCalendarI18nOverrides = {
   labels: {
@@ -55,37 +39,6 @@ export const EVENT_CALENDAR_I18N_ID: EventCalendarI18nOverrides = {
     timeGutterMinute: "HH.mm",
     eventTime: "HH.mm",
   },
-}
-
-export const DATE_SELECTOR_I18N_ID: Partial<DateSelectorI18nConfig> = {
-  selectDate: "Pilih tanggal",
-  apply: "Terapkan",
-  cancel: "Batal",
-  clear: "Hapus",
-  today: "Hari ini",
-  previousMonth: "Bulan sebelumnya",
-  nextMonth: "Bulan berikutnya",
-  filterTypes: {
-    is: "pada",
-    before: "sebelum",
-    after: "sesudah",
-    between: "antara",
-  },
-  periodTypes: {
-    day: "Hari",
-    month: "Bulan",
-    quarter: "Kuartal",
-    halfYear: "Semester",
-    year: "Tahun",
-  },
-  months: BULAN,
-  monthsShort: BULAN.map((b) => b.slice(0, 3)),
-  quarters: ["K1", "K2", "K3", "K4"],
-  halfYears: ["Semester 1", "Semester 2"],
-  weekdays: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
-  weekdaysShort: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
-  placeholder: "Pilih tanggal…",
-  rangePlaceholder: "Pilih rentang tanggal…",
 }
 
 export const DATA_GRID_I18N_ID: DataGridI18nOverrides = {

@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
+import { Pattern as DatePicker } from "@workspace/ui/components/examples/c-calendar-24"
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import {
@@ -28,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+
+import { toDate, toIso } from "@/lib/date-value"
 
 import { addHolidayAction, removeHolidayAction } from "./actions"
 
@@ -68,16 +71,15 @@ export function HolidayList({
         onSubmit={add}
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
       >
-        <Field className="sm:w-48">
-          <FieldLabel htmlFor={`${id}-tanggal`}>Tanggal</FieldLabel>
-          <Input
+        <Field className="sm:w-60">
+          <FieldLabel id={`${id}-tanggal-label`} htmlFor={`${id}-tanggal`}>
+            Tanggal
+          </FieldLabel>
+          <DatePicker
             id={`${id}-tanggal`}
-            name="tanggal"
-            autoComplete="off"
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            aria-labelledby={`${id}-tanggal-label ${id}-tanggal`}
+            value={toDate(date)}
+            onChange={(d) => setDate(toIso(d))}
           />
         </Field>
         <Field className="sm:max-w-sm">
