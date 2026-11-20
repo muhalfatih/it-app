@@ -5,7 +5,8 @@
 #
 # Pakai (server dev/produksi harus berjalan, akun SDM Khusus uji aktif & sudah ganti kata sandi):
 #   BASE_URL=http://localhost:3000 VERIFY_SDM_USERNAME=... VERIFY_SDM_PASSWORD=... scripts/verify-access.sh
-# Opsional: VERIFY_OTHER_USERNAME/PASSWORD (Staf Unit Lain) dan VERIFY_DIREKTUR_USERNAME/PASSWORD (Direktur).
+# Opsional: VERIFY_OTHER_USERNAME/PASSWORD (Staf Unit Lain), VERIFY_DIREKTUR_USERNAME/PASSWORD (Direktur),
+# dan VERIFY_MANAJER_USERNAME/PASSWORD (Manajer).
 # Langkah "akun dinonaktifkan" memakai psql di container docker compose `db`.
 set -euo pipefail
 
@@ -30,7 +31,7 @@ status() { # status <path> [cookie-jar]
 psql_db() { docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"; }
 
 echo "== Tanpa sesi"
-for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /tugas /absensi /layanan/sdm /layanan/internet /layanan/internet/rekap /layanan/sdm/persetujuan /; do
+for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /tugas /absensi /layanan/sdm /layanan/internet /layanan/internet/rekap /layanan/sdm/persetujuan /inventaris /inventaris/peminjaman /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
@@ -55,9 +56,13 @@ check "GET /api/media/999999 (tidak ada) -> 404" "404" "$(status /api/media/9999
 check "GET /layanan/internet/rekap (SDM Khusus) -> 200" "200" "$(status /layanan/internet/rekap "$JAR")"
 check "GET /layanan/sdm/persetujuan (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /layanan/sdm/persetujuan "$JAR")"
 check "GET /laporan (diizinkan) -> 200" "200" "$(status /laporan "$JAR")"
-for path in /laporan/tim /tugas /tugas/baru /absensi /absensi/libur; do
+for path in /laporan/tim /tugas /tugas/baru /absensi /absensi/libur /inventaris; do
   check "GET $path (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$JAR")"
 done
+for path in /inventaris/peminjaman /inventaris/peminjaman/baru; do
+  check "GET $path (SDM Khusus) -> 200" "200" "$(status "$path" "$JAR")"
+done
+check "GET /inventaris/peminjaman/999999999 (tidak ada) -> 404" "404" "$(status /inventaris/peminjaman/999999999 "$JAR")"
 
 echo "== Staf Unit Lain (opsional: VERIFY_OTHER_USERNAME / VERIFY_OTHER_PASSWORD)"
 if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; then
@@ -83,6 +88,9 @@ if [[ -n "${VERIFY_OTHER_USERNAME:-}" && -n "${VERIFY_OTHER_PASSWORD:-}" ]]; the
   else
     echo "SKIP  id milik orang lain (tidak ada service_request milik akun lain)"
   fi
+  for path in /inventaris /inventaris/peminjaman /inventaris/peminjaman/baru; do
+    check "GET $path (staf unit lain) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$OTHER_JAR")"
+  done
   rm -f "$OTHER_JAR"
 else
   echo "SKIP  staf unit lain (variabel VERIFY_OTHER_* tidak diisi)"
@@ -108,9 +116,27 @@ if [[ -n "${VERIFY_DIREKTUR_USERNAME:-}" && -n "${VERIFY_DIREKTUR_PASSWORD:-}" ]
   else
     printf "PASS  /laporan/tim (direktur) tanpa tombol Buka kunci\n"
   fi
+  for path in /inventaris /inventaris/peminjaman /inventaris/peminjaman/baru; do
+    check "GET $path (direktur) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$DIR_JAR")"
+  done
   rm -f "$DIR_JAR"
 else
   echo "SKIP  direktur (variabel VERIFY_DIREKTUR_* tidak diisi)"
+fi
+
+echo "== Manajer (opsional: VERIFY_MANAJER_USERNAME / VERIFY_MANAJER_PASSWORD)"
+if [[ -n "${VERIFY_MANAJER_USERNAME:-}" && -n "${VERIFY_MANAJER_PASSWORD:-}" ]]; then
+  MGR_JAR="$(mktemp)"
+  code=$(curl -s -o /dev/null -w "%{http_code}" -c "$MGR_JAR" -X POST "$BASE_URL/api/auth/sign-in/username" \
+    -H "content-type: application/json" -H "origin: $BASE_URL" \
+    --data "{\"username\":\"$VERIFY_MANAJER_USERNAME\",\"password\":\"$VERIFY_MANAJER_PASSWORD\"}")
+  check "login manajer" "200" "$code"
+  for path in /inventaris /inventaris/peminjaman /inventaris/peminjaman/baru; do
+    check "GET $path (manajer) -> 200" "200" "$(status "$path" "$MGR_JAR")"
+  done
+  rm -f "$MGR_JAR"
+else
+  echo "SKIP  manajer (variabel VERIFY_MANAJER_* tidak diisi)"
 fi
 
 echo "== Endpoint Better Auth yang ditutup (akun hanya diubah Manajer)"
