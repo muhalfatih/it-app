@@ -55,6 +55,11 @@ const MENU: Omit<MenuItem, "isActive">[] = [
       },
       {
         title: "Rekap tim",
+        url: "/laporan/rekap",
+        permission: "laporan.rekap.semua",
+      },
+      {
+        title: "Rekap harian",
         url: "/laporan/tim",
         permission: "laporan.rekap.semua",
       },

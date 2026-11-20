@@ -1,8 +1,53 @@
 // Modul murni (tanpa db/next): ringkasan rekap laporan harian per periode (spesifikasi §5.7).
 import type { AnswerStatus, TaskSource } from "@workspace/db/schema/stages"
 
-import type { IsoDate } from "../planner/types"
+import { format, parseISO } from "date-fns"
+import { id as localeId } from "date-fns/locale"
+
+import { shiftPeriod, todayWib, validDate } from "../planner/rules"
+import type { IsoDate, Period } from "../planner/types"
 import type { DayScore, ReportState } from "./rules"
+
+export type Rentang = "pekan" | "bulan"
+
+/** Tautan navigasi periode; `next` null bila periode berikutnya belum dimulai. */
+export function periodLinks(
+  base: string,
+  period: Period,
+  tanggal: IsoDate,
+  today: IsoDate
+) {
+  const q = (r: Rentang, d: IsoDate) => `${base}?rentang=${r}&tanggal=${d}`
+  const next = shiftPeriod(period, 1)
+  return {
+    prev: q(period.kind, shiftPeriod(period, -1)),
+    next: next <= today ? q(period.kind, next) : null,
+    today: q(period.kind, today),
+    pekan: q("pekan", tanggal),
+    bulan: q("bulan", tanggal),
+  }
+}
+
+export function periodTitle(period: Period): string {
+  const f = (iso: IsoDate, p: string) => format(parseISO(iso), p, { locale: localeId })
+  if (period.kind === "bulan") return f(period.start, "MMMM yyyy")
+  if (f(period.start, "MMM yyyy") === f(period.end, "MMM yyyy"))
+    return `${f(period.start, "d")}–${f(period.end, "d MMM yyyy")}`
+  return `${f(period.start, "d MMM")} – ${f(period.end, "d MMM yyyy")}`
+}
+
+/** Query rekap: `rentang` (bawaan bulan) dan `tanggal` (bawaan/maksimum hari ini). */
+export function parseRecapParams(
+  sp: Record<string, string | string[] | undefined>,
+  now: Date = new Date()
+): { rentang: Rentang; tanggal: IsoDate } {
+  const today = todayWib(now)
+  const raw = validDate(sp.tanggal) ?? today
+  return {
+    rentang: sp.rentang === "pekan" ? "pekan" : "bulan",
+    tanggal: raw > today ? today : raw,
+  }
+}
 
 export type RecapDay = {
   date: IsoDate

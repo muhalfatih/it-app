@@ -20,9 +20,10 @@ import type {
 import { attendanceOf, listHolidays } from "@/lib/attendance/queries"
 import { managerTasksFor } from "@/lib/manager-task/queries"
 import { todayWib } from "@/lib/planner/rules"
-import type { IsoDate } from "@/lib/planner/types"
+import type { IsoDate, Period } from "@/lib/planner/types"
 import { UserError } from "@/lib/user-error"
 
+import { summarizeRecap, type Recap } from "./recap"
 import {
   addDays,
   adjacentReportDay,
@@ -189,7 +190,7 @@ export type DayView = {
   unlocked: boolean
 }
 
-type ReportRow = Awaited<ReturnType<typeof getReportRow>>
+type ReportRow = typeof dailyReport.$inferSelect | null
 
 /** Bagian data satu hari yang sudah dimuat; `src` wajib bila laporan belum beku. */
 type DayParts = {
@@ -315,6 +316,14 @@ export async function loadPeriodDays(
       src,
     })
   )
+}
+
+export async function loadRecap(
+  userId: string,
+  period: Period,
+  now: Date = new Date()
+): Promise<Recap> {
+  return summarizeRecap(await loadPeriodDays(userId, period.start, period.end, now))
 }
 
 /** Tetangga hari laporan untuk navigasi tanggal; `first` = hari laporan pertama orang itu. */
