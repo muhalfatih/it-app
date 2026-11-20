@@ -57,6 +57,13 @@
       "when": 1795156504040,
       "tag": "0007_slimy_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795169441369,
+      "tag": "0008_workable_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

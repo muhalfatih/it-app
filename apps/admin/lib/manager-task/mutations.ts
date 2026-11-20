@@ -3,7 +3,8 @@ import { db } from "@workspace/db/client"
 import { and, count, eq, ne } from "@workspace/db/orm"
 import { managerTask, managerTaskAssignee, serviceRequest } from "@workspace/db/schema"
 
-import { cancelRequestTx } from "@/lib/layanan/mutations"
+import { cancelRequestTx, notifyRequestStatus } from "@/lib/layanan/mutations"
+import { notify } from "@/lib/push/send"
 import { listReporters } from "@/lib/report/queries"
 import { UserError } from "@/lib/user-error"
 
@@ -55,14 +56,20 @@ export async function createManagerTask(
   input: ManagerTaskInput
 ): Promise<{ id: number }> {
   const { ids, row } = await parse(input)
-  return db.transaction(async (tx) => ({
+  const created = await db.transaction(async (tx) => ({
     id: await insertManagerTask(tx, { ...row, createdBy: actorId }, ids),
   }))
+  await notifyTask(ids, row.title, actorId, "Tugas baru dari Manajer")
+  return created
 }
+
+export const notifyTask = (userIds: string[], title: string, actorId: string | undefined, heading: string) =>
+  notify({ userIds, except: actorId }, { title: heading, body: title, url: "/laporan" })
 
 export async function updateManagerTask(
   id: number,
-  input: ManagerTaskInput
+  input: ManagerTaskInput,
+  actorId?: string
 ): Promise<void> {
   const { ids, row } = await parse(input)
   await db.transaction(async (tx) => {
@@ -77,6 +84,7 @@ export async function updateManagerTask(
       .insert(managerTaskAssignee)
       .values(ids.map((userId) => ({ taskId: id, userId })))
   })
+  await notifyTask(ids, row.title, actorId, "Tugas dari Manajer berubah")
 }
 
 /** Tugas tertaut terakhir sebuah pengajuan: `cancelNote` wajib dan pengajuan ikut dibatalkan. */
@@ -85,7 +93,7 @@ export async function deleteManagerTask(
   actorId: string,
   cancelNote?: string
 ): Promise<void> {
-  await db.transaction(async (tx) => {
+  const requester = await db.transaction(async (tx) => {
     const linkOf = async () =>
       (
         await tx
@@ -94,6 +102,7 @@ export async function deleteManagerTask(
           .where(eq(managerTask.id, id))
       )[0]?.requestId
     const requestId = await linkOf()
+    let cancelledFor: string | undefined
     if (requestId != null) {
       // Kunci pengajuan sebelum menghitung, agar dua hapus bersamaan tidak sama-sama "bukan yang terakhir".
       await tx
@@ -107,9 +116,12 @@ export async function deleteManagerTask(
           .select({ n: count() })
           .from(managerTask)
           .where(and(eq(managerTask.serviceRequestId, requestId), ne(managerTask.id, id)))
-        if (others!.n === 0) await cancelRequestTx(tx, requestId, cancelNote ?? "", actorId)
+        if (others!.n === 0)
+          cancelledFor = await cancelRequestTx(tx, requestId, cancelNote ?? "", actorId)
       }
     }
     await tx.delete(managerTask).where(eq(managerTask.id, id))
+    return cancelledFor
   })
+  if (requester) await notifyRequestStatus(requester, "dibatalkan", actorId)
 }

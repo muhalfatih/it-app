@@ -1,4 +1,5 @@
 import {
+  BellIcon,
   BoxIcon,
   CalendarDaysIcon,
   ClipboardCheckIcon,
@@ -12,7 +13,8 @@ import {
 import type { Permission } from "@workspace/auth/permissions"
 import type { CurrentUser } from "@workspace/auth/session"
 
-type SubItem = { title: string; url: string; permission: Permission }
+/** Tanpa  = tampil untuk semua akun (termasuk Staf Unit Lain). */
+type SubItem = { title: string; url: string; permission?: Permission }
 
 /** Ikon berupa elemen, bukan komponen: fungsi tidak bisa dikirim dari server ke sidebar (client). */
 export type MenuItem = {
@@ -152,6 +154,12 @@ const MENU: Omit<MenuItem, "isActive">[] = [
     ],
   },
   {
+    title: "Notifikasi",
+    url: "/notifikasi",
+    icon: <BellIcon />,
+    items: [{ title: "Atur notifikasi", url: "/notifikasi" }],
+  },
+  {
     title: "Setting",
     url: "/setting",
     icon: <Settings2Icon />,
@@ -189,7 +197,7 @@ const MENU: Omit<MenuItem, "isActive">[] = [
 export function menuFor(user: CurrentUser): MenuItem[] {
   const visible = MENU.map((group) => {
     const allowed = group.items.filter((item) =>
-      user.permissions.has(item.permission)
+      item.permission === undefined || user.permissions.has(item.permission)
     )
     // Multi-peran bisa punya dua entri untuk URL yang sama (mis. rekap saya & rekap tim): yang terakhir menang.
     const byUrl = new Map(allowed.map((item) => [item.url, item]))

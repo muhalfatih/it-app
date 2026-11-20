@@ -10,6 +10,8 @@ import {
   contentCardComment,
   contentCardEvent,
   contentCardPublication,
+  plannerAssignment,
+  plannerEntry,
   plannerEntryChannel,
 } from "@workspace/db/schema"
 import {
@@ -18,6 +20,7 @@ import {
   type ContentStage,
 } from "@workspace/db/schema/stages"
 
+import { notify } from "@/lib/push/send"
 import { UserError } from "@/lib/setting-crud"
 
 import {
@@ -99,7 +102,7 @@ export async function moveCard(
   const stageSchema = z.enum(CONTENT_STAGES, { error: "Tahap tidak valid" })
   parse(stageSchema, from)
   parse(stageSchema, to)
-  await db.transaction(async (tx) => {
+  const { entryId, back } = await db.transaction(async (tx) => {
     const card = await lockCard(tx, cardId)
     if (card.stage !== from)
       throw new UserError("Kartu sudah dipindah orang lain, muat ulang.")
@@ -111,12 +114,46 @@ export async function moveCard(
     if (targets.forward !== undefined && to === targets.forward) {
       await setStage(tx, cardId, to)
       await logEvent(tx, cardId, actor.id, { kind: "maju", fromStage: from, toStage: to })
+      return { entryId: card.entryId, back: false }
     } else if (targets.back !== undefined && to === targets.back) {
       const text = parse(noteSchema, note ?? "")
       await setStage(tx, cardId, to)
       await logEvent(tx, cardId, actor.id, { kind: "kembali", fromStage: from, toStage: to, note: text })
+      return { entryId: card.entryId, back: true }
     } else throw new UserError(FORBIDDEN_MOVE)
   })
+  // §10.2: masuk Review → Manajer saja; dikembalikan → yang ditugaskan di entri.
+  // Belum: "Kartu menunggu persetujuan → Direktur" (pemicunya belum ditentukan).
+  if (!back && to !== "review") return
+  await notifyCardMove(entryId, back, actor.id)
+}
+
+async function notifyCardMove(entryId: number, back: boolean, actorId: string) {
+  try {
+    const [entry] = await db
+      .select({ name: plannerEntry.name })
+      .from(plannerEntry)
+      .where(eq(plannerEntry.id, entryId))
+    const name = entry?.name ?? "Kartu konten"
+    if (!back) {
+      await notify(
+        { roles: ["manajer"], except: actorId },
+        { title: "Kartu masuk Review", body: name, url: "/konten" }
+      )
+      return
+    }
+    const people = await db
+      .select({ id: plannerAssignment.userId })
+      .from(plannerAssignment)
+      .where(eq(plannerAssignment.entryId, entryId))
+    await notify(
+      { userIds: people.map((p) => p.id), except: actorId },
+      { title: "Kartu dikembalikan untuk revisi", body: name, url: "/konten" }
+    )
+  } catch (e) {
+    // Kartu sudah pindah; gagal baca penerima tidak boleh menggagalkan aksi.
+    console.error("notifyCardMove gagal", e)
+  }
 }
 
 export async function saveCaption(

@@ -17,8 +17,9 @@ import type { Permission } from "@workspace/auth/permissions"
 import type { ContentStage } from "@workspace/db/schema/stages"
 
 import { parse, reconcileCardAfterEntryUpdate } from "@/lib/kanban/mutations"
-import { cancelRequestTx, lockPending } from "@/lib/layanan/mutations"
+import { cancelRequestTx, lockPending, notifyRequestStatus } from "@/lib/layanan/mutations"
 import { approveTasksSchema } from "@/lib/layanan/schema"
+import { notify } from "@/lib/push/send"
 import { removeObjects } from "@/lib/storage"
 import { UserError } from "@/lib/setting-crud"
 
@@ -82,6 +83,13 @@ const assignmentValues = (a: EntryInput["assignments"][number]) => ({
   endDate: a.end,
 })
 
+/** §10.2 "Penugasan Planner baru/berubah" → orang yang ditugaskan. */
+const notifyAssigned = (userIds: string[], name: string, entryId: number, actorId: string) =>
+  notify(
+    { userIds, except: actorId },
+    { title: "Penugasan Media Planner", body: name, url: `/planner/${entryId}` }
+  )
+
 /** Dengan `approval`: entri ini sekaligus menyetujui pengajuan SDM (tindak lanjut Planner). */
 export async function createEntry(
   raw: unknown,
@@ -96,9 +104,9 @@ export async function createEntry(
   if (approval && !approval.permissions.has("layanan.setujui_sdm"))
     throw new UserError("Anda tidak berwenang menyetujui pengajuan")
   const note = approval ? parse(approveTasksSchema.shape.note, approval.note) : null
-  return db.transaction(async (tx) => {
+  const { id, requester } = await db.transaction(async (tx) => {
     // Kunci pengajuan sebelum insert: bila kalah balapan, tidak ada entri/kartu Ide yatim.
-    if (approval) await lockPending(tx, approval.requestId)
+    const request = approval ? await lockPending(tx, approval.requestId) : undefined
     await assertActive(tx, {
       people: input.assignments.map((a) => a.personId),
       taskTypes: input.assignments.map((a) => Number(a.taskTypeId)),
@@ -134,8 +142,13 @@ export async function createEntry(
           decidedAt: new Date(),
         })
         .where(eq(serviceRequest.id, approval.requestId))
-    return { id }
+    return { id, requester: request?.requestedBy }
   })
+  await Promise.all([
+    notifyAssigned(input.assignments.map((a) => a.personId), input.name, id, userId),
+    requester && notifyRequestStatus(requester, "disetujui", userId),
+  ])
+  return { id }
 }
 
 export async function updateEntry(
@@ -146,7 +159,7 @@ export async function updateEntry(
 ): Promise<void> {
   assertEntryId(id)
   const input = entryInputSchema.parse(raw)
-  await db.transaction(async (tx) => {
+  const changedPeople = await db.transaction(async (tx) => {
     const [entry] = await tx
       .select({
         id: plannerEntry.id,
@@ -246,7 +259,10 @@ export async function updateEntry(
       },
       actorId
     )
+    return check.people
   })
+  // Hanya baris baru atau yang berubah (orang/jenis/tanggal) yang memicu notifikasi.
+  await notifyAssigned(changedPeople, input.name, id, actorId)
 }
 
 export async function deleteEntry(
@@ -258,7 +274,7 @@ export async function deleteEntry(
   actorId?: string
 ): Promise<void> {
   assertEntryId(id)
-  const keys = await db.transaction(async (tx) => {
+  const { keys, requester } = await db.transaction(async (tx) => {
     const [row] = await tx
       .select({ name: plannerEntry.name, stage: contentCard.stage })
       .from(plannerEntry)
@@ -275,9 +291,10 @@ export async function deleteEntry(
       .select({ id: serviceRequest.id })
       .from(serviceRequest)
       .where(eq(serviceRequest.plannerEntryId, id))
+    let requester: string | undefined
     if (linked) {
       if (!actorId) throw new Error("deleteEntry: actorId wajib untuk entri tertaut")
-      await cancelRequestTx(tx, linked.id, cancelNote ?? "", actorId)
+      requester = await cancelRequestTx(tx, linked.id, cancelNote ?? "", actorId)
     }
     // Kunci kartu dulu agar tidak balapan dengan finishUpload (lockCard): file baru ikut terkumpul.
     await tx.select({ id: contentCard.id }).from(contentCard).where(eq(contentCard.entryId, id)).for("update")
@@ -287,8 +304,9 @@ export async function deleteEntry(
       .innerJoin(contentCard, eq(contentCard.id, contentCardMedia.cardId))
       .where(eq(contentCard.entryId, id))
     await tx.delete(plannerEntry).where(eq(plannerEntry.id, id))
-    return media.flatMap((m) => (m.key ? [m.key] : []))
+    return { keys: media.flatMap((m) => (m.key ? [m.key] : [])), requester }
   })
+  if (requester) await notifyRequestStatus(requester, "dibatalkan", actorId!)
   // Gagal hapus di storage tidak menggagalkan penghapusan; penyapu yatim menangkapnya.
   await removeObjects(keys).catch((e) => console.error("removeObjects gagal", e))
 }
