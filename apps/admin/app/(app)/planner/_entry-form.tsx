@@ -18,6 +18,7 @@ import {
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
+import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
 import {
   AssignmentRows,
   type Assignment,
@@ -38,6 +39,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import { fromDateValue, toDateValue } from "@/lib/date-value"
 import { entryInputSchema } from "@/lib/planner/schema"
 import type { PlannerEntry } from "@/lib/planner/types"
 
@@ -211,37 +213,29 @@ export function EntryForm({
             <FieldError id={errorId("name")}>{errors.name}</FieldError>
           </Field>
 
-          <FieldSet data-invalid={invalid("activity")}>
-            <FieldLegend variant="label">Kegiatan (opsional)</FieldLegend>
+          <Field data-invalid={invalid("activity")}>
+            <FieldLabel id={`${formId}-activity-label`} htmlFor={`${formId}-activity`}>
+              Kegiatan (opsional)
+            </FieldLabel>
+            <DateSelectorPopover
+              id={`${formId}-activity`}
+              aria-labelledby={`${formId}-activity-label ${formId}-activity`}
+              mode="range"
+              label="Tanggal kegiatan"
+              value={toDateValue(activityStart, activityEnd)}
+              onChange={(v) => {
+                const range = fromDateValue(v)
+                setActivityStart(range?.start ?? "")
+                setActivityEnd(range?.end ?? "")
+              }}
+              aria-invalid={invalid("activity")}
+              aria-describedby={describedBy("activity")}
+            />
             <FieldDescription>
-              Isi mulai dan selesai bila konten meliput sebuah kegiatan.
+              Isi bila konten meliput sebuah kegiatan. Kosongkan lewat Hapus di dalam pemilih.
             </FieldDescription>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor={`${formId}-as`}>Mulai</FieldLabel>
-                <Input
-                  id={`${formId}-as`}
-                  type="date"
-                  value={activityStart}
-                  onChange={(e) => setActivityStart(e.target.value)}
-                  aria-invalid={invalid("activity")}
-                  aria-describedby={describedBy("activity")}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${formId}-ae`}>Selesai</FieldLabel>
-                <Input
-                  id={`${formId}-ae`}
-                  type="date"
-                  value={activityEnd}
-                  onChange={(e) => setActivityEnd(e.target.value)}
-                  aria-invalid={invalid("activity")}
-                  aria-describedby={describedBy("activity")}
-                />
-              </Field>
-            </div>
             <FieldError id={errorId("activity")}>{errors.activity}</FieldError>
-          </FieldSet>
+          </Field>
 
           {/* AssignmentRows tidak menerima aria-invalid; saat galat, fieldset-nya yang menerima fokus dan membacakan galat. */}
           <FieldSet
@@ -297,12 +291,16 @@ export function EntryForm({
           </FieldSet>
 
           <Field data-invalid={invalid("publishDate")} className="max-w-xs">
-            <FieldLabel htmlFor={`${formId}-pub`}>Tanggal tayang</FieldLabel>
-            <Input
+            <FieldLabel id={`${formId}-pub-label`} htmlFor={`${formId}-pub`}>
+              Tanggal tayang
+            </FieldLabel>
+            <DateSelectorPopover
               id={`${formId}-pub`}
-              type="date"
-              value={publishDate}
-              onChange={(e) => setPublishDate(e.target.value)}
+              aria-labelledby={`${formId}-pub-label ${formId}-pub`}
+              mode="single"
+              label="Tanggal tayang"
+              value={toDateValue(publishDate)}
+              onChange={(v) => setPublishDate(fromDateValue(v)?.start ?? "")}
               aria-invalid={invalid("publishDate")}
               aria-describedby={describedBy("publishDate")}
             />

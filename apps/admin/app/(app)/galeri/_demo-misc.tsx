@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
   BoldIcon,
-  CalendarIcon,
   ChevronRightIcon,
   ItalicIcon,
   LaptopIcon,
@@ -54,21 +53,9 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@workspace/ui/components/popover"
-import { Separator } from "@workspace/ui/components/separator"
 import { Toggle } from "@workspace/ui/components/toggle"
-import {
-  DEFAULT_DATE_SELECTOR_I18N,
-  DateSelector,
-  formatDateValue,
-  type DateSelectorValue,
-} from "@workspace/ui/components/reui/date-selector"
-import { id as localeId } from "date-fns/locale"
-import { DATE_SELECTOR_I18N_ID } from "@workspace/ui/lib/i18n-id"
+import { type DateSelectorValue } from "@workspace/ui/components/reui/date-selector"
+import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
 import { SettingList } from "@workspace/ui/components/domain/setting-list"
 import type { SettingRow } from "@workspace/ui/components/domain/setting-list"
 import { ThemeToggle } from "@workspace/ui/components/domain/theme-toggle"
@@ -119,12 +106,6 @@ function Block({
 export function MiscDemo() {
   const [kanal, setKanal] = React.useState(KANAL)
   const [tanggal, setTanggal] = React.useState<DateSelectorValue | undefined>()
-  const [tanggalOpen, setTanggalOpen] = React.useState(false)
-  const [draf, setDraf] = React.useState<DateSelectorValue | undefined>()
-  const i18n = { ...DEFAULT_DATE_SELECTOR_I18N, ...DATE_SELECTOR_I18N_ID }
-  const tanggalLabel = tanggal
-    ? formatDateValue(tanggal, i18n, "dd/MM/yyyy")
-    : "Pilih tanggal"
   return (
     <div className="grid min-w-0 gap-6 md:grid-cols-2">
       <Block title="Checkbox & label">
@@ -246,8 +227,8 @@ export function MiscDemo() {
             <CollapsibleContent>
               <FramePanel>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  12 Nov: lampu proyektor diganti. 3 Nov: filter dibersihkan
-                  dan lensa dikalibrasi ulang.
+                  12 Nov: lampu proyektor diganti. 3 Nov: filter dibersihkan dan
+                  lensa dikalibrasi ulang.
                 </p>
               </FramePanel>
             </CollapsibleContent>
@@ -275,53 +256,11 @@ export function MiscDemo() {
       </Block>
 
       <Block title="Date selector di popover">
-        <Popover
-          open={tanggalOpen}
-          onOpenChange={(open) => {
-            if (open) setDraf(tanggal)
-            setTanggalOpen(open)
-          }}
-        >
-          <PopoverTrigger
-            render={<Button variant="outline" className="w-56 justify-start" />}
-          >
-            <CalendarIcon />
-            {tanggalLabel}
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-auto gap-3 p-0"
-            align="start"
-            sideOffset={4}
-          >
-            <div className="p-3">
-              <DateSelector
-                value={draf}
-                onChange={setDraf}
-                allowRange
-                label="Tanggal kegiatan"
-                inputHint="Coba: 2026, K4, 17/11/2026"
-                maxYear={2027}
-                dayDateFormat="dd/MM/yyyy"
-                i18n={DATE_SELECTOR_I18N_ID}
-                locale={localeId}
-              />
-            </div>
-            <Separator className="p-0" />
-            <div className="flex justify-end gap-2 p-3 pt-0">
-              <Button variant="outline" onClick={() => setTanggalOpen(false)}>
-                Batal
-              </Button>
-              <Button
-                onClick={() => {
-                  setTanggal(draf)
-                  setTanggalOpen(false)
-                }}
-              >
-                Terapkan
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <DateSelectorPopover
+          value={tanggal}
+          onChange={setTanggal}
+          label="Tanggal kegiatan"
+        />
       </Block>
 
       <Block title="Tema">
@@ -348,7 +287,9 @@ export function MiscDemo() {
               <TableBody>
                 {ASET.map((a) => (
                   <TableRow key={a.kode}>
-                    <TableCell className="font-mono text-xs">{a.kode}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {a.kode}
+                    </TableCell>
                     <TableCell>{a.nama}</TableCell>
                     <TableCell>
                       <Badge variant="outline" size="sm">
@@ -381,7 +322,9 @@ export function MiscDemo() {
             return { ok: true }
           }}
           onUpdate={async (id, patch) => {
-            setKanal((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+            setKanal((r) =>
+              r.map((x) => (x.id === id ? { ...x, ...patch } : x))
+            )
             return { ok: true }
           }}
         />

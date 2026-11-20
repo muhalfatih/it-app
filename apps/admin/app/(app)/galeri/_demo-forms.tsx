@@ -38,10 +38,7 @@ import {
   RadioGroupItem,
 } from "@workspace/ui/components/radio-group"
 import { Badge } from "@workspace/ui/components/reui/badge"
-import {
-  DateSelector,
-  type DateSelectorValue,
-} from "@workspace/ui/components/reui/date-selector"
+import { type DateSelectorValue } from "@workspace/ui/components/reui/date-selector"
 import { TimePicker } from "@workspace/ui/components/reui/time-picker"
 import { Pattern as FileUpload } from "@workspace/ui/components/examples/c-file-upload-5"
 import {
@@ -59,7 +56,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@workspace/ui/components/toggle-group"
-import { DATE_SELECTOR_I18N_ID } from "@workspace/ui/lib/i18n-id"
+import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
 
 const GEDUNG = [
   { value: "a", label: "Gedung A (SD)" },
@@ -407,14 +404,16 @@ function PeriodAndAttachment() {
       <CardContent>
         <FieldGroup>
           <Field>
-            <FieldLabel>Tanggal kegiatan</FieldLabel>
-            <DateSelector
+            <FieldLabel id="tanggal-kegiatan-label" htmlFor="tanggal-kegiatan">
+              Tanggal kegiatan
+            </FieldLabel>
+            <DateSelectorPopover
+              id="tanggal-kegiatan"
+              // Nama tombol = label + tanggal terpilih (label bawaan saja akan menimpa isi tombol).
+              aria-labelledby="tanggal-kegiatan-label tanggal-kegiatan"
               value={period}
               onChange={setPeriod}
-              maxYear={2027}
-              dayDateFormat="dd/MM/yyyy"
-              showTwoMonths={false}
-              i18n={DATE_SELECTOR_I18N_ID}
+              label="Tanggal kegiatan"
             />
           </Field>
           <Field>
