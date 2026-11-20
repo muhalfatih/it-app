@@ -1,18 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { complaintInputSchema, requestInputSchema } from "./schema"
-import { normalizeWa, nowWib, summarizeComplaints, weekStartWib } from "./rules"
+import { nowWib, summarizeComplaints, weekStartWib } from "./rules"
 
 afterEach(() => vi.useRealTimers())
-
-describe("normalizeWa", () => {
-  it("normalizes", () => {
-    expect(normalizeWa("0812-3456-7890")).toBe("081234567890")
-    expect(normalizeWa("+62 812 3456 7890")).toBe("+6281234567890")
-    expect(normalizeWa("12345")).toBeNull()
-    expect(normalizeWa("08a12")).toBeNull()
-  })
-})
 
 describe("weekStartWib", () => {
   it("uses Monday in WIB", () => {

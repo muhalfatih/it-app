@@ -2,7 +2,7 @@
 import { ISSUES, OTHERS_AFFECTED } from "@workspace/db/schema"
 import { z } from "zod"
 
-import { normalizeWa } from "./rules"
+import { normalizeWa } from "@/lib/wa"
 
 const isoDate = (message: string) => z.iso.date({ error: message })
 const id = z.number().int().positive().max(2_147_483_647)
