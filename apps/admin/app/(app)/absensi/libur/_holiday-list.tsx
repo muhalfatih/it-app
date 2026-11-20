@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
-import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
+import { Pattern as DatePicker } from "@workspace/ui/components/examples/c-calendar-24"
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import {
@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-import { fromDateValue, toDateValue } from "@/lib/date-value"
+import { toDate, toIso } from "@/lib/date-value"
 
 import { addHolidayAction, removeHolidayAction } from "./actions"
 
@@ -71,17 +71,15 @@ export function HolidayList({
         onSubmit={add}
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
       >
-        <Field className="sm:w-56">
+        <Field className="sm:w-60">
           <FieldLabel id={`${id}-tanggal-label`} htmlFor={`${id}-tanggal`}>
             Tanggal
           </FieldLabel>
-          <DateSelectorPopover
+          <DatePicker
             id={`${id}-tanggal`}
             aria-labelledby={`${id}-tanggal-label ${id}-tanggal`}
-            mode="single"
-            label="Tanggal libur"
-            value={toDateValue(date)}
-            onChange={(v) => setDate(fromDateValue(v)?.start ?? "")}
+            value={toDate(date)}
+            onChange={(d) => setDate(toIso(d))}
           />
         </Field>
         <Field className="sm:max-w-sm">

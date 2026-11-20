@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest"
 
-import { fromDateValue, toDateValue } from "./date-value"
+import { fromRange, toDate, toIso, toRange } from "./date-value"
 
 describe("date-value", () => {
-  it("bolak-balik satu hari dan rentang", () => {
-    expect(fromDateValue(toDateValue("2026-12-10"))).toEqual({ start: "2026-12-10", end: "2026-12-10" })
-    expect(fromDateValue(toDateValue("2026-12-10", "2026-12-11"))).toEqual({
-      start: "2026-12-10",
-      end: "2026-12-11",
-    })
+  it("bolak-balik satu tanggal", () => {
+    expect(toIso(toDate("2026-12-10"))).toBe("2026-12-10")
+    expect(toDate("")).toBeUndefined()
+    expect(toIso(undefined)).toBe("")
   })
 
-  it("kosong dan periode bukan hari menjadi null", () => {
-    expect(toDateValue("")).toBeUndefined()
-    expect(fromDateValue(undefined)).toBeNull()
-    expect(fromDateValue({ period: "day", operator: "between" })).toBeNull()
-    expect(fromDateValue({ period: "year", operator: "is", year: 2026 })).toBeNull()
+  it("bolak-balik rentang; satu ujung = satu hari; kosong", () => {
+    expect(fromRange(toRange("2026-12-10", "2026-12-16"))).toEqual({ start: "2026-12-10", end: "2026-12-16" })
+    expect(fromRange({ from: toDate("2026-12-10"), to: undefined })).toEqual({
+      start: "2026-12-10",
+      end: "2026-12-10",
+    })
+    expect(toRange("", "")).toBeUndefined()
+    expect(fromRange(undefined)).toEqual({ start: "", end: "" })
   })
 })

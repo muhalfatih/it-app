@@ -29,7 +29,7 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "@workspace/ui/components/combobox"
-import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 import {
   Field,
   FieldDescription,
@@ -41,7 +41,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
 
-import { fromDateValue, toDateValue } from "@/lib/date-value"
+import { fromRange, toRange } from "@/lib/date-value"
 import { managerTaskSchema } from "@/lib/manager-task/schema"
 
 import { saveTask } from "./actions"
@@ -219,16 +219,14 @@ export function TaskForm({
             <FieldLabel id={`${formId}-dates-label`} htmlFor={`${formId}-dates`}>
               Rentang tanggal
             </FieldLabel>
-            <DateSelectorPopover
+            <DateRangePicker
               id={`${formId}-dates`}
               aria-labelledby={`${formId}-dates-label ${formId}-dates`}
-              mode="range"
-              label="Rentang tanggal"
-              value={toDateValue(startDate, endDate)}
-              onChange={(v) => {
-                const range = fromDateValue(v)
-                setStartDate(range?.start ?? "")
-                setEndDate(range?.end ?? "")
+              value={toRange(startDate, endDate)}
+              onChange={(r) => {
+                const range = fromRange(r)
+                setStartDate(range.start)
+                setEndDate(range.end)
               }}
               aria-invalid={invalid("dates")}
               aria-describedby={describedBy("dates")}

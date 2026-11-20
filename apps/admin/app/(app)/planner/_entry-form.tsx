@@ -18,7 +18,8 @@ import {
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
-import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
+import { Pattern as DatePicker } from "@workspace/ui/components/examples/c-calendar-24"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 import {
   AssignmentRows,
   type Assignment,
@@ -39,7 +40,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
 
-import { fromDateValue, toDateValue } from "@/lib/date-value"
+import { fromRange, toDate, toIso, toRange } from "@/lib/date-value"
 import { entryInputSchema } from "@/lib/planner/schema"
 import type { PlannerEntry } from "@/lib/planner/types"
 
@@ -217,23 +218,19 @@ export function EntryForm({
             <FieldLabel id={`${formId}-activity-label`} htmlFor={`${formId}-activity`}>
               Kegiatan (opsional)
             </FieldLabel>
-            <DateSelectorPopover
+            <DateRangePicker
               id={`${formId}-activity`}
               aria-labelledby={`${formId}-activity-label ${formId}-activity`}
-              mode="range"
-              label="Tanggal kegiatan"
-              value={toDateValue(activityStart, activityEnd)}
-              onChange={(v) => {
-                const range = fromDateValue(v)
-                setActivityStart(range?.start ?? "")
-                setActivityEnd(range?.end ?? "")
+              value={toRange(activityStart, activityEnd)}
+              onChange={(r) => {
+                const range = fromRange(r)
+                setActivityStart(range.start)
+                setActivityEnd(range.end)
               }}
               aria-invalid={invalid("activity")}
               aria-describedby={describedBy("activity")}
             />
-            <FieldDescription>
-              Isi bila konten meliput sebuah kegiatan. Kosongkan lewat Hapus di dalam pemilih.
-            </FieldDescription>
+            <FieldDescription>Isi bila konten meliput sebuah kegiatan.</FieldDescription>
             <FieldError id={errorId("activity")}>{errors.activity}</FieldError>
           </Field>
 
@@ -294,13 +291,11 @@ export function EntryForm({
             <FieldLabel id={`${formId}-pub-label`} htmlFor={`${formId}-pub`}>
               Tanggal tayang
             </FieldLabel>
-            <DateSelectorPopover
+            <DatePicker
               id={`${formId}-pub`}
               aria-labelledby={`${formId}-pub-label ${formId}-pub`}
-              mode="single"
-              label="Tanggal tayang"
-              value={toDateValue(publishDate)}
-              onChange={(v) => setPublishDate(fromDateValue(v)?.start ?? "")}
+              value={toDate(publishDate)}
+              onChange={(d) => setPublishDate(toIso(d))}
               aria-invalid={invalid("publishDate")}
               aria-describedby={describedBy("publishDate")}
             />

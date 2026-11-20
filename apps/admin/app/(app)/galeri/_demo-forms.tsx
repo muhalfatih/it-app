@@ -38,7 +38,6 @@ import {
   RadioGroupItem,
 } from "@workspace/ui/components/radio-group"
 import { Badge } from "@workspace/ui/components/reui/badge"
-import { type DateSelectorValue } from "@workspace/ui/components/reui/date-selector"
 import { TimePicker } from "@workspace/ui/components/reui/time-picker"
 import { Pattern as FileUpload } from "@workspace/ui/components/examples/c-file-upload-5"
 import {
@@ -56,7 +55,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@workspace/ui/components/toggle-group"
-import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 
 const GEDUNG = [
   { value: "a", label: "Gedung A (SD)" },
@@ -389,7 +388,6 @@ function Preferences() {
 /* ---------------- Form 4: Periode & lampiran ---------------- */
 
 function PeriodAndAttachment() {
-  const [period, setPeriod] = React.useState<DateSelectorValue | undefined>()
   return (
     <Card>
       <CardHeader>
@@ -407,13 +405,10 @@ function PeriodAndAttachment() {
             <FieldLabel id="tanggal-kegiatan-label" htmlFor="tanggal-kegiatan">
               Tanggal kegiatan
             </FieldLabel>
-            <DateSelectorPopover
+            <DateRangePicker
               id="tanggal-kegiatan"
               // Nama tombol = label + tanggal terpilih (label bawaan saja akan menimpa isi tombol).
               aria-labelledby="tanggal-kegiatan-label tanggal-kegiatan"
-              value={period}
-              onChange={setPeriod}
-              label="Tanggal kegiatan"
             />
           </Field>
           <Field>

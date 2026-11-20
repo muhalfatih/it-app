@@ -54,8 +54,6 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 import { Toggle } from "@workspace/ui/components/toggle"
-import { type DateSelectorValue } from "@workspace/ui/components/reui/date-selector"
-import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
 import { SettingList } from "@workspace/ui/components/domain/setting-list"
 import type { SettingRow } from "@workspace/ui/components/domain/setting-list"
 import { ThemeToggle } from "@workspace/ui/components/domain/theme-toggle"
@@ -105,7 +103,6 @@ function Block({
 
 export function MiscDemo() {
   const [kanal, setKanal] = React.useState(KANAL)
-  const [tanggal, setTanggal] = React.useState<DateSelectorValue | undefined>()
   return (
     <div className="grid min-w-0 gap-6 md:grid-cols-2">
       <Block title="Checkbox & label">
@@ -253,14 +250,6 @@ export function MiscDemo() {
             </ItemActions>
           </Item>
         </ItemGroup>
-      </Block>
-
-      <Block title="Date selector di popover">
-        <DateSelectorPopover
-          value={tanggal}
-          onChange={setTanggal}
-          label="Tanggal kegiatan"
-        />
       </Block>
 
       <Block title="Tema">

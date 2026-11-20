@@ -1,20 +1,22 @@
 import { format, parseISO } from "date-fns"
 
-import type { DateSelectorValue } from "@workspace/ui/components/reui/date-selector"
+/** Sama bentuknya dengan `DateRange` react-day-picker (dependensi packages/ui, bukan admin). */
+type DateRange = { from: Date | undefined; to?: Date }
 
-/** Tanggal ISO (`yyyy-MM-dd`) dari formulir → nilai DateSelectorPopover. Kosong → undefined. */
-export function toDateValue(start: string, end = start): DateSelectorValue | undefined {
-  if (!start) return undefined
-  return start === end || !end
-    ? { period: "day", operator: "is", startDate: parseISO(start) }
-    : { period: "day", operator: "between", startDate: parseISO(start), endDate: parseISO(end) }
+/** Tanggal ISO (`yyyy-MM-dd`) formulir ↔ nilai pemilih tanggal galeri (c-calendar-24/25). */
+export function toDate(iso: string): Date | undefined {
+  return iso ? parseISO(iso) : undefined
 }
 
-/** Nilai DateSelectorPopover → rentang ISO; satu hari = start sama dengan end. Bukan periode hari → null. */
-export function fromDateValue(
-  value: DateSelectorValue | undefined
-): { start: string; end: string } | null {
-  if (!value || value.period !== "day" || !value.startDate) return null
-  const start = format(value.startDate, "yyyy-MM-dd")
-  return { start, end: value.endDate ? format(value.endDate, "yyyy-MM-dd") : start }
+export function toIso(date: Date | undefined): string {
+  return date ? format(date, "yyyy-MM-dd") : ""
+}
+
+export function toRange(start: string, end: string): DateRange | undefined {
+  return start ? { from: parseISO(start), to: end ? parseISO(end) : undefined } : undefined
+}
+
+/** Rentang dengan satu ujung saja dianggap satu hari (end = start). Kosong → "". */
+export function fromRange(range: DateRange | undefined): { start: string; end: string } {
+  return { start: toIso(range?.from), end: toIso(range?.to ?? range?.from) }
 }

@@ -12,7 +12,7 @@ import {
 } from "@workspace/ui/components/alert"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
-import { DateSelectorPopover } from "@workspace/ui/components/domain/date-selector-popover"
+import { Pattern as DateRangePicker } from "@workspace/ui/components/examples/c-calendar-25"
 import {
   AssignmentRows,
   type Assignment,
@@ -50,7 +50,7 @@ import {
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
 
-import { fromDateValue, toDateValue } from "@/lib/date-value"
+import { fromRange, toRange } from "@/lib/date-value"
 import { uploadToStorage } from "@/lib/kanban/upload-client"
 import { requestInputSchema } from "@/lib/layanan/schema"
 
@@ -239,17 +239,15 @@ export function RequestForm({
             <FieldLabel id={`${formId}-dates-label`} htmlFor={`${formId}-dates`}>
               Tanggal kegiatan
             </FieldLabel>
-            <DateSelectorPopover
+            <DateRangePicker
               id={`${formId}-dates`}
               // Nama tombol = label + tanggal terpilih (pola galeri).
               aria-labelledby={`${formId}-dates-label ${formId}-dates`}
-              mode="range"
-              label="Tanggal kegiatan"
-              value={toDateValue(startDate, endDate)}
-              onChange={(v) => {
-                const range = fromDateValue(v)
-                setStartDate(range?.start ?? "")
-                setEndDate(range?.end ?? "")
+              value={toRange(startDate, endDate)}
+              onChange={(r) => {
+                const range = fromRange(r)
+                setStartDate(range.start)
+                setEndDate(range.end)
               }}
               aria-invalid={invalid("dates")}
               aria-describedby={describedBy("dates")}

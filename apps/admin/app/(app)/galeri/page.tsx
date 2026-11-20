@@ -70,7 +70,7 @@ import { OverlaysDemo } from "./_demo-overlays"
 import { NeedsDemo, PlannerDemo } from "./_demo-planner"
 import { ReuiDemo } from "./_demo-reui"
 import { RecapGrid } from "./_demo-tables"
-import { TabsCalendarDemo } from "./_demo-tabs-calendar"
+import { DateDemo } from "./_demo-date"
 import { DAYS, PARTITION_ROWS } from "./_data"
 
 export const metadata: Metadata = { title: "Galeri Komponen · Unit IT & Media" }
@@ -210,11 +210,11 @@ export default async function GaleriPage() {
         <RecapGrid />
       </Section>
 
-      <Section title="Tabs & kalender">
-        <TabsCalendarDemo />
+      <Section title="Pemilih tanggal (Date Picker)">
+        <DateDemo />
       </Section>
 
-      <Section title="Tabs untuk alur aplikasi">
+      <Section title="Tabs">
         <div className="grid min-w-0 gap-6 md:grid-cols-2">
           <TabsStatus />
           <TabsView />
