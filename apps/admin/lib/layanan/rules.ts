@@ -1,4 +1,4 @@
-// Aturan murni Layanan (tanpa db/next): label, nomor WA, dan rekap pengaduan per pekan WIB.
+// Aturan murni Layanan (tanpa db/next): label dan rekap pengaduan per pekan WIB.
 import type { Issue, OthersAffected, ServiceStatus } from "./types"
 import { addDays, format, parseISO } from "date-fns"
 import { id } from "date-fns/locale"
@@ -25,12 +25,6 @@ export const STATUS_LABELS: Record<ServiceStatus, string> = {
   disetujui: "Disetujui",
   ditolak: "Ditolak",
   dibatalkan: "Dibatalkan",
-}
-
-/** Hapus spasi/strip/kurung; `+` opsional di depan; 9–16 digit. */
-export function normalizeWa(raw: string): string | null {
-  const s = raw.replace(/[\s\-()]/g, "")
-  return /^\+?\d{9,16}$/.test(s) ? s : null
 }
 
 const WIB_MS = 7 * 3_600_000

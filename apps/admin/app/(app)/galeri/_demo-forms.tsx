@@ -32,6 +32,10 @@ import {
   FieldSet,
   FieldTitle,
 } from "@workspace/ui/components/field"
+import {
+  LoanItemRows,
+  type LoanRow,
+} from "@workspace/ui/components/domain/loan-item-rows"
 import { Input } from "@workspace/ui/components/input"
 import {
   RadioGroup,
@@ -421,6 +425,26 @@ function PeriodAndAttachment() {
   )
 }
 
+/* ---------------- Form 5: Alat dipinjam (LoanItemRows) ---------------- */
+
+const LOAN_OPTIONS = [
+  { id: 1, name: "Kamera", brand: "Canon", available: 3 },
+  { id: 2, name: "Tripod", brand: "Manfrotto", available: 5 },
+  { id: 3, name: "Proyektor", brand: "Epson", available: 1 },
+]
+
+function LoanItemsDemo() {
+  const [rows, setRows] = React.useState<LoanRow[]>([
+    { equipmentId: 1, qty: 2 },
+    { equipmentId: null, qty: 1 },
+  ])
+  return (
+    <div className="max-w-xl">
+      <LoanItemRows rows={rows} options={LOAN_OPTIONS} onChange={setRows} />
+    </div>
+  )
+}
+
 export function FormsDemo() {
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-[3fr_2fr]">
@@ -431,6 +455,9 @@ export function FormsDemo() {
       </div>
       <div className="lg:col-span-2">
         <PeriodAndAttachment />
+      </div>
+      <div className="lg:col-span-2">
+        <LoanItemsDemo />
       </div>
     </div>
   )
