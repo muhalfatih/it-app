@@ -1,5 +1,7 @@
 "use client"
 
+import { useRef } from "react"
+
 import { PlusIcon, Trash2Icon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -51,6 +53,11 @@ const optionLabel = (o: LoanOption) => `${o.name} · ${o.brand}`
  * Alat yang sudah dipilih di baris lain tidak muncul lagi.
  */
 function LoanItemRows({ rows, options, onChange, max = 20 }: LoanItemRowsProps) {
+  // Kunci stabil per baris: terhapus bersama barisnya, jadi isi baris lain tidak bertukar.
+  const keys = useRef<number[]>([])
+  const nextKey = useRef(0)
+  while (keys.current.length < rows.length) keys.current.push(nextKey.current++)
+  keys.current.length = rows.length
   const find = (id: number | null) => options.find((o) => o.id === id) ?? null
   const update = (index: number, patch: Partial<LoanRow>) =>
     onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)))
@@ -85,7 +92,7 @@ function LoanItemRows({ rows, options, onChange, max = 20 }: LoanItemRowsProps) 
                   !rows.some((r) => r.equipmentId === o.id)
               )
               return (
-                <li key={index} className={cn(ROW, "px-3 py-2")}>
+                <li key={keys.current[index]} className={cn(ROW, "px-3 py-2")}>
                   <Combobox
                     items={choices}
                     value={selected}
@@ -126,7 +133,10 @@ function LoanItemRows({ rows, options, onChange, max = 20 }: LoanItemRowsProps) 
                     size="icon-sm"
                     aria-label={`Hapus baris ${n}${selected ? `: ${selected.name}` : ""}`}
                     className="sm:order-last"
-                    onClick={() => onChange(rows.filter((_, i) => i !== index))}
+                    onClick={() => {
+                      keys.current.splice(index, 1)
+                      onChange(rows.filter((_, i) => i !== index))
+                    }}
                   >
                     <Trash2Icon />
                   </Button>

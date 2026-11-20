@@ -111,7 +111,12 @@ export function createLoan(input: unknown, actorId: string): Promise<CrudResult<
   return guarded(LOAN_PATH, async () => {
     const { items, ...values } = parse(loanInputSchema, input)
     return db.transaction(async (tx) => {
-      const [u] = await tx.select().from(unit).where(eq(unit.id, values.unitId))
+      // FOR SHARE: penonaktifan unit yang sedang berjalan ditunggu, lalu terbaca nonaktif.
+      const [u] = await tx
+        .select()
+        .from(unit)
+        .where(eq(unit.id, values.unitId))
+        .for("share")
       if (!u?.active) throw new UserError("Unit tidak ditemukan atau nonaktif")
       const ids = items.map((i) => i.equipmentId)
       // Urut id menaik: dua pencatatan bersamaan mengunci dalam urutan sama, jadi tidak deadlock.

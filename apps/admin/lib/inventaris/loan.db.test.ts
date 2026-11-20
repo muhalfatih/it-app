@@ -129,6 +129,96 @@ describe.skipIf(!TEST_DB)("peminjaman alat (database uji)", () => {
     expect(await loanCount()).toBe(1)
   })
 
+  it("updateEquipment menurunkan total bersamaan dengan createLoan: stok tak pernah negatif", async () => {
+    for (let i = 0; i < 10; i++) {
+      const cam = await addEquipment(5, `Kamera ${i}`)
+      const [up, ln] = await Promise.all([
+        m.updateEquipment(cam, {
+          name: `Kamera ${i}`,
+          brand: "Sony",
+          total: 2,
+        }),
+        m.createLoan(loanInput([{ equipmentId: cam, qty: 4 }]), uid),
+      ])
+      const e = await row(cam)
+      expect(e.available).toBeGreaterThanOrEqual(0)
+      // Tepat satu menang: total turun ke 2 (pinjam 4 ditolak) atau pinjam 4 dulu (turun ke 2 ditolak).
+      expect([up, ln].filter((r) => "ok" in r)).toHaveLength(1)
+      expect(e).toMatchObject(
+        "ok" in up
+          ? { total: 2, onLoan: 0, available: 2 }
+          : { total: 5, onLoan: 4, available: 1 }
+      )
+    }
+  })
+
+  it("updateEquipment menunggu createLoan yang sudah antre: hitungan tidak basi", async () => {
+    const cam = await addEquipment(5)
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    let release!: () => void
+    const held = new Promise<void>((r) => (release = r))
+    let locked!: () => void
+    const ready = new Promise<void>((r) => (locked = r))
+    // Gerbang: tahan kunci alat agar createLoan lalu updateEquipment sama-sama antre di belakangnya.
+    const gate = dbm.db.transaction(async (tx) => {
+      await tx.select().from(tables.equipment).where(orm.eq(tables.equipment.id, cam)).for("update")
+      locked()
+      await held
+    })
+    await ready
+    const ln = m.createLoan(loanInput([{ equipmentId: cam, qty: 4 }]), uid)
+    await sleep(300)
+    const up = m.updateEquipment(cam, { name: "Kamera", brand: "Sony", total: 2 })
+    await sleep(300)
+    release()
+    await gate
+    expect(await ln).toMatchObject({ ok: true })
+    expect(await up).toEqual({
+      error: "Jumlah tidak boleh kurang dari 4 yang sedang dipinjam atau bermasalah",
+    })
+    expect(await row(cam)).toMatchObject({ total: 5, onLoan: 4, available: 1 })
+  })
+
+  it("createLoan mengunci unit: penonaktifan yang sedang berjalan ditunggu", async () => {
+    const cam = await addEquipment(5)
+    let release!: () => void
+    const held = new Promise<void>((r) => (release = r))
+    let locked!: () => void
+    const ready = new Promise<void>((r) => (locked = r))
+    const deactivate = dbm.db.transaction(async (tx) => {
+      await tx.update(tables.unit).set({ active: false })
+      locked()
+      await held
+    })
+    await ready
+    const pending = m.createLoan(loanInput([{ equipmentId: cam, qty: 1 }]), uid)
+    await new Promise((r) => setTimeout(r, 300))
+    release()
+    await deactivate
+    expect(await pending).toEqual({
+      error: "Unit tidak ditemukan atau nonaktif",
+    })
+    expect(await loanCount()).toBe(0)
+  })
+
+  it("tab Dikembalikan dibatasi 200 terbaru", async () => {
+    const rows = Array.from({ length: 205 }, (_, i) => ({
+      borrowerName: `B${i}`,
+      unitId,
+      startedAt: ago(1000),
+      dueAt: ago(900),
+      returnedAt: new Date(Date.now() - (1000 - i) * 1000),
+      recordedBy: uid,
+      returnedBy: uid,
+    }))
+    await dbm.db.insert(tables.loan).values(rows)
+    const list = await q.listLoans("dikembalikan")
+    expect(list).toHaveLength(200)
+    expect(list[0]!.borrowerName).toBe("B204")
+    expect(list[199]!.borrowerName).toBe("B5")
+  })
+
+
   it("alat atau unit nonaktif ditolak", async () => {
     const cam = await addEquipment(5)
     await m.setEquipmentActive(cam, false)

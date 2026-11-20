@@ -6,7 +6,7 @@ import { requirePermission } from "@workspace/auth/session"
 import { buttonVariants } from "@workspace/ui/components/button"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
-import { listLoans } from "@/lib/inventaris/queries"
+import { listLoans, RETURNED_LIMIT } from "@/lib/inventaris/queries"
 import { STATUS_LABELS, type LoanStatus } from "@/lib/inventaris/rules"
 
 import { LoanList } from "./_loan-list"
@@ -59,6 +59,11 @@ export default async function PeminjamanPage({
           </TabsList>
         </div>
       </Tabs>
+      {status === "dikembalikan" && rows.length >= RETURNED_LIMIT ? (
+        <p className="text-sm text-muted-foreground">
+          Menampilkan {RETURNED_LIMIT} transaksi terbaru.
+        </p>
+      ) : null}
       <LoanList rows={rows} />
     </div>
   )

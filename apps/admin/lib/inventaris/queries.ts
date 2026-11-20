@@ -12,6 +12,7 @@ import {
   isNull,
   lt,
   ne,
+  or,
 } from "@workspace/db/orm"
 import { equipment, loan, loanItem, unit, user } from "@workspace/db/schema"
 
@@ -39,7 +40,13 @@ export function stockRows(ex: Tx | typeof db, ids?: number[]): Promise<StockRow[
     })
     .from(loanItem)
     .innerJoin(loan, eq(loan.id, loanItem.loanId))
-    .where(ids ? inArray(loanItem.equipmentId, ids) : undefined)
+    .where(
+      and(
+        ids ? inArray(loanItem.equipmentId, ids) : undefined,
+        // Hanya baris yang masih menahan stok (lihat summarizeStock).
+        or(isNull(loan.returnedAt), and(ne(loanItem.problemQty, 0), isNull(loanItem.resolvedAt)))
+      )
+    )
 }
 
 export async function listEquipment(): Promise<EquipmentRow[]> {
@@ -138,6 +145,9 @@ function itemsOf(loanIds: number[]) {
 const label = (items: { equipmentName: string; qty: number }[]) =>
   items.map((i) => `${i.equipmentName} ×${i.qty}`).join(", ")
 
+/** Tab Dikembalikan hanya memuat sebanyak ini (terbaru), agar kueri dan inArray tetap kecil. */
+export const RETURNED_LIMIT = 200
+
 /** Terlambat: jatuh tempo terlama dulu; lainnya terbaru dulu. */
 export async function listLoans(status: LoanStatus): Promise<LoanRow[]> {
   const now = new Date()
@@ -148,7 +158,10 @@ export async function listLoans(status: LoanStatus): Promise<LoanRow[]> {
     .innerJoin(unit, eq(unit.id, loan.unitId))
     .$dynamic()
   const rows = await (status === "dikembalikan"
-    ? query.where(isNotNull(loan.returnedAt)).orderBy(desc(loan.returnedAt), desc(loan.id))
+    ? query
+        .where(isNotNull(loan.returnedAt))
+        .orderBy(desc(loan.returnedAt), desc(loan.id))
+        .limit(RETURNED_LIMIT)
     : status === "terlambat"
       ? query.where(and(open, lt(loan.dueAt, now))).orderBy(asc(loan.dueAt), asc(loan.id))
       : query.where(and(open, gte(loan.dueAt, now))).orderBy(desc(loan.startedAt), desc(loan.id)))
