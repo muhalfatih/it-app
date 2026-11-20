@@ -1,6 +1,6 @@
 // Query laporan harian (server-only).
 import { db } from "@workspace/db/client"
-import { and, asc, eq, inArray, isNull, lte } from "@workspace/db/orm"
+import { and, asc, eq, gte, inArray, isNull, lte } from "@workspace/db/orm"
 import {
   dailyReport,
   dailyReportAnswer,
@@ -12,7 +12,10 @@ import {
   user,
   userRole,
 } from "@workspace/db/schema"
-import type { AnswerStatus } from "@workspace/db/schema/stages"
+import type {
+  AnswerStatus,
+  AttendanceStatus,
+} from "@workspace/db/schema/stages"
 
 import { attendanceOf, listHolidays } from "@/lib/attendance/queries"
 import { managerTasksFor } from "@/lib/manager-task/queries"
@@ -21,6 +24,7 @@ import type { IsoDate } from "@/lib/planner/types"
 import { UserError } from "@/lib/user-error"
 
 import {
+  addDays,
   adjacentReportDay,
   dayScore,
   firstReportDay,
@@ -185,18 +189,20 @@ export type DayView = {
   unlocked: boolean
 }
 
-export async function loadDay(
-  userId: string,
-  date: IsoDate,
-  now: Date = new Date()
-): Promise<DayView> {
-  const [u, holidays, att, report] = await Promise.all([
-    loadUser(userId),
-    allHolidays(),
-    attendanceOf(userId, date, date),
-    getReportRow(userId, date),
-  ])
-  const today = todayWib(now)
+type ReportRow = Awaited<ReturnType<typeof getReportRow>>
+
+/** Bagian data satu hari yang sudah dimuat; `src` wajib bila laporan belum beku. */
+type DayParts = {
+  now: Date
+  holidays: ReadonlySet<IsoDate>
+  first: IsoDate
+  attendance: AttendanceStatus | null
+  report: ReportRow
+  src: Sources | null
+}
+
+function buildDay(date: IsoDate, p: DayParts): DayView {
+  const { now, holidays, report } = p
   const frozen = report?.frozen ?? null
   const unlocked = report?.unlockedAt != null && !frozen
 
@@ -208,7 +214,7 @@ export async function loadDay(
     obstacles = frozen.obstacles
     priorities = frozen.priorities
   } else {
-    const src = await loadSources(userId, date)
+    const src = p.src!
     const answers = answersOn(src, date)
     tasks = dayTasks(src, date, holidays).map((t) => ({
       ...t,
@@ -222,8 +228,8 @@ export async function loadDay(
   const editable = isEditable({ date, holidays, now, unlocked, frozen: !!frozen })
   const state = reportState({
     workday: isWorkday(date, holidays),
-    inRange: isReportDay(date, holidays, firstReportDay(u.createdAt), today),
-    attendance: att.get(date) ?? null,
+    inRange: isReportDay(date, holidays, p.first, todayWib(now)),
+    attendance: p.attendance,
     frozen: !!frozen,
     editable,
     submitted: report?.submittedAt != null,
@@ -240,6 +246,75 @@ export async function loadDay(
     editable,
     unlocked,
   }
+}
+
+export async function loadDay(
+  userId: string,
+  date: IsoDate,
+  now: Date = new Date()
+): Promise<DayView> {
+  const [u, holidays, att, report] = await Promise.all([
+    loadUser(userId),
+    allHolidays(),
+    attendanceOf(userId, date, date),
+    getReportRow(userId, date),
+  ])
+  return buildDay(date, {
+    now,
+    holidays,
+    first: firstReportDay(u.createdAt),
+    attendance: att.get(date) ?? null,
+    report,
+    src: report?.frozen ? null : await loadSources(userId, date),
+  })
+}
+
+/**
+ * Semua hari `start`..`end` (sampai hari ini) satu orang, dimuat sekali untuk rekap.
+ * shortcut: tanpa cache lintas permintaan; cukup untuk unit kecil, tambahkan bila rekap lambat.
+ */
+export async function loadPeriodDays(
+  userId: string,
+  start: IsoDate,
+  end: IsoDate,
+  now: Date = new Date()
+): Promise<DayView[]> {
+  const last = [end, todayWib(now)].sort()[0]!
+  if (start > last) return []
+  const [u, holidays, att, rows] = await Promise.all([
+    loadUser(userId),
+    allHolidays(),
+    attendanceOf(userId, start, last),
+    db
+      .select()
+      .from(dailyReport)
+      .where(
+        and(
+          eq(dailyReport.userId, userId),
+          gte(dailyReport.date, start),
+          lte(dailyReport.date, last)
+        )
+      ),
+  ])
+  const byDate = new Map(rows.map((r) => [r.date, r]))
+  const first = firstReportDay(u.createdAt)
+  // Rekap hanya memuat hari laporan; hari libur dan di luar masa laporan tidak punya laporan.
+  const dates: IsoDate[] = []
+  for (let d = start; d <= last; d = addDays(d, 1))
+    if (isReportDay(d, holidays, first, last)) dates.push(d)
+  const src = dates.some((d) => !byDate.get(d)?.frozen)
+    ? await loadSources(userId, last)
+    : null
+  return dates.map((d) =>
+    buildDay(d, {
+      now,
+      holidays,
+      first,
+      attendance: att.get(d) ?? null,
+      report: byDate.get(d) ?? null,
+      src,
+    })
+  )
 }
 
 /** Tetangga hari laporan untuk navigasi tanggal; `first` = hari laporan pertama orang itu. */

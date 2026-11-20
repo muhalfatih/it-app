@@ -242,6 +242,18 @@ describe.skipIf(!TEST_DB)("laporan harian (database uji)", () => {
     expect(await answerRows()).toHaveLength(0)
   })
 
+  it("loadPeriodDays sama dengan loadDay per hari laporan; melewati libur dan di luar masa laporan", async () => {
+    await dbm.db.insert(tables.holiday).values({ date: "2026-12-02", name: "Libur uji" })
+    await plan(D, D)
+    await mut.setAnswer(s1, D, `rutin:${routineId}`, "T", NOW)
+    await freeze.freezeDue([s1], LATE)
+    // 30 Nov sebelum awal, 2 Des libur, 5 Des lewat "hari ini" (Jumat 4 Des).
+    const days = await qry.loadPeriodDays(s1, "2026-11-30", "2026-12-06", LATE)
+    expect(days.map((d) => d.date)).toEqual(["2026-12-01", D, "2026-12-04"])
+    for (const d of days) expect(d).toEqual(await qry.loadDay(s1, d.date, LATE))
+    expect(await qry.loadPeriodDays(s1, "2026-12-07", "2026-12-13", LATE)).toEqual([])
+  })
+
   it("listTeamDay memuat status dan skor tiap staf pelapor", async () => {
     const rows = await qry.listTeamDay(D, NOW)
     expect(rows.map((r) => r.user.name)).toEqual(["uji.boss", "uji.dua", "uji.satu"])
