@@ -16,7 +16,8 @@
     "./rules": "./src/rules.ts",
     "./authorize": "./src/authorize.ts",
     "./accounts": "./src/accounts.ts",
-    "./session": "./src/session.ts"
+    "./session": "./src/session.ts",
+    "./simtama-api": "./src/simtama-api.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.25",
