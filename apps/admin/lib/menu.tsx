@@ -13,7 +13,7 @@ import {
 import type { Permission } from "@workspace/auth/permissions"
 import type { CurrentUser } from "@workspace/auth/session"
 
-/** Tanpa  = tampil untuk semua akun (termasuk Staf Unit Lain). */
+/** Tanpa `permission` = tampil untuk semua akun (termasuk Staf Unit Lain). */
 type SubItem = { title: string; url: string; permission?: Permission }
 
 /** Ikon berupa elemen, bukan komponen: fungsi tidak bisa dikirim dari server ke sidebar (client). */

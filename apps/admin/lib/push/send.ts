@@ -1,7 +1,9 @@
 // Satu pintu pengiriman Web Push (server-only). Dipanggil SETELAH transaksi commit;
 // kegagalan apa pun hanya dicatat dan tidak pernah menggagalkan aksi pengguna.
 import { after } from "next/server"
-import webpush from "web-push"
+// Impor bernama: web-push 4 adalah ESM tanpa default export, jadi `import webpush from` hanya
+// jalan lewat shim bundler dan menggagalkan skrip cron yang dijalankan Node/tsx langsung.
+import { sendNotification, setVapidDetails } from "web-push"
 
 import { pickRecipients, type Audience } from "./recipients"
 
@@ -33,7 +35,7 @@ function vapid(): boolean {
     const priv = process.env.VAPID_PRIVATE_KEY
     const subject = process.env.VAPID_SUBJECT
     vapidReady = Boolean(pub && priv && subject)
-    if (vapidReady) webpush.setVapidDetails(subject!, pub!, priv!)
+    if (vapidReady) setVapidDetails(subject!, pub!, priv!)
     else console.warn("Push nonaktif: kunci VAPID belum diset (lihat env.example)")
   }
   return vapidReady
@@ -86,7 +88,7 @@ async function push(to: Audience, msg: PushMessage): Promise<void> {
       subs,
       JSON.stringify(msg),
       (s, payload) =>
-        webpush.sendNotification(
+        sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           payload,
           // Skrip cron menunggu push(); jangan tergantung layanan push yang lambat.

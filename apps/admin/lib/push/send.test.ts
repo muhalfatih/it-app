@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+
 import { describe, expect, it, vi } from "vitest"
 
 import { deliver, type Sub } from "./send"
@@ -40,5 +42,13 @@ describe("notify di luar request", () => {
     // Tanpa kunci VAPID push() langsung berhenti sambil memberi peringatan: bukti ia berjalan inline.
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("VAPID"))
     warn.mockRestore()
+  })
+})
+
+describe("impor web-push", () => {
+  // Bundler Vite/Next menambal default export, Node/tsx tidak: skrip cron mati di impor.
+  it("tidak memakai default import (web-push 4 ESM tanpa default export)", () => {
+    const src = readFileSync(new URL("./send.ts", import.meta.url), "utf8")
+    expect(src).not.toMatch(/import\s+[A-Za-z_$][\w$]*\s+from\s+"web-push"/)
   })
 })
