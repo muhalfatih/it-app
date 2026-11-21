@@ -27,7 +27,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   navMain: NavItem[]
-  user: { name: string; subtitle: string }
+  user: React.ComponentProps<typeof NavUser>["user"]
   onSignOut: () => Promise<void>
 }) {
   return (

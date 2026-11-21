@@ -30,7 +30,8 @@ export function NavUser({
   user,
   onSignOut,
 }: {
-  user: { name: string; subtitle: string }
+  /** `canChangePassword` false untuk akun yang hanya masuk lewat Simtama ID. */
+  user: { name: string; subtitle: string; canChangePassword?: boolean }
   /** Server action keluar (menghapus sesi lalu mengarahkan ke /masuk). */
   onSignOut: () => Promise<void>
 }) {
@@ -72,13 +73,17 @@ export function NavUser({
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem render={<a href="/ganti-kata-sandi" />}>
-                <KeyRoundIcon />
-                Ganti kata sandi
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+            {user.canChangePassword === false ? null : (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem render={<a href="/ganti-kata-sandi" />}>
+                    <KeyRoundIcon />
+                    Ganti kata sandi
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void onSignOut()}>
               <LogOutIcon />

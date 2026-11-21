@@ -28,7 +28,11 @@ export default async function AppLayout({
     <SidebarProvider>
       <AppSidebar
         navMain={menuFor(user)}
-        user={{ name: user.name, subtitle }}
+        user={{
+          name: user.name,
+          subtitle,
+          canChangePassword: user.hasPassword,
+        }}
         onSignOut={signOutAction}
       />
       <SidebarInset className="min-w-0">
