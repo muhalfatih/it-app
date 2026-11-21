@@ -1,5 +1,6 @@
 // Satu pintu pengiriman Web Push (server-only). Dipanggil SETELAH transaksi commit;
 // kegagalan apa pun hanya dicatat dan tidak pernah menggagalkan aksi pengguna.
+import { after } from "next/server"
 import webpush from "web-push"
 
 import { pickRecipients, type Audience } from "./recipients"
@@ -38,7 +39,20 @@ function vapid(): boolean {
   return vapidReady
 }
 
-export async function notify(to: Audience, msg: PushMessage): Promise<void> {
+/**
+ * Di dalam request (aksi server/route) pengiriman dijadwalkan lewat after() agar respons tidak
+ * menunggu layanan push; di luar request (skrip cron, tes) after() melempar, jadi dikirim langsung.
+ */
+export function notify(to: Audience, msg: PushMessage): Promise<void> {
+  try {
+    after(() => push(to, msg))
+    return Promise.resolve()
+  } catch {
+    return push(to, msg)
+  }
+}
+
+async function push(to: Audience, msg: PushMessage): Promise<void> {
   try {
     if (!vapid()) return
     // Impor malas: `deliver` bisa dites tanpa DATABASE_URL.
@@ -75,7 +89,7 @@ export async function notify(to: Audience, msg: PushMessage): Promise<void> {
         webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           payload,
-          // Aksi pengguna menunggu notify; jangan tergantung layanan push yang lambat.
+          // Skrip cron menunggu push(); jangan tergantung layanan push yang lambat.
           { timeout: 10_000 }
         ),
       (endpoints) =>

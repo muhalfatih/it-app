@@ -31,3 +31,14 @@ describe("deliver", () => {
     error.mockRestore()
   })
 })
+
+describe("notify di luar request", () => {
+  it("tanpa request scope after() melempar, jadi pengiriman dijalankan langsung", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { notify } = await import("./send")
+    await notify({ userIds: ["u"] }, { title: "t", body: "b", url: "/" })
+    // Tanpa kunci VAPID push() langsung berhenti sambil memberi peringatan: bukti ia berjalan inline.
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("VAPID"))
+    warn.mockRestore()
+  })
+})

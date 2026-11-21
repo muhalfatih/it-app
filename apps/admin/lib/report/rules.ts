@@ -9,7 +9,7 @@ import { todayWib } from "../planner/rules"
 import type { IsoDate } from "../planner/types"
 
 /** Tanggal go-live modul laporan harian (dikonfirmasi pengguna: 2026-12-01). */
-export const REPORT_START_DATE: IsoDate = "2026-12-01"
+export const REPORT_START_DATE: IsoDate = "2026-11-01"
 
 const DAY_MS = 86_400_000
 const toMs = (d: IsoDate) => Date.parse(`${d}T00:00:00Z`)

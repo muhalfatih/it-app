@@ -1,7 +1,12 @@
 // Tes integrasi Tugas dari Manajer terhadap database KHUSUS uji (dilewati bila bukan *_test).
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Role } from "@workspace/db/schema/roles"
+
+import { notify } from "@/lib/push/send"
+
+vi.mock("@/lib/push/send", () => ({ notify: vi.fn(async () => {}) }))
+const pushed = () => vi.mocked(notify).mock.calls.map(([to, m]) => ({ ...to, title: m.title }))
 
 const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
 
@@ -69,6 +74,16 @@ describe.skipIf(!TEST_DB)("tugas dari manajer (database uji)", () => {
     await mut.updateManagerTask(id, input({ assigneeIds: [s2], title: "Baru" }))
     expect(await qry.managerTasksFor(s1, "2026-12-03")).toEqual([])
     expect((await qry.managerTasksFor(s2, "2026-12-03"))[0]?.title).toBe("Baru")
+  })
+
+  it("push §10.2: buat dan ubah → penerima tugas, kecuali manajer pelaku", async () => {
+    vi.mocked(notify).mockClear()
+    const { id } = await mut.createManagerTask(boss, input())
+    await mut.updateManagerTask(id, input({ assigneeIds: [s2] }), boss)
+    expect(pushed()).toEqual([
+      { userIds: [s1, s2], except: boss, title: "Tugas baru dari Manajer" },
+      { userIds: [s2], except: boss, title: "Tugas dari Manajer berubah" },
+    ])
   })
 
   it("menolak penerima Direktur atau akun nonaktif", async () => {

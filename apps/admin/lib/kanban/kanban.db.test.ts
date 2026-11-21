@@ -1,10 +1,15 @@
 // Tes integrasi mutasi Kanban terhadap database KHUSUS uji (pola planner.db.test.ts).
 // Jalankan: DATABASE_URL=postgres://.../itapp_test pnpm --filter admin test
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { permissionsFor } from "@workspace/auth/permissions"
 import type { Role } from "@workspace/db/schema/roles"
 import type { ContentStage } from "@workspace/db/schema/stages"
+
+import { notify } from "@/lib/push/send"
+
+vi.mock("@/lib/push/send", () => ({ notify: vi.fn(async () => {}) }))
+const pushed = () => vi.mocked(notify).mock.calls.map(([to, m]) => ({ ...to, title: m.title }))
 
 const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
 
@@ -113,6 +118,22 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     await mut.moveCard(cardId, "draft", "ide", M, "Perbaiki judul")
     const ev = await events(cardId)
     expect(ev.at(-1)).toMatchObject({ kind: "kembali", note: "Perbaiki judul" })
+  })
+
+  it("push §10.2: masuk Review → Manajer; dikembalikan → yang ditugaskan; maju lain → tidak ada", async () => {
+    const { cardId } = await card("ide")
+    vi.mocked(notify).mockClear()
+    await mut.moveCard(cardId, "ide", "draft", S)
+    await mut.moveCard(cardId, "draft", "review", M)
+    await mut.moveCard(cardId, "review", "draft", M, "Perbaiki")
+    expect(pushed()).toEqual([
+      { roles: ["manajer"], except: M.id, title: "Kartu masuk Review" },
+      { userIds: [K.id], except: M.id, title: "Kartu dikembalikan untuk revisi" },
+    ])
+    await mut.moveCard(cardId, "draft", "review", M)
+    vi.mocked(notify).mockClear()
+    await mut.moveCard(cardId, "review", "disetujui", D)
+    expect(pushed()).toEqual([])
   })
 
   it("from basi ditolak dengan pesan konkurensi", async () => {
