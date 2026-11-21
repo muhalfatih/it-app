@@ -22,7 +22,7 @@ export const saveTask = withPermission(
     let savedId = id ?? undefined
     const result = await guarded("/tugas", async () => {
       if (id === null) savedId = (await createManagerTask(user!.id, input)).id
-      else await updateManagerTask(id, input)
+      else await updateManagerTask(id, input, user!.id)
     })
     if ("error" in result) return result
     // Laporan staf memuat tugas ini, jadi segarkan juga.

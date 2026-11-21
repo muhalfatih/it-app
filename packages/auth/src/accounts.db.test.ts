@@ -2,16 +2,29 @@
 // Jalankan: DATABASE_URL=postgres://.../itapp_test pnpm --filter @workspace/auth test
 // (buat dulu: create database itapp_test; lalu db:migrate dengan URL yang sama).
 // Dilewati bila nama database tidak berakhiran _test, karena tes mengosongkan tabel akun.
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
 const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
 
-describe.skipIf(!TEST_DB)("akun (database uji)", async () => {
-  const { db } = await import("@workspace/db/client")
-  const { count, eq, sql } = await import("@workspace/db/orm")
-  const { session, user, userRole } = await import("@workspace/db/schema")
-  const { auth } = await import("./server")
-  const accounts = await import("./accounts")
+describe.skipIf(!TEST_DB)("akun (database uji)", () => {
+  // Impor malas: client db melempar bila DATABASE_URL kosong, padahal tes ini dilewati.
+  let db: typeof import("@workspace/db/client").db
+  let count: typeof import("@workspace/db/orm").count
+  let eq: typeof import("@workspace/db/orm").eq
+  let sql: typeof import("@workspace/db/orm").sql
+  let session: typeof import("@workspace/db/schema").session
+  let user: typeof import("@workspace/db/schema").user
+  let userRole: typeof import("@workspace/db/schema").userRole
+  let auth: typeof import("./server").auth
+  let accounts: typeof import("./accounts")
+
+  beforeAll(async () => {
+    ;({ db } = await import("@workspace/db/client"))
+    ;({ count, eq, sql } = await import("@workspace/db/orm"))
+    ;({ session, user, userRole } = await import("@workspace/db/schema"))
+    ;({ auth } = await import("./server"))
+    accounts = await import("./accounts")
+  })
 
   const PASSWORD = "Rahasia-Uji-1"
   const base: { bidang: never[]; unitId: null } = { bidang: [], unitId: null }

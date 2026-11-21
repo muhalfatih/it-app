@@ -10,7 +10,7 @@ import {
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
 
-import { signOutAction } from "@/lib/auth-actions"
+import { signOutWithPush } from "@/lib/push/sign-out"
 import { menuFor } from "@/lib/menu"
 
 // Kerangka aplikasi (blok sidebar-07). Layout bukan gerbang keamanan:
@@ -27,16 +27,13 @@ export default async function AppLayout({
   return (
     <SidebarProvider>
       <AppSidebar
+        className="print:hidden"
         navMain={menuFor(user)}
-        user={{
-          name: user.name,
-          subtitle,
-          canChangePassword: user.hasPassword,
-        }}
-        onSignOut={signOutAction}
+        user={{ name: user.name, subtitle }}
+        onSignOut={signOutWithPush}
       />
       <SidebarInset className="min-w-0">
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <header className="flex h-16 shrink-0 items-center gap-2 px-4 print:hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"

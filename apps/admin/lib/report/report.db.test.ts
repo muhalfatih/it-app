@@ -1,9 +1,13 @@
 // Tes integrasi laporan harian terhadap database KHUSUS uji (dilewati bila bukan *_test).
 // Waktu `now` disuntikkan; Kamis 2026-12-03 sebagai "hari ini" kecuali disebut lain.
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { permissionsFor } from "@workspace/auth/permissions"
 import type { Role } from "@workspace/db/schema/roles"
+
+import { notify } from "@/lib/push/send"
+
+vi.mock("@/lib/push/send", () => ({ notify: vi.fn(async () => {}) }))
 
 const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
 
@@ -61,6 +65,8 @@ describe.skipIf(!TEST_DB)("laporan harian (database uji)", () => {
     boss = (await mk("uji.boss", ["manajer"])).id
     s1 = (await mk("uji.satu", ["sdm_khusus"])).id
     s2 = (await mk("uji.dua", ["sdm_khusus"])).id
+    // Hari pertama laporan = max(akun dibuat, REPORT_START_DATE): patok ke 1 Des agar tak ikut jam asli.
+    await dbm.db.update(tables.user).set({ createdAt: new Date("2026-12-01T00:00:00Z") })
     const [t] = await dbm.db
       .insert(tables.taskType)
       .values({ name: "Editing" })
@@ -165,7 +171,7 @@ describe.skipIf(!TEST_DB)("laporan harian (database uji)", () => {
     expect(day.score.done).toBe(1)
   })
 
-  it("menolak tanggal besok, Minggu, sebelum REPORT_START_DATE, dan kunci asing", async () => {
+  it("menolak tanggal besok, Minggu, sebelum hari pertama laporan, dan kunci asing", async () => {
     const key = `rutin:${routineId}`
     const bad = "Hari ini bukan hari laporan"
     await expect(mut.setAnswer(s1, "2026-12-04", key, "T", NOW)).rejects.toThrow(bad)
@@ -209,7 +215,12 @@ describe.skipIf(!TEST_DB)("laporan harian (database uji)", () => {
     await expect(mut.unlockReport(boss, s1, "2026-12-04")).rejects.toThrow(
       "Laporan belum terkunci"
     )
+    vi.mocked(notify).mockClear()
     await mut.unlockReport(boss, s1, D)
+    // §10.2: buka kunci → staf pemilik laporan.
+    expect(vi.mocked(notify).mock.calls).toEqual([
+      [{ userIds: [s1], except: boss }, expect.objectContaining({ title: "Laporan perlu diisi ulang" })],
+    ])
     expect(await freeze.freezeDue([s1], LATE)).toBe(0)
     const open = await qry.loadDay(s1, D, LATE)
     expect(open.unlocked).toBe(true)
@@ -240,6 +251,18 @@ describe.skipIf(!TEST_DB)("laporan harian (database uji)", () => {
     await mut.deleteSelfTask(s1, id, NOW)
     expect(await dbm.db.select().from(tables.selfTask)).toHaveLength(0)
     expect(await answerRows()).toHaveLength(0)
+  })
+
+  it("loadPeriodDays sama dengan loadDay per hari laporan; melewati libur dan di luar masa laporan", async () => {
+    await dbm.db.insert(tables.holiday).values({ date: "2026-12-02", name: "Libur uji" })
+    await plan(D, D)
+    await mut.setAnswer(s1, D, `rutin:${routineId}`, "T", NOW)
+    await freeze.freezeDue([s1], LATE)
+    // 30 Nov sebelum hari pertama (akun dibuat 1 Des), 2 Des libur, 5 Des lewat "hari ini" (Jumat 4 Des).
+    const days = await qry.loadPeriodDays(s1, "2026-11-30", "2026-12-06", LATE)
+    expect(days.map((d) => d.date)).toEqual(["2026-12-01", D, "2026-12-04"])
+    for (const d of days) expect(d).toEqual(await qry.loadDay(s1, d.date, LATE))
+    expect(await qry.loadPeriodDays(s1, "2026-12-07", "2026-12-13", LATE)).toEqual([])
   })
 
   it("listTeamDay memuat status dan skor tiap staf pelapor", async () => {

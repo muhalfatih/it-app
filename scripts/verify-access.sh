@@ -31,7 +31,7 @@ status() { # status <path> [cookie-jar]
 psql_db() { docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"; }
 
 echo "== Tanpa sesi"
-for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /tugas /absensi /layanan/sdm /layanan/internet /layanan/internet/rekap /layanan/sdm/persetujuan /inventaris /inventaris/peminjaman /; do
+for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /laporan/rekap /absensi/rekap /tugas /absensi /layanan/sdm /layanan/internet /layanan/internet/rekap /layanan/sdm/persetujuan /inventaris /inventaris/peminjaman /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
 done
 
@@ -56,8 +56,11 @@ check "GET /api/media/999999 (tidak ada) -> 404" "404" "$(status /api/media/9999
 check "GET /layanan/internet/rekap (SDM Khusus) -> 200" "200" "$(status /layanan/internet/rekap "$JAR")"
 check "GET /layanan/sdm/persetujuan (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /layanan/sdm/persetujuan "$JAR")"
 check "GET /laporan (diizinkan) -> 200" "200" "$(status /laporan "$JAR")"
-for path in /laporan/tim /tugas /tugas/baru /absensi /absensi/libur /inventaris; do
+for path in /laporan/tim /tugas /tugas/baru /absensi /absensi/libur /inventaris /laporan/rekap/x /absensi/rekap/x; do
   check "GET $path (SDM Khusus) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$JAR")"
+done
+for path in /laporan/rekap /absensi/rekap; do
+  check "GET $path (rekap sendiri, SDM Khusus) -> 200" "200" "$(status "$path" "$JAR")"
 done
 for path in /inventaris/peminjaman /inventaris/peminjaman/baru; do
   check "GET $path (SDM Khusus) -> 200" "200" "$(status "$path" "$JAR")"
@@ -105,6 +108,10 @@ if [[ -n "${VERIFY_DIREKTUR_USERNAME:-}" && -n "${VERIFY_DIREKTUR_PASSWORD:-}" ]
   check "login direktur" "200" "$code"
   check "GET /laporan (direktur tidak mengisi) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status /laporan "$DIR_JAR")"
   check "GET /laporan/tim (direktur) -> 200" "200" "$(status /laporan/tim "$DIR_JAR")"
+  for path in /laporan/rekap /absensi/rekap; do
+    check "GET $path (direktur) -> 200" "200" "$(status "$path" "$DIR_JAR")"
+  done
+  check "GET /laporan/rekap/tidak-ada (direktur) -> 404" "404" "$(status /laporan/rekap/tidak-ada "$DIR_JAR")"
   for path in /tugas /absensi /absensi/libur; do
     check "GET $path (direktur) -> ditolak" "307 $BASE_URL/?akses=ditolak" "$(status "$path" "$DIR_JAR")"
   done

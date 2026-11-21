@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { UserError } from "@/lib/user-error"
 
+vi.mock("@workspace/db/client", () => ({ db: {} }))
 vi.mock("@/lib/storage", () => ({
   presignUpload: vi.fn(async (key: string) => ({ url: "http://minio/up", fields: { key } })),
   statObject: vi.fn(),

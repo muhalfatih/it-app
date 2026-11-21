@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Warna = BRAND di lib/brand.tsx. Teks di dalam zona aman maskable (80% tengah). -->
+  <rect width="512" height="512" fill="#16505e"/>
+  <text x="256" y="256" dy="0.35em" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="200" font-weight="700" fill="#f4f9fa">IT</text>
+</svg>

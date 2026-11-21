@@ -10,6 +10,7 @@ import {
 
 import { attendanceOf } from "@/lib/attendance/queries"
 import { todayWib, validDate } from "@/lib/planner/rules"
+import { notify } from "@/lib/push/send"
 import type { IsoDate } from "@/lib/planner/types"
 import { UserError } from "@/lib/user-error"
 
@@ -199,4 +200,8 @@ export async function unlockReport(
       updatedAt: now,
     })
     .where(and(eq(dailyReport.userId, userId), eq(dailyReport.date, date)))
+  await notify(
+    { userIds: [userId], except: actorId },
+    { title: "Laporan perlu diisi ulang", body: `Laporan ${date} dibuka kembali`, url: `/laporan?tanggal=${date}` }
+  )
 }

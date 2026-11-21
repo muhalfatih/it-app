@@ -65,6 +65,7 @@ import { FormsDemo } from "./_demo-forms"
 import { KanbanDemo } from "./_demo-kanban"
 import { MediaDemo } from "./_demo-media"
 import { UploadDemo } from "./_demo-upload"
+import { PushDemo } from "./_demo-push"
 import { MiscDemo } from "./_demo-misc"
 import { OverlaysDemo } from "./_demo-overlays"
 import { NeedsDemo, PlannerDemo } from "./_demo-planner"
@@ -189,6 +190,10 @@ export default async function GaleriPage() {
 
       <Section title="Alert">
         <AlertsDemo />
+      </Section>
+
+      <Section title="Notifikasi push (tiruan)">
+        <PushDemo />
       </Section>
 
       <Section title="Input, pilihan & daftar pengaturan">

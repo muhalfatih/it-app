@@ -3,7 +3,16 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Role } from "@workspace/db/schema/roles"
 
+import { notify } from "@/lib/push/send"
 import { UserError } from "@/lib/user-error"
+
+vi.mock("@/lib/push/send", () => ({ notify: vi.fn(async () => {}) }))
+/** Jalankan satu aksi dan kembalikan audiens + judul/isi push yang dipicunya. */
+const pushesOf = async (action: () => Promise<unknown>) => {
+  vi.mocked(notify).mockClear()
+  await action()
+  return vi.mocked(notify).mock.calls.map(([to, m]) => ({ ...to, title: m.title, body: m.body }))
+}
 
 const store = new Map<string, { size: number; mime: string }>()
 vi.mock("@/lib/storage", () => ({
@@ -498,6 +507,50 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
     expect(failed.reason.message).toBe(CANCEL_NOTE)
     expect((await load(id))?.status).toBe("disetujui")
     expect(await linkedTasks(id)).toHaveLength(1)
+  })
+
+  it("push §10.2: buat, tolak, setujui (tugas/Planner), dan tiga jalur batal", async () => {
+    const status = (s: string) => ({
+      userIds: [pengaju],
+      except: boss,
+      title: "Status pengajuan SDM",
+      body: `Pengajuan Anda ${s}`,
+    })
+    let a = 0
+    expect(await pushesOf(async () => ({ id: a } = await mut.createRequest(pengaju, request())))).toEqual([
+      { roles: ["manajer"], except: pengaju, title: "Pengajuan SDM baru", body: "Wisuda" },
+    ])
+    expect(await pushesOf(() => mut.rejectRequest(boss, a, "Jadwal penuh"))).toEqual([status("ditolak")])
+
+    // Disetujui lewat tugas → pengaju + staf; hapus tugas bukan terakhir diam, terakhir → dibatalkan.
+    const b = await mut.createRequest(pengaju, request())
+    expect(await pushesOf(() => mut.approveWithTasks(boss, b.id, approval()))).toMatchObject([
+      status("disetujui"),
+      { userIds: [staf, staf], except: boss, title: "Tugas baru dari Manajer" },
+    ])
+    const [t1, t2] = await linkedTasks(b.id)
+    expect(await pushesOf(() => tasks.deleteManagerTask(t1!.id, boss))).toEqual([])
+    expect(await pushesOf(() => tasks.deleteManagerTask(t2!.id, boss, "Acara batal"))).toEqual([
+      status("dibatalkan"),
+    ])
+
+    // Disetujui lewat Planner → staf yang ditugaskan + pengaju; hapus entri → dibatalkan.
+    const c = await mut.createRequest(pengaju, request())
+    let entryId = 0
+    expect(await pushesOf(async () => ({ id: entryId } = await viaPlanner(c.id)))).toMatchObject([
+      { userIds: [staf], except: boss, title: "Penugasan Media Planner" },
+      status("disetujui"),
+    ])
+    expect(
+      await pushesOf(() => planner.deleteEntry(entryId, manajer(), undefined, "Acara batal", boss))
+    ).toEqual([status("dibatalkan")])
+
+    // Tombol "Batalkan pengajuan" jalur tugas.
+    const d = await mut.createRequest(pengaju, request())
+    await mut.approveWithTasks(boss, d.id, approval())
+    expect(await pushesOf(() => mut.cancelApprovedRequest(boss, d.id, "Acara batal", manajer()))).toEqual([
+      status("dibatalkan"),
+    ])
   })
 
   it("cancelApprovedRequest: jalur tugas, jalur Planner, dan pengajuan diajukan", async () => {

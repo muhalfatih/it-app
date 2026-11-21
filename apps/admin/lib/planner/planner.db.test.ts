@@ -1,12 +1,17 @@
 // Tes integrasi query & mutasi Planner terhadap database KHUSUS uji.
 // Jalankan: DATABASE_URL=postgres://.../itapp_test pnpm --filter admin test
 // Dilewati bila nama database tidak berakhiran _test, karena tes mengosongkan tabel.
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { permissionsFor } from "@workspace/auth/permissions"
 import type { Role } from "@workspace/db/schema/roles"
 
+import { notify } from "@/lib/push/send"
+
 import { inPeriod, resolvePeriod } from "./rules"
+
+vi.mock("@/lib/push/send", () => ({ notify: vi.fn(async () => {}) }))
+const pushed = () => vi.mocked(notify).mock.calls.map(([to, m]) => ({ ...to, title: m.title }))
 
 const TEST_DB = /\/[^/?]+_test(\?|$)/.test(process.env.DATABASE_URL ?? "")
 
@@ -122,6 +127,26 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
     const dropped = before.find((a) => a.userId === s2)!
     expect(after.assignments.map((a) => a.id)).not.toContain(dropped.id)
     expect(after.stage).toBe("ide")
+  })
+
+  it("push §10.2: create → semua yang ditugaskan; update → hanya baris baru/berubah", async () => {
+    vi.mocked(notify).mockClear()
+    const { id } = await mut.createEntry(input({ assignments: [row(s1), row(s2)] }), admin)
+    const keep = (await qry.getEntry(id))!.assignments.find((a) => a.userId === s1)!
+    await mut.updateEntry(
+      id, s2,
+      input({
+        assignments: [
+          { id: String(keep.id), ...row(s1) },
+          { id: "x-baru-0", ...row(s2, "2026-11-18", "2026-11-18") },
+        ],
+      })
+    )
+    const title = "Penugasan Media Planner"
+    expect(pushed()).toEqual([
+      { userIds: [s1, s2], except: admin, title },
+      { userIds: [s2], except: s2, title },
+    ])
   })
 
   it("updateEntry menolak id penugasan milik entri lain", async () => {

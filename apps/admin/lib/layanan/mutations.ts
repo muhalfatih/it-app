@@ -12,8 +12,9 @@ import {
 } from "@workspace/db/schema"
 
 import { parse, validId } from "@/lib/kanban/mutations"
-import { insertManagerTask, type Tx } from "@/lib/manager-task/mutations"
+import { insertManagerTask, notifyTask, type Tx } from "@/lib/manager-task/mutations"
 import { deleteEntry } from "@/lib/planner/mutations"
+import { notify } from "@/lib/push/send"
 import { listReporters } from "@/lib/report/queries"
 import { removeObjects } from "@/lib/storage"
 import { UserError } from "@/lib/user-error"
@@ -25,6 +26,17 @@ import { approveTasksSchema, reasonSchema, requestInputSchema } from "./schema"
 const NOT_FOUND = "Pengajuan tidak ditemukan"
 const DECIDED = "Pengajuan sudah diputuskan"
 const CANCEL_NOTE = "Isi catatan pembatalan untuk pengaju"
+
+/** §10.2 "Status SDM berubah" → pengaju. */
+export const notifyRequestStatus = (
+  requester: string,
+  status: "disetujui" | "ditolak" | "dibatalkan",
+  actorId: string
+) =>
+  notify(
+    { userIds: [requester], except: actorId },
+    { title: "Status pengajuan SDM", body: `Pengajuan Anda ${status}`, url: "/layanan/sdm/saya" }
+  )
 
 async function lockRow(tx: Tx, id: number): Promise<RequestRow> {
   if (!validId(id)) throw new UserError(NOT_FOUND)
@@ -65,7 +77,7 @@ export async function createRequest(userId: string, raw: unknown): Promise<{ id:
     .where(eq(unit.id, input.unitId))
   if (!u?.active) throw new UserError("Unit tidak valid atau sudah dinonaktifkan")
   await activeTaskTypes(input.needs.map((n) => n.taskTypeId))
-  return db.transaction(async (tx) => {
+  const created = await db.transaction(async (tx) => {
     if (input.rundownKey) {
       const [used] = await tx
         .select({ id: serviceRequest.id })
@@ -100,6 +112,11 @@ export async function createRequest(userId: string, raw: unknown): Promise<{ id:
     )
     return { id: r!.id }
   })
+  await notify(
+    { roles: ["manajer"], except: userId },
+    { title: "Pengajuan SDM baru", body: input.activityName, url: `/layanan/sdm/${created.id}` }
+  )
+  return created
 }
 
 export async function withdrawRequest(userId: string, id: number): Promise<void> {
@@ -116,13 +133,15 @@ export async function withdrawRequest(userId: string, id: number): Promise<void>
 
 export async function rejectRequest(actorId: string, id: number, reason: unknown): Promise<void> {
   const note = parse(reasonSchema, reason)
-  await db.transaction(async (tx) => {
-    await lockPending(tx, id)
+  const req = await db.transaction(async (tx) => {
+    const row = await lockPending(tx, id)
     await tx
       .update(serviceRequest)
       .set({ status: "ditolak", managerNote: note, decidedBy: actorId, decidedAt: new Date() })
       .where(eq(serviceRequest.id, id))
+    return row
   })
+  await notifyRequestStatus(req.requestedBy, "ditolak", actorId)
 }
 
 /** Dipotong ke batas judul Tugas dari Manajer (120) agar tugas tetap bisa diedit di halaman Tugas. */
@@ -136,7 +155,7 @@ export async function approveWithTasks(actorId: string, id: number, raw: unknown
   const staff = new Set((await listReporters()).map((r) => r.id))
   if (!input.rows.every((r) => staff.has(r.personId))) throw new UserError("Staf tidak valid")
   const names = await activeTaskTypes(input.rows.map((r) => r.taskTypeId))
-  await db.transaction(async (tx) => {
+  const req = await db.transaction(async (tx) => {
     const req = await lockPending(tx, id)
     for (const r of input.rows) {
       await insertManagerTask(
@@ -162,16 +181,24 @@ export async function approveWithTasks(actorId: string, id: number, raw: unknown
         decidedAt: new Date(),
       })
       .where(eq(serviceRequest.id, id))
+    return req
   })
+  await Promise.all([
+    notifyRequestStatus(req.requestedBy, "disetujui", actorId),
+    notifyTask(input.rows.map((r) => r.personId), req.activityName, actorId, "Tugas baru dari Manajer"),
+  ])
 }
 
-/** Spec "Batalkan" 1–4; dipanggil di dalam transaksi jalur hapus Planner/tugas/tombol batal. */
+/**
+ * Spec "Batalkan" 1–4; dipanggil di dalam transaksi jalur hapus Planner/tugas/tombol batal.
+ * Mengembalikan pengaju: pemanggil memanggil notifyRequestStatus setelah commit.
+ */
 export async function cancelRequestTx(
   tx: Tx,
   id: number,
   note: string,
   actorId: string
-): Promise<void> {
+): Promise<string> {
   if (!note?.trim()) throw new UserError(CANCEL_NOTE)
   const managerNote = parse(reasonSchema, note)
   const row = await lockRow(tx, id)
@@ -196,6 +223,7 @@ export async function cancelRequestTx(
       decidedBy: actorId,
     })
     .where(eq(serviceRequest.id, id))
+  return row.requestedBy
 }
 
 /** Tombol "Batalkan pengajuan": batalkan lalu hapus entri Planner atau semua tugas tertaut. */
@@ -216,7 +244,7 @@ export async function cancelApprovedRequest(
   // deleteEntry mengunci entri lalu pengajuan, dan memastikan pengajuan masih disetujui.
   if (row.plannerEntryId !== null)
     return deleteEntry(row.plannerEntryId, permissions, confirmName, text, actorId)
-  await db.transaction(async (tx) => {
+  const requester = await db.transaction(async (tx) => {
     const locked = await lockRow(tx, id)
     // Disetujui via Planner di sela pembacaan awal dan kunci: jalur ini tidak menghapus entri.
     if (locked.followUp !== "tugas") throw new UserError("Pengajuan tidak dalam status Disetujui")
@@ -226,7 +254,9 @@ export async function cancelApprovedRequest(
         .from(managerTask)
         .where(eq(managerTask.serviceRequestId, id))
     ).map((t) => t.id)
-    await cancelRequestTx(tx, id, text, actorId)
+    const requester = await cancelRequestTx(tx, id, text, actorId)
     if (ids.length) await tx.delete(managerTask).where(inArray(managerTask.id, ids))
+    return requester
   })
+  await notifyRequestStatus(requester, "dibatalkan", actorId)
 }
