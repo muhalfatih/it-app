@@ -7,6 +7,21 @@ import { db } from "@workspace/db/client"
 import { eq } from "@workspace/db/orm"
 import * as schema from "@workspace/db/schema"
 
+import { simtamaAccountLinking, simtamaOAuth, type SsoConfig } from "./sso"
+
+/** SSO Simtama ID aktif hanya bila kredensial klien diisi (lihat sso.ts). */
+const sso: SsoConfig | undefined =
+  process.env.SIMTAMA_ISSUER &&
+  process.env.SSO_CLIENT_ID &&
+  process.env.SSO_CLIENT_SECRET
+    ? {
+        issuer: process.env.SIMTAMA_ISSUER,
+        clientId: process.env.SSO_CLIENT_ID,
+        clientSecret: process.env.SSO_CLIENT_SECRET,
+      }
+    : undefined
+export const ssoEnabled = Boolean(sso)
+
 /**
  * Login akun lokal (username + kata sandi). Inilah satu-satunya tempat yang tahu "dari mana login berasal";
  * adapter sistem informasi sekolah nanti menggantikan bagian ini (PRD risiko #1).
@@ -39,6 +54,7 @@ export const auth = betterAuth({
       disabledAt: { type: "date", required: false, input: false },
     },
   },
+  account: { accountLinking: simtamaAccountLinking },
   databaseHooks: {
     session: {
       create: {
@@ -59,6 +75,7 @@ export const auth = betterAuth({
   // nextCookies harus paling akhir agar cookie dari server action ikut terpasang.
   plugins: [
     username({ minUsernameLength: 3, maxUsernameLength: 30 }),
+    ...(sso ? [simtamaOAuth(sso)] : []),
     nextCookies(),
   ],
 })

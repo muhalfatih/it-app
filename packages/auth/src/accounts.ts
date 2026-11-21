@@ -8,12 +8,13 @@ import { and, asc, eq, sql } from "@workspace/db/orm"
 import { account, session, user, userRole } from "@workspace/db/schema"
 import type { Bidang, Role } from "@workspace/db/schema/roles"
 
-import { assertManagerRemains, passwordSchema, usernameSchema } from "./rules"
+import {
+  assertManagerRemains,
+  passwordSchema,
+  syntheticEmail,
+  usernameSchema,
+} from "./rules"
 import { auth } from "./server"
-
-/** Email wajib di tabel Better Auth; akun lokal memakai email sintetis yang tidak dipakai untuk apa pun. */
-// shortcut: email sintetis, ganti dengan email asli saat adapter sistem informasi sekolah dipasang.
-const syntheticEmail = (username: string) => `${username}@akun.lokal`
 
 async function hashPassword(password: string) {
   const ctx = await auth.$context
