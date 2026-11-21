@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { assertManagerRemains, passwordSchema, usernameSchema } from "./rules"
+import {
+  assertManagerRemains,
+  passwordSchema,
+  simtamaUserInfo,
+  usernameSchema,
+} from "./rules"
 
 describe("usernameSchema", () => {
   it("menormalkan spasi dan huruf besar", () => {
@@ -64,5 +69,34 @@ describe("assertManagerRemains", () => {
     expect(() =>
       assertManagerRemains(accounts, { id: "s1", disabled: true })
     ).not.toThrow()
+  })
+})
+
+describe("simtamaUserInfo", () => {
+  it("memakai sub sebagai id dan email sintetis dari username", () => {
+    expect(
+      simtamaUserInfo({
+        sub: 42,
+        username: "Budi",
+        name: "Budi S",
+        email: "budi@x.id",
+      })
+    ).toEqual({
+      id: "42",
+      email: "budi@akun.lokal",
+      name: "Budi S",
+      emailVerified: false,
+      username: "budi",
+    })
+  })
+  it.each([
+    undefined,
+    {},
+    { sub: "1" },
+    { username: "budi" },
+    { sub: "", username: "budi" },
+    { sub: "1", username: "budi-s" },
+  ])("menolak profil %j", (account) => {
+    expect(simtamaUserInfo(account)).toBeNull()
   })
 })

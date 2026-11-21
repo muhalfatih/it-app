@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 
 import { authClient } from "@workspace/auth/client"
+import { Button } from "@workspace/ui/components/button"
 import { LoginForm } from "@workspace/ui/components/login-form"
 
 /** Pesan galat dalam bahasa pengguna; kode dari Better Auth. */
@@ -21,12 +22,27 @@ function messageFor(error: {
   return "Gagal masuk. Periksa koneksi lalu coba lagi."
 }
 
-export function LoginClient() {
+/** Kode galat dari callback SSO (`/masuk?error=...`): Better Auth atau IdP Simtama. */
+function ssoMessageFor(code: string) {
+  if (code === "access_denied")
+    return "Akses ke aplikasi ini ditolak oleh Simtama ID."
+  return "Gagal masuk dengan Simtama ID. Coba lagi."
+}
+
+export function LoginClient({
+  sso,
+  ssoError,
+}: {
+  sso: boolean
+  ssoError?: string
+}) {
   const router = useRouter()
-  const [error, setError] = React.useState<string>()
+  const [error, setError] = React.useState(
+    ssoError ? ssoMessageFor(ssoError) : undefined
+  )
   const [pending, setPending] = React.useState(false)
 
-  return (
+  const form = (
     <LoginForm
       error={error}
       pending={pending}
@@ -53,5 +69,33 @@ export function LoginClient() {
         router.refresh()
       }}
     />
+  )
+  if (!sso) return form
+
+  return (
+    <div className="flex flex-col gap-4">
+      {form}
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        onClick={async () => {
+          setPending(true)
+          setError(undefined)
+          // Better Auth mengarahkan browser ke Simtama ID (state + PKCE disimpan di server).
+          const { error: failure } = await authClient.signIn.social({
+            provider: "simtama",
+            callbackURL: "/",
+            errorCallbackURL: "/masuk",
+          })
+          if (failure) {
+            setError(ssoMessageFor(failure.code ?? ""))
+            setPending(false)
+          }
+        }}
+      >
+        Masuk dengan Simtama ID
+      </Button>
+    </div>
   )
 }

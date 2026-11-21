@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { MonitorPlayIcon } from "lucide-react"
 
+import { ssoEnabled } from "@workspace/auth/server"
 import { getCurrentUser } from "@workspace/auth/session"
 
 import { LoginClient } from "./_login"
@@ -17,7 +18,11 @@ const today = () =>
     year: "numeric",
   }).format(new Date())
 
-export default async function MasukPage() {
+export default async function MasukPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
   const user = await getCurrentUser()
   if (user && !user.disabled) redirect("/")
 
@@ -51,7 +56,10 @@ export default async function MasukPage() {
         </div>
         <div className="flex flex-1 items-center">
           <div className="w-full max-w-sm">
-            <LoginClient />
+            <LoginClient
+              sso={ssoEnabled}
+              ssoError={(await searchParams).error}
+            />
           </div>
         </div>
       </main>

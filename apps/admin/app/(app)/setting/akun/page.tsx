@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import { listAccounts } from "@workspace/auth/accounts"
 import { requirePermission } from "@workspace/auth/session"
+import { directoryEnabled } from "@workspace/auth/simtama-api"
 import { db } from "@workspace/db/client"
 import { asc, eq } from "@workspace/db/orm"
 import { unit } from "@workspace/db/schema"
@@ -39,6 +40,7 @@ export default async function AkunPage() {
         }))}
         units={units}
         currentUserId={me.id}
+        directory={directoryEnabled()}
       />
     </div>
   )
