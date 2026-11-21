@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto"
 
 import { db } from "@workspace/db/client"
-import { and, asc, eq, sql } from "@workspace/db/orm"
+import { and, asc, eq, inArray, or, sql } from "@workspace/db/orm"
 import { account, session, user, userRole } from "@workspace/db/schema"
 import type { Bidang, Role } from "@workspace/db/schema/roles"
 
@@ -97,6 +97,84 @@ export async function createAccount(
   return { id }
 }
 
+/**
+ * Akun dari direktori Simtama: tanpa kata sandi (hanya bisa masuk lewat SSO) dan langsung
+ * ditautkan ke `uid` Simtama, sehingga login pertama tidak bergantung pada kecocokan username.
+ */
+export async function createSimtamaAccount(
+  input: AccountInput & { uid: string; username: string }
+): Promise<{ id: string }> {
+  const username = usernameSchema.parse(input.username)
+  const [taken] = await db
+    .select({ username: user.username })
+    .from(user)
+    .leftJoin(
+      account,
+      and(eq(account.userId, user.id), eq(account.providerId, "simtama"))
+    )
+    .where(or(eq(user.username, username), eq(account.accountId, input.uid)))
+  if (taken)
+    throw new AccountError(
+      taken.username === username
+        ? "Username sudah dipakai akun lain di aplikasi ini"
+        : "Pegawai ini sudah punya akun"
+    )
+
+  const id = randomUUID()
+  await db.transaction(async (tx) => {
+    await tx.insert(user).values({
+      id,
+      name: input.name.trim(),
+      email: syntheticEmail(username),
+      emailVerified: false,
+      username,
+      displayUsername: username,
+      unitId: input.unitId,
+      bidang: input.bidang.join(",") || null,
+      mustChangePassword: false,
+    })
+    await tx.insert(account).values({
+      id: randomUUID(),
+      accountId: input.uid,
+      providerId: "simtama",
+      userId: id,
+    })
+    if (input.roles.length) {
+      await tx
+        .insert(userRole)
+        .values(input.roles.map((role) => ({ userId: id, role })))
+    }
+  })
+  return { id }
+}
+
+/** uid Simtama dan username yang sudah dipakai akun lokal, untuk menandai hasil pencarian. */
+export async function existingSimtama(uids: string[], usernames: string[]) {
+  const [linked, named] = await Promise.all([
+    uids.length
+      ? db
+          .select({ uid: account.accountId })
+          .from(account)
+          .where(
+            and(
+              eq(account.providerId, "simtama"),
+              inArray(account.accountId, uids)
+            )
+          )
+      : [],
+    usernames.length
+      ? db
+          .select({ username: user.username })
+          .from(user)
+          .where(inArray(user.username, usernames))
+      : [],
+  ])
+  return {
+    uids: new Set(linked.map((r) => r.uid)),
+    usernames: new Set(named.map((r) => r.username)),
+  }
+}
+
 export async function updateAccount(
   id: string,
   input: AccountInput
@@ -171,14 +249,23 @@ export type AccountRow = {
   unitId: number | null
   disabled: boolean
   mustChangePassword: boolean
+  /** Tertaut ke Simtama ID. */
+  sso: boolean
+  /** Punya kata sandi lokal; akun dari direktori Simtama tidak. */
+  hasPassword: boolean
   createdAt: Date
 }
 
 export async function listAccounts(): Promise<AccountRow[]> {
-  const [users, roles] = await Promise.all([
+  const [users, roles, logins] = await Promise.all([
     db.select().from(user).orderBy(asc(user.name)),
     db.select().from(userRole),
+    db
+      .select({ userId: account.userId, providerId: account.providerId })
+      .from(account),
   ])
+  const has = (userId: string, providerId: string) =>
+    logins.some((l) => l.userId === userId && l.providerId === providerId)
   return users.map((u) => ({
     id: u.id,
     username: u.username ?? "",
@@ -188,6 +275,8 @@ export async function listAccounts(): Promise<AccountRow[]> {
     unitId: u.unitId,
     disabled: u.disabledAt !== null,
     mustChangePassword: u.mustChangePassword ?? false,
+    sso: has(u.id, "simtama"),
+    hasPassword: has(u.id, "credential"),
     createdAt: u.createdAt,
   }))
 }
