@@ -1,6 +1,7 @@
 # Rencana Modul 9 — Lanjutan (per sesi)
 
-Status (21 Nov 2026): Sesi 3 selesai kecuali sisa uji browser #6a yang butuh langkah pengguna. Lanjutan dari `docs/rencana-modul-9-pwa-push.md`
+Status (21 Nov 2026): Sesi 3 selesai, termasuk #6a yang sudah diuji pengguna di browser. #4
+diputuskan (VPS, aplikasi di host) dan cron sudah terpasang: `docs/operasional-cron.md`. Lanjutan dari `docs/rencana-modul-9-pwa-push.md`
 yang sudah dieksekusi (belum di-commit, masih di branch `feat/laporan-rekap`). Tanpa subagent.
 
 Nomor item mengikuti daftar sisa pekerjaan di sesi eksekusi.
@@ -11,7 +12,7 @@ Nomor item mengikuti daftar sisa pekerjaan di sesi eksekusi.
 |---|---|---|
 | ~~9~~ | ✅ Diputuskan 20 Nov 2026: `REPORT_START_DATE` tetap `2026-11-01`; `report.db.test.ts` mematok tanggal akun uji ke 1 Des agar tidak bergantung jam asli. | — |
 | 1 | Pemicu "Kartu menunggu persetujuan → Direktur"? | Kapan saja; sesi tersendiri |
-| 4 | Aplikasi produksi berjalan di mana (Docker Compose, VPS + crontab, …)? | Penjadwalan cron |
+| ~~4~~ | ✅ Diputuskan 21 Nov 2026: VPS, aplikasi di host dengan pnpm/nvm, Postgres & RustFS di Docker Compose, lokasi repo berbeda dari mesin pengembangan. Crontab di `docs/operasional-cron.md`, dipanggil lewat `scripts/cron-run.sh`. | — |
 | 11 | `push:overdue`: sekali per peminjaman (kolom + migrasi) atau cukup sekali sehari? | Kapan saja |
 | 14 | Logo tersedia? | Kapan saja |
 
@@ -109,10 +110,8 @@ uji desktop karena `localhost` sudah dianggap secure context):
   `<link rel="apple-touch-icon" sizes="180x180">`;
 - `/notifikasi` kompilasi bersih setelah perbaikan Critical di atas.
 
-**Sisa #6a (butuh pengguna):** masuk dengan akun uji di browser lalu (1) pastikan service worker
-terdaftar dengan scope `/` di DevTools → Application → Service workers, (2) periksa Manifest &
-installability di panel yang sama, (3) isi kunci VAPID di `.env` (#3) dan kirim satu notifikasi uji.
-Tanpa kunci VAPID, `PushToggle` sengaja menampilkan "Notifikasi belum disiapkan di server".
+**Sisa #6a: ✅ selesai 21 Nov 2026** — dikerjakan pengguna (kunci VAPID di `.env`, service worker
+scope `/`, manifest & installability di DevTools, notifikasi uji terkirim).
 
 Perbaikan (a) dan (c) belum pernah dijalankan di browser: keduanya ikut diuji di langkah ini
 (klik notifikasi uji harus memakai jendela yang sudah terbuka, dan tombol keluar di
@@ -120,5 +119,10 @@ Perbaikan (a) dan (c) belum pernah dijalankan di browser: keduanya ikut diuji di
 
 ## Setelah keputusan masuk — Sonnet · medium (sesi mana saja)
 
-#1 notifikasi Direktur, #4 penjadwalan cron, #11 overdue sekali per peminjaman,
+#1 notifikasi Direktur, #11 overdue sekali per peminjaman,
 #14 ganti ikon (Haiku · low, cukup menimpa `lib/brand.tsx`/`public/icon.svg`).
+
+#4 selesai 21 Nov 2026: `scripts/cron-run.sh` (memuat nvm, root repo diturunkan dari lokasi berkas,
+jadi crontab tidak perlu diubah saat repo dipindah) dan `docs/operasional-cron.md` (empat pekerjaan
+dengan `CRON_TZ=Asia/Jakarta`: `push:reminder` 15.45, `push:overdue` 07.00, `report:freeze` 10.15,
+`media:sweep` 03.00).
