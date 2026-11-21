@@ -1,6 +1,6 @@
 # Rencana Modul 9 — Lanjutan (per sesi)
 
-Status: menunggu pilihan pengguna (20 Nov 2026). Lanjutan dari `docs/rencana-modul-9-pwa-push.md`
+Status (21 Nov 2026): Sesi 2 selesai; berikutnya Sesi 3. Lanjutan dari `docs/rencana-modul-9-pwa-push.md`
 yang sudah dieksekusi (belum di-commit, masih di branch `feat/laporan-rekap`). Tanpa subagent.
 
 Nomor item mengikuti daftar sisa pekerjaan di sesi eksekusi.
@@ -9,7 +9,7 @@ Nomor item mengikuti daftar sisa pekerjaan di sesi eksekusi.
 
 | # | Pertanyaan | Dibutuhkan sebelum |
 |---|---|---|
-| 9 | `REPORT_START_DATE` = `2026-11-01` disengaja (ubah tes) atau dikembalikan ke `2026-12-01`? | Sesi 2 (tes DB harus hijau) |
+| ~~9~~ | ✅ Diputuskan 20 Nov 2026: `REPORT_START_DATE` tetap `2026-11-01`; `report.db.test.ts` mematok tanggal akun uji ke 1 Des agar tidak bergantung jam asli. | — |
 | 1 | Pemicu "Kartu menunggu persetujuan → Direktur"? | Kapan saja; sesi tersendiri |
 | 4 | Aplikasi produksi berjalan di mana (Docker Compose, VPS + crontab, …)? | Penjadwalan cron |
 | 11 | `push:overdue`: sekali per peminjaman (kolom + migrasi) atau cukup sekali sehari? | Kapan saja |
@@ -37,7 +37,12 @@ Konteks: berkas push ada di `apps/admin/lib/push/`, `apps/admin/lib/service-work
 
 Verifikasi: `pnpm lint`, `pnpm typecheck`, tes admin.
 
-## Sesi 2 — Opus · medium (sesi baru)
+## Sesi 2 — Opus · medium (sesi baru) ✅ selesai 21 Nov 2026
+
+Hasil: commit `c2b199b` di `feat/pwa-push` (belum di-push). `notify()` memakai `after()` di dalam
+request dan kirim langsung di luar request (dibuktikan `send.test.ts`); tes audiens push ditambahkan
+di `planner`, `manager-task`, `report`, `kanban`, `layanan` `*.db.test.ts`. Verifikasi: lint,
+typecheck, dan tes admin terhadap `itapp_test` hijau (30 file, 342 tes).
 
 Prasyarat: keputusan #9 sudah ada, tes DB hijau.
 
