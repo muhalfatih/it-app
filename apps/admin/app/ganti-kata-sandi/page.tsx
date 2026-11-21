@@ -1,11 +1,9 @@
 import type { Metadata } from "next"
 
 import { requireUser } from "@workspace/auth/session"
-import { Button } from "@workspace/ui/components/button"
-
-import { signOutAction } from "@/lib/auth-actions"
 
 import { ChangePasswordForm } from "./_form"
+import { SignOutLink } from "./_sign-out"
 
 export const metadata: Metadata = {
   title: "Ganti kata sandi · Unit IT & Media",
@@ -28,15 +26,10 @@ export default async function GantiKataSandiPage() {
           </p>
         </div>
         <ChangePasswordForm />
-        <form action={signOutAction}>
-          <p className="text-sm text-muted-foreground">
-            Tidak tahu kata sandi saat ini? Minta Manajer mengatur ulang, atau{" "}
-            <Button type="submit" variant="link" className="h-auto p-0">
-              keluar
-            </Button>
-            .
-          </p>
-        </form>
+        <p className="text-sm text-muted-foreground">
+          Tidak tahu kata sandi saat ini? Minta Manajer mengatur ulang, atau{" "}
+          <SignOutLink />.
+        </p>
       </div>
     </main>
   )
