@@ -3,8 +3,8 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { db } from "@workspace/db/client"
-import { eq } from "@workspace/db/orm"
-import { userRole } from "@workspace/db/schema"
+import { and, eq } from "@workspace/db/orm"
+import { account, userRole } from "@workspace/db/schema"
 import type { Bidang, Role } from "@workspace/db/schema/roles"
 
 import { parseBidang } from "./accounts"
@@ -21,6 +21,8 @@ export type CurrentUser = {
   bidang: Bidang[]
   unitId: number | null
   mustChangePassword: boolean
+  /** Punya kata sandi lokal; akun dari direktori Simtama hanya masuk lewat SSO. */
+  hasPassword: boolean
   disabled: boolean
 }
 
@@ -29,12 +31,20 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const result = await auth.api.getSession({ headers: await headers() })
   if (!result) return null
   const u = result.user
-  const roles = (
-    await db
+  const [roleRows, credential] = await Promise.all([
+    db
       .select({ role: userRole.role })
       .from(userRole)
-      .where(eq(userRole.userId, u.id))
-  ).map((r) => r.role as Role)
+      .where(eq(userRole.userId, u.id)),
+    db
+      .select({ id: account.id })
+      .from(account)
+      .where(
+        and(eq(account.userId, u.id), eq(account.providerId, "credential"))
+      )
+      .limit(1),
+  ])
+  const roles = roleRows.map((r) => r.role as Role)
   return {
     id: u.id,
     username: u.username ?? "",
@@ -44,6 +54,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     bidang: parseBidang(u.bidang ?? null),
     unitId: u.unitId ?? null,
     mustChangePassword: u.mustChangePassword ?? false,
+    hasPassword: credential.length > 0,
     disabled: u.disabledAt != null,
   }
 }

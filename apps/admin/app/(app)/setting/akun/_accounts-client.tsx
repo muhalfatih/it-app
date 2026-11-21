@@ -16,6 +16,7 @@ import {
   PlusIcon,
   PowerIcon,
   RefreshCwIcon,
+  SearchIcon,
   UsersIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -118,10 +119,13 @@ import { DATA_GRID_I18N_ID } from "@workspace/ui/lib/i18n-id"
 
 import {
   createAccountAction,
+  createFromSimtamaAction,
   resetPasswordAction,
+  searchSimtamaAction,
   setDisabledAction,
   updateAccountAction,
   type ActionResult,
+  type StaffResult,
 } from "./actions"
 
 type Account = {
@@ -133,6 +137,8 @@ type Account = {
   unitId: number | null
   disabled: boolean
   mustChangePassword: boolean
+  sso: boolean
+  hasPassword: boolean
   createdAt: string
 }
 type UnitOption = { id: number; name: string }
@@ -220,6 +226,102 @@ function TempPasswordField({
   )
 }
 
+/* ---------------- Cari pegawai di Simtama ---------------- */
+
+function StaffSearch({
+  id,
+  onPick,
+}: {
+  id: string
+  onPick: (staff: StaffResult) => void
+}) {
+  const [query, setQuery] = React.useState("")
+  const [result, setResult] = React.useState<{
+    q: string
+    rows?: StaffResult[]
+    error?: string
+  }>()
+  const term = query.trim()
+
+  React.useEffect(() => {
+    if (term.length < 2) return
+    let stale = false
+    // Ditunda agar tidak memanggil Simtama di setiap ketukan.
+    const timer = setTimeout(async () => {
+      const r = await searchSimtamaAction(term)
+      if (!stale) setResult({ q: term, ...r })
+    }, 300)
+    return () => {
+      stale = true
+      clearTimeout(timer)
+    }
+  }, [term])
+
+  const current = result?.q === term ? result : undefined
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>Pegawai</FieldLabel>
+      <InputGroup>
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+        <InputGroupInput
+          id={id}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Cari nama atau username Simtama"
+          autoComplete="off"
+          spellCheck={false}
+          autoFocus
+        />
+        {term.length >= 2 && !current ? (
+          <InputGroupAddon align="inline-end">
+            <Spinner />
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
+      {current?.error ? (
+        <FieldDescription className="text-destructive">
+          {current.error}
+        </FieldDescription>
+      ) : current?.rows?.length === 0 ? (
+        <FieldDescription>Tidak ada pegawai yang cocok.</FieldDescription>
+      ) : current?.rows ? (
+        <ul className="flex flex-col divide-y rounded-lg border">
+          {current.rows.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                disabled={r.added}
+                onClick={() => onPick(r)}
+                className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="font-medium">
+                  {r.name}
+                  {r.added ? (
+                    <span className="font-normal text-muted-foreground">
+                      {" "}
+                      · sudah punya akun
+                    </span>
+                  ) : null}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {r.username}
+                  {r.unit ? ` · ${r.unit}` : ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <FieldDescription>
+          Akun masuk lewat Simtama ID; aksesnya di Simtama diberikan otomatis.
+        </FieldDescription>
+      )}
+    </Field>
+  )
+}
+
 /* ---------------- Form akun (Sheet) ---------------- */
 
 type FormValue = {
@@ -236,14 +338,20 @@ function AccountSheet({
   onOpenChange,
   account,
   units,
+  directory,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   account: Account | null
   units: UnitOption[]
+  /** Direktori Simtama tersedia: akun baru dipilih dari sana, manual jadi cadangan. */
+  directory: boolean
 }) {
   const formId = React.useId()
   const editing = account !== null
+  const [manual, setManual] = React.useState(!directory)
+  const [picked, setPicked] = React.useState<StaffResult | null>(null)
+  const fromSimtama = !editing && !manual
   const [value, setValue] = React.useState<FormValue>(() => blank())
   const [pending, startTransition] = React.useTransition()
   const [error, setError] = React.useState<string>()
@@ -262,6 +370,8 @@ function AccountSheet({
   React.useEffect(() => {
     if (!open) return
     setError(undefined)
+    setManual(!directory)
+    setPicked(null)
     setValue(
       account
         ? {
@@ -274,7 +384,7 @@ function AccountSheet({
           }
         : blank()
     )
-  }, [open, account])
+  }, [open, account, directory])
 
   const isUnitStaff = value.roles.length > 0
   const unitItems = [
@@ -290,14 +400,25 @@ function AccountSheet({
       bidang: isUnitStaff ? value.bidang : [],
       unitId: value.unitId,
     }
+    if (fromSimtama && !picked) {
+      setError("Pilih pegawai dari Simtama dulu.")
+      return
+    }
     startTransition(async () => {
       const result = editing
         ? await updateAccountAction(account.id, profile)
-        : await createAccountAction({
-            ...profile,
-            username: value.username,
-            password: value.password,
-          })
+        : fromSimtama
+          ? await createFromSimtamaAction({
+              accountId: picked!.id,
+              roles: profile.roles,
+              bidang: profile.bidang,
+              unitId: profile.unitId,
+            })
+          : await createAccountAction({
+              ...profile,
+              username: value.username,
+              password: value.password,
+            })
       if ("error" in result) {
         setError(result.error)
         return
@@ -317,7 +438,9 @@ function AccountSheet({
           <SheetDescription>
             {editing
               ? "Perubahan peran berlaku saat halaman dimuat ulang oleh pemilik akun."
-              : "Berikan username dan kata sandi sementara ke pemilik akun. Ia wajib menggantinya saat login pertama."}
+              : fromSimtama
+                ? "Pilih pegawai dari direktori Simtama. Ia masuk dengan akun Simtama ID-nya, tanpa kata sandi baru."
+                : "Berikan username dan kata sandi sementara ke pemilik akun. Ia wajib menggantinya saat login pertama."}
           </SheetDescription>
         </SheetHeader>
         <form
@@ -326,49 +449,103 @@ function AccountSheet({
           className="flex-1 overflow-y-auto px-4 pb-4"
         >
           <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor={`${formId}-username`}>Username</FieldLabel>
-              <Input
-                id={`${formId}-username`}
-                value={value.username}
-                onChange={(e) =>
-                  setValue({ ...value, username: e.target.value })
-                }
-                disabled={editing}
-                autoCapitalize="none"
-                spellCheck={false}
-                placeholder="mis. budi.s"
-                required
-              />
-              <FieldDescription>
-                {editing
-                  ? "Username tidak bisa diubah."
-                  : "3–30 karakter: huruf, angka, titik, atau garis bawah."}
-              </FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor={`${formId}-name`}>Nama lengkap</FieldLabel>
-              <Input
-                id={`${formId}-name`}
-                value={value.name}
-                onChange={(e) => setValue({ ...value, name: e.target.value })}
-                autoComplete="off"
-                required
-              />
-            </Field>
-            {!editing ? (
-              <Field>
-                <FieldLabel htmlFor={`${formId}-password`}>
-                  Kata sandi sementara
-                </FieldLabel>
-                <TempPasswordField
-                  id={`${formId}-password`}
-                  value={value.password}
-                  onChange={(password) => setValue({ ...value, password })}
-                />
-                <FieldDescription>Minimal 8 karakter.</FieldDescription>
-              </Field>
+            {fromSimtama ? (
+              picked ? (
+                <Field>
+                  <FieldLabel>Pegawai</FieldLabel>
+                  <div className="flex items-center gap-3 rounded-lg border px-3 py-2">
+                    <div className="flex min-w-0 flex-1 flex-col text-sm">
+                      <span className="truncate font-medium">
+                        {picked.name}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {picked.username}
+                        {picked.unit ? ` · ${picked.unit}` : ""}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPicked(null)}
+                    >
+                      Ganti
+                    </Button>
+                  </div>
+                </Field>
+              ) : (
+                <StaffSearch id={`${formId}-staff`} onPick={setPicked} />
+              )
             ) : null}
+            {!editing && directory ? (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="self-start px-0"
+                onClick={() => {
+                  setManual(!manual)
+                  setError(undefined)
+                }}
+              >
+                {manual
+                  ? "Pilih dari direktori Simtama"
+                  : "Buat akun manual (bukan pegawai Simtama)"}
+              </Button>
+            ) : null}
+            {fromSimtama ? null : (
+              <>
+                <Field>
+                  <FieldLabel htmlFor={`${formId}-username`}>
+                    Username
+                  </FieldLabel>
+                  <Input
+                    id={`${formId}-username`}
+                    value={value.username}
+                    onChange={(e) =>
+                      setValue({ ...value, username: e.target.value })
+                    }
+                    disabled={editing}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="mis. budi.s"
+                    required
+                  />
+                  <FieldDescription>
+                    {editing
+                      ? "Username tidak bisa diubah."
+                      : "3–30 karakter: huruf, angka, titik, atau garis bawah."}
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor={`${formId}-name`}>
+                    Nama lengkap
+                  </FieldLabel>
+                  <Input
+                    id={`${formId}-name`}
+                    value={value.name}
+                    onChange={(e) =>
+                      setValue({ ...value, name: e.target.value })
+                    }
+                    autoComplete="off"
+                    required
+                  />
+                </Field>
+                {!editing ? (
+                  <Field>
+                    <FieldLabel htmlFor={`${formId}-password`}>
+                      Kata sandi sementara
+                    </FieldLabel>
+                    <TempPasswordField
+                      id={`${formId}-password`}
+                      value={value.password}
+                      onChange={(password) => setValue({ ...value, password })}
+                    />
+                    <FieldDescription>Minimal 8 karakter.</FieldDescription>
+                  </Field>
+                ) : null}
+              </>
+            )}
 
             <FieldSet>
               <FieldLegend variant="label">Peran</FieldLegend>
@@ -546,10 +723,12 @@ export function AccountsClient({
   accounts,
   units,
   currentUserId,
+  directory,
 }: {
   accounts: Account[]
   units: UnitOption[]
   currentUserId: string
+  directory: boolean
 }) {
   const [sheet, setSheet] = React.useState<{
     open: boolean
@@ -598,6 +777,7 @@ export function AccountsClient({
               </span>
               <span className="truncate text-xs text-muted-foreground">
                 {row.original.username}
+                {row.original.sso ? " · Simtama ID" : ""}
               </span>
             </div>
           </div>
@@ -682,10 +862,12 @@ export function AccountsClient({
                     <PencilIcon />
                     Ubah
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setResetFor(a)}>
-                    <KeyRoundIcon />
-                    Atur ulang kata sandi
-                  </DropdownMenuItem>
+                  {a.hasPassword ? (
+                    <DropdownMenuItem onClick={() => setResetFor(a)}>
+                      <KeyRoundIcon />
+                      Atur ulang kata sandi
+                    </DropdownMenuItem>
+                  ) : null}
                 </DropdownMenuGroup>
                 {self ? null : (
                   <>
@@ -769,6 +951,7 @@ export function AccountsClient({
         onOpenChange={(open) => setSheet((s) => ({ ...s, open }))}
         account={sheet.account}
         units={units}
+        directory={directory}
       />
       <ResetPasswordDialog
         account={resetFor}
@@ -786,7 +969,7 @@ export function AccountsClient({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {toggleFor?.disabled
-                ? "Pemilik akun bisa login lagi dengan kata sandinya."
+                ? "Pemilik akun bisa login lagi."
                 : "Pemilik akun langsung dikeluarkan dari semua perangkat dan tidak bisa login. Data dan riwayatnya tetap tersimpan."}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -39,3 +39,32 @@ export function assertManagerRemains(
     throw new Error("Harus ada minimal satu Manajer aktif")
   }
 }
+
+/** Email wajib di tabel Better Auth; akun lokal memakai email sintetis yang tidak dipakai untuk apa pun. */
+// shortcut: email sintetis, ganti dengan email asli saat adapter sistem informasi sekolah dipasang.
+export const syntheticEmail = (username: string) => `${username}@akun.lokal`
+
+/**
+ * Profil SSO Simtama ID dari objek `account` di respons token.
+ * Email diganti email sintetis dari username agar Better Auth menautkan login SSO pertama
+ * ke akun lokal dengan username yang sama (atau membuat akun baru); setelah tertaut, pencarian memakai `sub`.
+ * null bila profil tidak lengkap atau username tidak lolos aturan akun lokal.
+ */
+export function simtamaUserInfo(account: unknown) {
+  const a = account as {
+    sub?: unknown
+    username?: unknown
+    name?: unknown
+  }
+  if (a?.sub == null || a.sub === "" || typeof a.username !== "string")
+    return null
+  const username = usernameSchema.safeParse(a.username)
+  if (!username.success) return null
+  return {
+    id: String(a.sub),
+    email: syntheticEmail(username.data),
+    name: typeof a.name === "string" ? a.name : username.data,
+    emailVerified: false,
+    username: username.data,
+  }
+}

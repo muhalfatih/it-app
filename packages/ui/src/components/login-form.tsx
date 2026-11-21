@@ -11,7 +11,7 @@ import {
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 
-// Diadaptasi dari blok login-02: login username (akun dibuat Manajer, tanpa pendaftaran/OAuth).
+// Diadaptasi dari blok login-02: login username (akun dibuat Manajer, tanpa pendaftaran); tombol SSO ada di pemanggil.
 export function LoginForm({
   className,
   error,
