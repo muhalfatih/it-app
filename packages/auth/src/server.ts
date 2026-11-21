@@ -7,6 +7,7 @@ import { db } from "@workspace/db/client"
 import { eq } from "@workspace/db/orm"
 import * as schema from "@workspace/db/schema"
 
+import { isUnitStaff } from "./simtama-api"
 import { simtamaAccountLinking, simtamaOAuth, type SsoConfig } from "./sso"
 
 /** SSO Simtama ID aktif hanya bila kredensial klien diisi (lihat sso.ts). */
@@ -21,6 +22,29 @@ const sso: SsoConfig | undefined =
       }
     : undefined
 export const ssoEnabled = Boolean(sso)
+
+/**
+ * Akun yang dibuat otomatis saat login SSO pertama: pegawai unit IT & Media di Simtama
+ * mendapat peran dasar SDM Khusus; selebihnya tetap Staf Unit Lain. Login berikutnya tidak
+ * mengubah peran (diatur Manajer). Galat Simtama tidak boleh menggagalkan login.
+ */
+async function roleFromSimtamaUnit(u: {
+  id: string
+  username?: string | null
+}) {
+  if (!u.username) return
+  try {
+    if (!(await isUnitStaff(u.username))) return
+    await db
+      .insert(schema.userRole)
+      .values({ userId: u.id, role: "sdm_khusus" })
+      .onConflictDoNothing()
+  } catch (e) {
+    console.warn(
+      JSON.stringify({ evt: "simtama.unit_role_failed", message: String(e) })
+    )
+  }
+}
 
 /**
  * Login akun lokal (username + kata sandi). Inilah satu-satunya tempat yang tahu "dari mana login berasal";
@@ -56,6 +80,10 @@ export const auth = betterAuth({
   },
   account: { accountLinking: simtamaAccountLinking },
   databaseHooks: {
+    // Hanya Better Auth yang memicu hook ini, yaitu pembuatan akun saat login SSO pertama;
+    // akun buatan Manajer (accounts.ts) dan seed ditulis langsung lewat Drizzle.
+    // Berjalan setelah transaksi pembuatan akun selesai, sebelum sesi dibuat.
+    user: { create: { after: roleFromSimtamaUnit } },
     session: {
       create: {
         // Akun yang dinonaktifkan Manajer tidak bisa login lagi.

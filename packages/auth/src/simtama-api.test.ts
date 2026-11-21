@@ -6,6 +6,7 @@ vi.stubEnv("SIMTAMA_API_URL", `${BASE}/`)
 vi.stubEnv("SIMTAMA_SERVICE_CLIENT_ID", "svc")
 vi.stubEnv("SIMTAMA_SERVICE_CLIENT_SECRET", "rahasia")
 vi.stubEnv("SIMTAMA_APPLICATION_ID", "26")
+vi.stubEnv("SIMTAMA_UNIT_ID", "U-IT")
 
 type Call = {
   method: string
@@ -65,8 +66,8 @@ vi.stubGlobal("fetch", async (input: string, init: RequestInit = {}) => {
     const q = url.searchParams.get("q")
     const items =
       q === "P8"
-        ? [{ id: "P8", nama_unit: "Informasi dan Teknologi" }]
-        : [{ id: "P7", nama_unit: " Bagian Umum " }]
+        ? [{ id: "P8", id_unit: "U-IT", nama_unit: "Informasi dan Teknologi" }]
+        : [{ id: "P7", id_unit: "U-UMUM", nama_unit: " Bagian Umum " }]
     return Response.json({ data: { items } })
   }
   if (url.pathname === "/v1/account/7")
@@ -174,4 +175,11 @@ it("memberi akses level user hanya bila belum ada akses aktif", async () => {
   access = [{ access_level_id: 1 }]
   await api.grantAccess(7)
   expect(calls.some((c) => c.method === "POST")).toBe(false)
+})
+
+it("mengenali pegawai unit IT & Media lewat username", async () => {
+  expect(await api.isUnitStaff("Siti")).toBe(true)
+  expect(await api.isUnitStaff("budi")).toBe(false) // unit lain
+  expect(await api.isUnitStaff("andi")).toBe(false) // bukan pegawai
+  expect(await api.isUnitStaff("tidakada")).toBe(false)
 })

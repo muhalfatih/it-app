@@ -175,6 +175,35 @@ export async function getStaff(
 }
 
 /**
+ * Apakah akun Simtama ber-username ini pegawai aktif di unit SIMTAMA_UNIT_ID (unit IT & Media).
+ * false bila unit tidak dikonfigurasi, akun bukan pegawai, atau data staf tidak ditemukan.
+ */
+export async function isUnitStaff(username: string): Promise<boolean> {
+  const unitId = process.env.SIMTAMA_UNIT_ID
+  if (!unitId || !directoryEnabled()) return false
+  const params = new URLSearchParams({
+    q: username,
+    role: "staff",
+    status: "1",
+    per_page: "5",
+  })
+  const found: RawAccount[] = (await api(`/account?${params}`))?.data ?? []
+  const match = found.find(
+    (a) => String(a.username).toLowerCase() === username.toLowerCase()
+  )
+  const pegawai = match && staffId(match)
+  if (!pegawai) return false
+  // `q` dicocokkan dengan LIKE; ambil id yang persis sama.
+  const body = await api(
+    `/internal/role-requests/lookups/staff?${new URLSearchParams({ q: pegawai })}`
+  )
+  const staff = (body?.data?.items ?? []).find(
+    (s: { id?: unknown }) => String(s.id) === pegawai
+  )
+  return staff?.id_unit === unitId
+}
+
+/**
  * Pastikan akun punya akses aktif ke aplikasi ini (wajib karena "Wajib punya hak akses").
  * Akses yang sudah ada tidak diubah, agar level yang lebih tinggi tidak turun.
  */
