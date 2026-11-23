@@ -119,7 +119,7 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     expect(ev.at(-1)).toMatchObject({ kind: "kembali", note: "Perbaiki judul" })
   })
 
-  it("push §10.2: masuk Review → Manajer; dikembalikan → yang ditugaskan; maju lain → tidak ada", async () => {
+  it("push §10.2: masuk Review → Manajer + Direktur; dikembalikan → yang ditugaskan; maju lain → tidak ada", async () => {
     const { cardId } = await card("ide")
     vi.mocked(notify).mockClear()
     await mut.moveCard(cardId, "ide", "draft", S)
@@ -127,6 +127,7 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
     await mut.moveCard(cardId, "review", "draft", M, "Perbaiki")
     expect(pushed()).toEqual([
       { roles: ["manajer"], except: M.id, title: "Kartu masuk Review" },
+      { roles: ["direktur"], except: M.id, title: "Kartu menunggu persetujuan" },
       { userIds: [K.id], except: M.id, title: "Kartu dikembalikan untuk revisi" },
     ])
     await mut.moveCard(cardId, "draft", "review", M)
