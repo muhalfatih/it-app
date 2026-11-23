@@ -122,8 +122,7 @@ export async function moveCard(
       return { entryId: card.entryId, back: true }
     } else throw new UserError(FORBIDDEN_MOVE)
   })
-  // §10.2: masuk Review → Manajer saja; dikembalikan → yang ditugaskan di entri.
-  // Belum: "Kartu menunggu persetujuan → Direktur" (pemicunya belum ditentukan).
+  // §10.2: masuk Review → Manajer + Direktur (penyetuju tunggal Review); dikembalikan → yang ditugaskan di entri.
   if (!back && to !== "review") return
   await notifyCardMove(entryId, back, actor.id)
 }
@@ -139,6 +138,10 @@ async function notifyCardMove(entryId: number, back: boolean, actorId: string) {
       await notify(
         { roles: ["manajer"], except: actorId },
         { title: "Kartu masuk Review", body: name, url: "/konten" }
+      )
+      await notify(
+        { roles: ["direktur"], except: actorId },
+        { title: "Kartu menunggu persetujuan", body: name, url: "/konten" }
       )
       return
     }

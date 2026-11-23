@@ -11,9 +11,9 @@ Nomor item mengikuti daftar sisa pekerjaan di sesi eksekusi.
 | # | Pertanyaan | Dibutuhkan sebelum |
 |---|---|---|
 | ~~9~~ | ✅ Diputuskan 20 Nov 2026: `REPORT_START_DATE` tetap `2026-11-01`; `report.db.test.ts` mematok tanggal akun uji ke 1 Des agar tidak bergantung jam asli. | — |
-| 1 | Pemicu "Kartu menunggu persetujuan → Direktur"? | Kapan saja; sesi tersendiri |
+| ~~1~~ | ✅ Diputuskan 23 Nov 2026: saat kartu masuk Review (hanya Direktur yang bisa menyetujui dari Review). Dipasang di `notifyCardMove`. | — |
 | ~~4~~ | ✅ Diputuskan 21 Nov 2026: VPS, aplikasi di host dengan pnpm/nvm, Postgres & RustFS di Docker Compose, lokasi repo berbeda dari mesin pengembangan. Crontab di `docs/operasional-cron.md`, dipanggil lewat `scripts/cron-run.sh`. | — |
-| 11 | `push:overdue`: sekali per peminjaman (kolom + migrasi) atau cukup sekali sehari? | Kapan saja |
+| ~~11~~ | ✅ Diputuskan 23 Nov 2026: tetap tiap pagi, digabung jadi satu notifikasi per pencatat (`lib/push/overdue.ts`). Tanpa migrasi. | — |
 | 14 | Logo tersedia? | Kapan saja |
 
 Langkah pengguna sendiri: buat kunci VAPID (`pnpm dlx web-push generate-vapid-keys`) dan isi `.env`
@@ -90,7 +90,7 @@ Selain itu satu komentar `lib/menu.tsx` kehilangan kata (`Tanpa  =` → ``Tanpa 
 | a | Keluar lewat `/ganti-kata-sandi` memakai `signOutAction` biasa, jadi baris `push_subscription` dan langganan browser tidak dilepas: notifikasi akun itu masih sampai ke perangkat tersebut | ✅ Diperbaiki: `app/ganti-kata-sandi/_sign-out.tsx` (client) memakai `signOutWithPush`, sama seperti sidebar. Konsekuensinya tombol keluar di halaman itu kini butuh JS (sebelumnya form POST) |
 | b | `subscribe` memakai `onConflictDoUpdate` pada `endpoint`: pengguna login yang mengetahui endpoint perangkat orang lain bisa memindahkannya ke akunnya sendiri | Sengaja (perangkat berganti akun). Endpoint tidak pernah ditampilkan aplikasi, jadi tidak terjangkau tanpa kebocoran dari luar |
 | c | `notificationclick` selalu `clients.openWindow`, jadi membuka jendela/tab baru walau aplikasi sudah terbuka | ✅ Diperbaiki: `openOrFocus()` di `lib/service-worker.js` memakai `clients.matchAll` + `focus()` lalu `navigate()`, dan jatuh kembali ke `openWindow` bila klien belum dikendalikan SW |
-| d | `push:overdue` mengirim satu notifikasi per peminjaman | Keputusan #11 masih terbuka |
+| d | `push:overdue` mengirim satu notifikasi per peminjaman | ✅ Diperbaiki 23 Nov 2026 lewat keputusan #11: satu notifikasi per pencatat |
 | e | Header service worker di `next.config.ts` (rencana bagian A) tidak dipasang | Tidak diperlukan: SW di-bundle lewat `new URL(..., import.meta.url)` (bukan `public/sw.js`), didaftarkan `updateViaCache: "none"`, dan Next sendiri mengirim `Service-Worker-Allowed` |
 
 **Diperiksa dan sesuai.** Penerima tiap pemicu §10.2 (baris Direktur memang masih terbuka, #1);
@@ -119,8 +119,8 @@ Perbaikan (a) dan (c) belum pernah dijalankan di browser: keduanya ikut diuji di
 
 ## Setelah keputusan masuk — Sonnet · medium (sesi mana saja)
 
-#1 notifikasi Direktur, #11 overdue sekali per peminjaman,
-#14 ganti ikon (Haiku · low, cukup menimpa `lib/brand.tsx`/`public/icon.svg`).
+#1 dan #11 selesai 23 Nov 2026 (tes DB kanban belum dijalankan ulang: port `db` tertutup).
+Sisa: #14 ganti ikon (Haiku · low, cukup menimpa `lib/brand.tsx`/`public/icon.svg`).
 
 #4 selesai 21 Nov 2026: `scripts/cron-run.sh` (memuat nvm, root repo diturunkan dari lokasi berkas,
 jadi crontab tidak perlu diubah saat repo dipindah) dan `docs/operasional-cron.md` (empat pekerjaan

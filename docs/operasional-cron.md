@@ -97,8 +97,8 @@ DATABASE_URL=postgres://itapp:itapp@127.0.0.1:5432/itapp_test /srv/it-app/script
 - Kegagalan sungguhan (mis. basis data mati) membuat skrip keluar dengan kode bukan nol dan
   tercatat di berkas log; kegagalan kirim ke satu langganan push sengaja tidak menggagalkan
   pekerjaan, hanya dicatat, dan langganan yang dijawab 404/410 dihapus otomatis.
-- `push:overdue` saat ini mengirim satu notifikasi per peminjaman terlambat setiap kali dijalankan,
-  jadi pencatat yang sama bisa diingatkan berulang hari demi hari. Keputusan #11 (sekali per
-  peminjaman, butuh kolom + migrasi) mengubah isi skripnya, bukan jadwal cron ini.
+- `push:overdue` mengirim satu notifikasi per pencatat setiap kali dijalankan, berisi semua
+  peminjamannya yang terlambat (keputusan #11, 23 Nov 2026). Pengingat diulang tiap pagi sampai
+  alatnya dikembalikan.
 - Berkas log tidak dirotasi. Bila nanti membesar, tambahkan satu berkas `/etc/logrotate.d/it-app`
   atau ganti pengalihan log dengan `| logger -t it-app`.

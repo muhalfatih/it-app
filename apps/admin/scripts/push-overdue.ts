@@ -4,6 +4,7 @@ import { db } from "@workspace/db/client"
 import { and, isNull, lt } from "@workspace/db/orm"
 import { loan } from "@workspace/db/schema"
 
+import { overdueMessages } from "../lib/push/overdue"
 import { notify } from "../lib/push/send"
 
 const overdue = await db
@@ -11,18 +12,9 @@ const overdue = await db
   .from(loan)
   .where(and(lt(loan.dueAt, new Date()), isNull(loan.returnedAt)))
 
-// Satu notifikasi per peminjaman; pencatat yang sama bisa menerima beberapa.
+// Satu notifikasi per pencatat per hari, berisi semua peminjamannya yang terlambat (keputusan #11).
 await Promise.all(
-  overdue.map((l) =>
-    notify(
-      { userIds: [l.recordedBy] },
-      {
-        title: "Alat belum dikembalikan",
-        body: `Peminjaman ${l.borrower} melewati jadwal kembali`,
-        url: "/inventaris/peminjaman",
-      }
-    )
-  )
+  overdueMessages(overdue).map(({ userId, msg }) => notify({ userIds: [userId] }, msg))
 )
 console.log(`Peminjaman terlambat: ${overdue.length}`)
 process.exit(0)
