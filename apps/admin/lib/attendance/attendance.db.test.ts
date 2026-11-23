@@ -36,8 +36,6 @@ describe.skipIf(!TEST_DB)("absensi (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
   }
 

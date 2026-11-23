@@ -9,13 +9,10 @@ import {
 } from "@tanstack/react-table"
 import {
   CircleAlertIcon,
-  CopyIcon,
-  KeyRoundIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   PowerIcon,
-  RefreshCwIcon,
   SearchIcon,
   UsersIcon,
 } from "lucide-react"
@@ -46,15 +43,6 @@ import {
 } from "@workspace/ui/components/card"
 import { Checkbox } from "@workspace/ui/components/checkbox"
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -76,7 +64,6 @@ import { Input } from "@workspace/ui/components/input"
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupButton,
   InputGroupInput,
 } from "@workspace/ui/components/input-group"
 import {
@@ -120,7 +107,6 @@ import { DATA_GRID_I18N_ID } from "@workspace/ui/lib/i18n-id"
 import {
   createAccountAction,
   createFromSimtamaAction,
-  resetPasswordAction,
   searchSimtamaAction,
   setDisabledAction,
   updateAccountAction,
@@ -136,9 +122,7 @@ type Account = {
   bidang: Bidang[]
   unitId: number | null
   disabled: boolean
-  mustChangePassword: boolean
   sso: boolean
-  hasPassword: boolean
   createdAt: string
 }
 type UnitOption = { id: number; name: string }
@@ -161,13 +145,6 @@ function initials(name: string) {
     .join("")
 }
 
-/** Kata sandi sementara yang mudah dibacakan (tanpa 0/O, 1/l/I). */
-function randomPassword(length = 10) {
-  const alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-  const bytes = crypto.getRandomValues(new Uint8Array(length))
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("")
-}
-
 function reportResult(
   result: ActionResult | { error: string },
   success: string
@@ -178,52 +155,6 @@ function reportResult(
   }
   toast.success(success)
   return true
-}
-
-/* ---------------- Kata sandi sementara ---------------- */
-
-function TempPasswordField({
-  id,
-  value,
-  onChange,
-}: {
-  id: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <InputGroup>
-      <InputGroupInput
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete="off"
-        spellCheck={false}
-        className="font-mono"
-      />
-      <InputGroupAddon align="inline-end">
-        <InputGroupButton
-          size="icon-xs"
-          aria-label="Buat kata sandi acak"
-          onClick={() => onChange(randomPassword())}
-        >
-          <RefreshCwIcon />
-        </InputGroupButton>
-        <InputGroupButton
-          size="icon-xs"
-          aria-label="Salin kata sandi"
-          disabled={!value}
-          onClick={() =>
-            navigator.clipboard
-              .writeText(value)
-              .then(() => toast.success("Kata sandi disalin"))
-          }
-        >
-          <CopyIcon />
-        </InputGroupButton>
-      </InputGroupAddon>
-    </InputGroup>
-  )
 }
 
 /* ---------------- Cari pegawai di Simtama ---------------- */
@@ -327,7 +258,6 @@ function StaffSearch({
 type FormValue = {
   username: string
   name: string
-  password: string
   roles: Role[]
   bidang: Bidang[]
   unitId: number | null
@@ -360,7 +290,6 @@ function AccountSheet({
     return {
       username: "",
       name: "",
-      password: randomPassword(),
       roles: [],
       bidang: [],
       unitId: null,
@@ -377,7 +306,6 @@ function AccountSheet({
         ? {
             username: account.username,
             name: account.name,
-            password: "",
             roles: account.roles,
             bidang: account.bidang,
             unitId: account.unitId,
@@ -414,11 +342,7 @@ function AccountSheet({
               bidang: profile.bidang,
               unitId: profile.unitId,
             })
-          : await createAccountAction({
-              ...profile,
-              username: value.username,
-              password: value.password,
-            })
+          : await createAccountAction({ ...profile, username: value.username })
       if ("error" in result) {
         setError(result.error)
         return
@@ -440,7 +364,7 @@ function AccountSheet({
               ? "Perubahan peran berlaku saat halaman dimuat ulang oleh pemilik akun."
               : fromSimtama
                 ? "Pilih pegawai dari direktori Simtama. Ia masuk dengan akun Simtama ID-nya, tanpa kata sandi baru."
-                : "Berikan username dan kata sandi sementara ke pemilik akun. Ia wajib menggantinya saat login pertama."}
+                : "Isi username Simtama ID pemilik akun. Akun tertaut saat ia pertama kali masuk dengan Simtama ID; pastikan aksesnya ke aplikasi ini sudah diberikan di Simtama."}
           </SheetDescription>
         </SheetHeader>
         <form
@@ -490,14 +414,14 @@ function AccountSheet({
               >
                 {manual
                   ? "Pilih dari direktori Simtama"
-                  : "Buat akun manual (bukan pegawai Simtama)"}
+                  : "Daftarkan manual dengan username Simtama ID"}
               </Button>
             ) : null}
             {fromSimtama ? null : (
               <>
                 <Field>
                   <FieldLabel htmlFor={`${formId}-username`}>
-                    Username
+                    Username Simtama ID
                   </FieldLabel>
                   <Input
                     id={`${formId}-username`}
@@ -531,19 +455,6 @@ function AccountSheet({
                     required
                   />
                 </Field>
-                {!editing ? (
-                  <Field>
-                    <FieldLabel htmlFor={`${formId}-password`}>
-                      Kata sandi sementara
-                    </FieldLabel>
-                    <TempPasswordField
-                      id={`${formId}-password`}
-                      value={value.password}
-                      onChange={(password) => setValue({ ...value, password })}
-                    />
-                    <FieldDescription>Minimal 8 karakter.</FieldDescription>
-                  </Field>
-                ) : null}
               </>
             )}
 
@@ -654,68 +565,12 @@ function AccountSheet({
   )
 }
 
-/* ---------------- Atur ulang kata sandi ---------------- */
-
-function ResetPasswordDialog({
-  account,
-  onOpenChange,
-}: {
-  account: Account | null
-  onOpenChange: (open: boolean) => void
-}) {
-  const [password, setPassword] = React.useState("")
-  const [pending, startTransition] = React.useTransition()
-  React.useEffect(() => {
-    if (account) setPassword(randomPassword())
-  }, [account])
-
-  return (
-    <Dialog open={account !== null} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Atur ulang kata sandi {account?.name}</DialogTitle>
-          <DialogDescription>
-            Semua sesi akun ini dikeluarkan. Berikan kata sandi sementara ini ke
-            pemiliknya; ia wajib menggantinya saat login.
-          </DialogDescription>
-        </DialogHeader>
-        <Field>
-          <FieldLabel htmlFor="reset-password">Kata sandi sementara</FieldLabel>
-          <TempPasswordField
-            id="reset-password"
-            value={password}
-            onChange={setPassword}
-          />
-        </Field>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Batal</DialogClose>
-          <Button
-            disabled={pending || password.length < 8}
-            onClick={() =>
-              startTransition(async () => {
-                if (!account) return
-                const result = await resetPasswordAction(account.id, password)
-                if (reportResult(result, "Kata sandi diatur ulang")) {
-                  onOpenChange(false)
-                }
-              })
-            }
-          >
-            {pending ? <Spinner data-icon="inline-start" /> : null}
-            Atur ulang
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 /* ---------------- Tabel akun ---------------- */
 
 function statusBadge(a: Account) {
   if (a.disabled) return <Badge variant="destructive-light">Nonaktif</Badge>
-  if (a.mustChangePassword)
-    return <Badge variant="warning-light">Belum ganti sandi</Badge>
+  // Akun manual yang pemiliknya belum pernah masuk dengan Simtama ID.
+  if (!a.sso) return <Badge variant="warning-light">Belum masuk</Badge>
   return <Badge variant="success-light">Aktif</Badge>
 }
 
@@ -737,7 +592,6 @@ export function AccountsClient({
     open: false,
     account: null,
   })
-  const [resetFor, setResetFor] = React.useState<Account | null>(null)
   const [toggleFor, setToggleFor] = React.useState<Account | null>(null)
   const [pending, startTransition] = React.useTransition()
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -862,12 +716,6 @@ export function AccountsClient({
                     <PencilIcon />
                     Ubah
                   </DropdownMenuItem>
-                  {a.hasPassword ? (
-                    <DropdownMenuItem onClick={() => setResetFor(a)}>
-                      <KeyRoundIcon />
-                      Atur ulang kata sandi
-                    </DropdownMenuItem>
-                  ) : null}
                 </DropdownMenuGroup>
                 {self ? null : (
                   <>
@@ -952,10 +800,6 @@ export function AccountsClient({
         account={sheet.account}
         units={units}
         directory={directory}
-      />
-      <ResetPasswordDialog
-        account={resetFor}
-        onOpenChange={(open) => !open && setResetFor(null)}
       />
       <AlertDialog
         open={toggleFor !== null}

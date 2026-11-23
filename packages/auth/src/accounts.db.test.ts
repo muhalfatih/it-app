@@ -26,21 +26,14 @@ describe.skipIf(!TEST_DB)("akun (database uji)", () => {
     accounts = await import("./accounts")
   })
 
-  const PASSWORD = "Rahasia-Uji-1"
   const base: { bidang: never[]; unitId: null } = { bidang: [], unitId: null }
 
   async function make(username: string, roles: ("manajer" | "sdm_khusus")[]) {
-    return accounts.createAccount({
-      ...base,
-      username,
-      name: username,
-      roles,
-      password: PASSWORD,
-      mustChangePassword: false,
-    })
+    return accounts.createAccount({ ...base, username, name: username, roles })
   }
-  const signIn = (username: string) =>
-    auth.api.signInUsername({ body: { username, password: PASSWORD } })
+  // Sesi dibuat lewat adapter Better Auth (hook sesi ikut jalan), seperti di akhir login SSO.
+  const signIn = async (userId: string) =>
+    (await auth.$context).internalAdapter.createSession(userId)
   const sessionsOf = async (id: string) =>
     (
       await db
@@ -64,27 +57,21 @@ describe.skipIf(!TEST_DB)("akun (database uji)", () => {
   it("menonaktifkan akun mencabut sesinya dan menolak login baru", async () => {
     await make("uji.boss", ["manajer"])
     const { id } = await make("uji.staf", ["sdm_khusus"])
-    await signIn("uji.staf")
+    await signIn(id)
     expect(await sessionsOf(id)).toBe(1)
 
     await accounts.setDisabled(id, true)
 
     expect(await sessionsOf(id)).toBe(0)
-    await expect(signIn("uji.staf")).rejects.toMatchObject({
+    await expect(signIn(id)).rejects.toMatchObject({
       message: "Akun dinonaktifkan",
     })
   })
 
-  it("atur ulang kata sandi mencabut sesi dan mewajibkan ganti kata sandi", async () => {
+  it("akun manual tanpa kata sandi dan belum tertaut", async () => {
     await make("uji.boss", ["manajer"])
-    const { id } = await make("uji.staf", ["sdm_khusus"])
-    await signIn("uji.staf")
-
-    await accounts.resetPassword(id, "Sandi-Baru-22")
-
-    expect(await sessionsOf(id)).toBe(0)
-    const [row] = await db.select().from(user).where(eq(user.id, id))
-    expect(row!.mustChangePassword).toBe(true)
+    const [row] = await accounts.listAccounts()
+    expect(row).toMatchObject({ username: "uji.boss", sso: false })
   })
 
   it("menolak mencabut peran Manajer aktif terakhir", async () => {

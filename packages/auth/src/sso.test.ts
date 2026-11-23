@@ -4,7 +4,12 @@ import { memoryAdapter } from "better-auth/adapters/memory"
 import { username } from "better-auth/plugins"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { simtamaAccountLinking, simtamaOAuth } from "./sso"
+import {
+  accountDisabledError,
+  simtamaAccountLinking,
+  simtamaOAuth,
+  ssoOnly,
+} from "./sso"
 
 const ISSUER = "https://idp.test"
 const BASE = "http://localhost:3000"
@@ -15,18 +20,20 @@ const auth = betterAuth({
   baseURL: BASE,
   secret: "x".repeat(40),
   database: memoryAdapter(db),
-  emailAndPassword: { enabled: true, disableSignUp: true },
-  user: {
-    additionalFields: {
-      mustChangePassword: {
-        type: "boolean",
-        required: false,
-        defaultValue: false,
-        input: false,
+  ...ssoOnly,
+  account: { accountLinking: simtamaAccountLinking },
+  databaseHooks: {
+    // Tiruan hook akun nonaktif di server.ts (yang membaca database asli).
+    session: {
+      create: {
+        before: async (session, ctx) => {
+          const u = db.user!.find((r) => r.id === session.userId)
+          if (u?.username === "nonaktif") throw accountDisabledError(ctx)
+          return { data: session }
+        },
       },
     },
   },
-  account: { accountLinking: simtamaAccountLinking },
   plugins: [
     username(),
     simtamaOAuth({ issuer: ISSUER, clientId: "itapp", clientSecret: "s3cret" }),
@@ -96,7 +103,8 @@ describe("SSO Simtama", () => {
     expect(p.get("redirect_uri")).toBe(`${BASE}/api/auth/callback/simtama`)
     expect(p.get("scope")).toBe("openid profile email")
     expect(p.get("code_challenge_method")).toBe("S256")
-    expect(p.get("prompt")).toBe("select_account")
+    // Tanpa pemilih akun: sesi Simtama yang masih aktif langsung dipakai.
+    expect(p.has("prompt")).toBe(false)
     expect(tokenRequest!.auth).toBe(`Basic ${btoa("itapp:s3cret")}`)
     expect(tokenRequest!.body).toContain("code_verifier=")
   })
@@ -137,8 +145,35 @@ describe("SSO Simtama", () => {
       email: "siti.r@akun.lokal",
       displayUsername: "siti.r",
       name: "Siti R",
-      mustChangePassword: false,
     })
+  })
+
+  it("akun nonaktif kembali ke /masuk dengan kode galat", async () => {
+    const { location } = await login({ sub: "5", username: "nonaktif" })
+    expect(location).toBe("/masuk?error=account_disabled")
+    expect(db.session).toHaveLength(0)
+  })
+
+  it("di luar callback SSO, penolakan akun nonaktif tetap galat 403 biasa", () => {
+    expect(accountDisabledError(null)).toMatchObject({
+      message: "Akun dinonaktifkan",
+    })
+  })
+
+  it.each([
+    ["/sign-in/username", { username: "budi", password: "rahasia-123" }],
+    ["/sign-in/email", { email: "budi@akun.lokal", password: "rahasia-123" }],
+    ["/sign-up/email", { email: "x@akun.lokal", password: "rahasia-123", name: "x" }],
+    ["/change-password", { currentPassword: "a", newPassword: "rahasia-123" }],
+  ])("menutup login kata sandi: %s", async (path, body) => {
+    const res = await auth.handler(
+      new Request(`${BASE}/api/auth${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: BASE },
+        body: JSON.stringify(body),
+      })
+    )
+    expect(res.status).toBe(404)
   })
 
   it("menolak username yang tidak lolos aturan akun lokal", async () => {

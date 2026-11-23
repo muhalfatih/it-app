@@ -89,8 +89,6 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
     return { id, permissions: permissionsFor(roles) }
   }

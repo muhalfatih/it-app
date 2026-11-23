@@ -8,11 +8,11 @@ import { createAccount } from "./accounts"
 import { usernameSchema } from "./rules"
 
 async function seedManager() {
+  // Username Simtama ID Manajer: login SSO pertama dengan username ini menautkan akunnya.
   const rawUsername = process.env.SEED_MANAGER_USERNAME
-  const password = process.env.SEED_MANAGER_PASSWORD
-  if (!rawUsername || !password) {
+  if (!rawUsername) {
     console.log(
-      "Lewati akun Manajer: SEED_MANAGER_USERNAME/SEED_MANAGER_PASSWORD belum diisi di .env"
+      "Lewati akun Manajer: SEED_MANAGER_USERNAME belum diisi di .env"
     )
     return
   }
@@ -27,15 +27,13 @@ async function seedManager() {
   }
   await createAccount({
     username,
-    password,
     name: "Manajer",
     roles: ["manajer"],
     bidang: ["it", "media"],
     unitId: null,
-    mustChangePassword: true,
   })
   console.log(
-    `Akun Manajer "${username}" dibuat (wajib ganti kata sandi saat login pertama).`
+    `Akun Manajer "${username}" dibuat; masuk dengan Simtama ID ber-username sama.`
   )
 }
 

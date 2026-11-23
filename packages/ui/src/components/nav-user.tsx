@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
-import { ChevronsUpDownIcon, KeyRoundIcon, LogOutIcon } from "lucide-react"
+import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
 
 function initials(name: string) {
   return name
@@ -30,8 +30,7 @@ export function NavUser({
   user,
   onSignOut,
 }: {
-  /** `canChangePassword` false untuk akun yang hanya masuk lewat Simtama ID. */
-  user: { name: string; subtitle: string; canChangePassword?: boolean }
+  user: { name: string; subtitle: string }
   /** Server action keluar (menghapus sesi lalu mengarahkan ke /masuk). */
   onSignOut: () => Promise<void>
 }) {
@@ -73,17 +72,6 @@ export function NavUser({
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
-            {user.canChangePassword === false ? null : (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem render={<a href="/ganti-kata-sandi" />}>
-                    <KeyRoundIcon />
-                    Ganti kata sandi
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </>
-            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void onSignOut()}>
               <LogOutIcon />

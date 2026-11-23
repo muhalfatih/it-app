@@ -64,6 +64,13 @@
       "when": 1795169441369,
       "tag": "0008_workable_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795402291369,
+      "tag": "0009_sso_only",
+      "breakpoints": true
     }
   ]
 }

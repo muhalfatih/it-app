@@ -12,9 +12,26 @@ export const usernameSchema = z
     message: "Username 3–30 karakter: huruf, angka, titik, atau garis bawah",
   })
 
-export const passwordSchema = z
-  .string()
-  .min(8, { message: "Kata sandi minimal 8 karakter" })
+/** Header berisi path + query permintaan, dipasang proxy.ts agar guard tahu halaman asal. */
+export const PATH_HEADER = "x-app-path"
+
+/**
+ * Tujuan setelah masuk: hanya path internal (bukan `//host` atau `/\host`, yang dibaca browser
+ * sebagai domain lain) dan bukan halaman masuk/endpoint auth (mencegah loop). Selain itu undefined.
+ */
+export function safeNext(value: string | null | undefined): string | undefined {
+  if (!value || !value.startsWith("/") || /^\/[/\\]/.test(value)) return
+  if (/[\u0000-\u001f\\]/.test(value)) return
+  if (/^\/(masuk|api\/auth)(\/|\?|$)/.test(value)) return
+  return value
+}
+
+export function loginPath(from: string | null | undefined): string {
+  const next = safeNext(from)
+  return next && next !== "/"
+    ? `/masuk?next=${encodeURIComponent(next)}`
+    : "/masuk"
+}
 
 type AccountState = { id: string; roles: readonly Role[]; disabled: boolean }
 

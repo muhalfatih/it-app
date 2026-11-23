@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest"
 
 import {
   assertManagerRemains,
-  passwordSchema,
+  loginPath,
+  safeNext,
   simtamaUserInfo,
   usernameSchema,
 } from "./rules"
@@ -20,10 +21,32 @@ describe("usernameSchema", () => {
   )
 })
 
-describe("passwordSchema", () => {
-  it("minimal 8 karakter", () => {
-    expect(passwordSchema.safeParse("1234567").success).toBe(false)
-    expect(passwordSchema.safeParse("12345678").success).toBe(true)
+describe("safeNext / loginPath", () => {
+  it("menerima path internal beserta query", () => {
+    expect(safeNext("/konten/12?tab=komentar")).toBe("/konten/12?tab=komentar")
+    expect(loginPath("/konten/12")).toBe("/masuk?next=%2Fkonten%2F12")
+  })
+  it.each([
+    null,
+    "",
+    "https://jahat.test",
+    "//jahat.test",
+    "/\\jahat.test",
+    "/a\\b",
+    "/x\nSet-Cookie:a",
+    "/masuk",
+    "/masuk?next=/",
+    "/api/auth/sign-out",
+  ])("menolak %j", (value) => {
+    expect(safeNext(value)).toBeUndefined()
+  })
+  it("tanpa tujuan berarti /masuk polos", () => {
+    expect(loginPath("/")).toBe("/masuk")
+    expect(loginPath("//jahat.test")).toBe("/masuk")
+    expect(loginPath(undefined)).toBe("/masuk")
+  })
+  it("tidak salah menolak path yang hanya berawalan sama", () => {
+    expect(safeNext("/masukan")).toBe("/masukan")
   })
 })
 

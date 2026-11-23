@@ -4,7 +4,6 @@ import { authorize, withPermissionUsing, type Viewer } from "./authorize"
 
 const viewer = (patch: Partial<NonNullable<Viewer>> = {}): Viewer => ({
   roles: ["sdm_khusus"],
-  mustChangePassword: false,
   disabled: false,
   ...patch,
 })
@@ -17,18 +16,6 @@ describe("authorize", () => {
     expect(authorize(viewer({ disabled: true }), "laporan.isi")).toBe(
       "unauthenticated"
     )
-  })
-  it("wajib ganti kata sandi -> must_change_password", () => {
-    expect(authorize(viewer({ mustChangePassword: true }))).toBe(
-      "must_change_password"
-    )
-  })
-  it("halaman ganti kata sandi boleh dibuka saat wajib ganti", () => {
-    expect(
-      authorize(viewer({ mustChangePassword: true }), undefined, {
-        allowPasswordChange: true,
-      })
-    ).toBe("ok")
   })
   it("tanpa izin -> forbidden", () => {
     expect(authorize(viewer(), "setting.kelola")).toBe("forbidden")

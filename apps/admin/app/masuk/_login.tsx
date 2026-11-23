@@ -1,90 +1,78 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 
 import { authClient } from "@workspace/auth/client"
 import { LoginForm } from "@workspace/ui/components/login-form"
 
-/** Pesan galat dalam bahasa pengguna; kode dari Better Auth. */
-function messageFor(error: {
-  code?: string
-  message?: string
-  status?: number
-}) {
-  if (error.status === 429)
-    return "Terlalu banyak percobaan. Coba lagi beberapa menit lagi."
-  if (error.code === "INVALID_USERNAME_OR_PASSWORD")
-    return "Username atau kata sandi salah."
-  if (error.message === "Akun dinonaktifkan")
-    return "Akun Anda dinonaktifkan. Hubungi Manajer."
-  return "Gagal masuk. Periksa koneksi lalu coba lagi."
-}
-
-/** Kode galat dari callback SSO (`/masuk?error=...`): Better Auth atau IdP Simtama. */
+/** Kode galat dari callback SSO (`/masuk?error=...`): Better Auth, IdP Simtama, atau hook akun nonaktif. */
 function ssoMessageFor(code: string) {
   if (code === "access_denied")
-    return "Akses ke aplikasi ini ditolak oleh Simtama ID."
+    return "Simtama ID belum memberi Anda akses ke aplikasi ini. Hubungi Manajer unit."
+  if (code === "account_disabled")
+    return "Akun Anda dinonaktifkan. Hubungi Manajer unit."
   return "Gagal masuk dengan Simtama ID. Coba lagi."
 }
 
 export function LoginClient({
   sso,
+  reachable,
   ssoError,
+  signedOut,
+  next,
 }: {
   sso: boolean
+  /** Simtama ID terjangkau saat halaman dimuat. */
+  reachable: boolean
   ssoError?: string
+  signedOut: boolean
+  next?: string
 }) {
-  const router = useRouter()
-  const [error, setError] = React.useState(
-    ssoError ? ssoMessageFor(ssoError) : undefined
+  const [error, setError] = React.useState(() =>
+    !sso
+      ? "Login Simtama ID belum dikonfigurasi di server. Hubungi admin aplikasi."
+      : ssoError
+        ? ssoMessageFor(ssoError)
+        : !reachable
+          ? "Simtama ID sedang gangguan, jadi belum bisa masuk. Coba lagi beberapa saat lagi."
+          : undefined
   )
   const [pending, setPending] = React.useState(false)
+  const started = React.useRef(false)
+
+  const start = React.useCallback(async () => {
+    setPending(true)
+    setError(undefined)
+    // Better Auth mengarahkan browser ke Simtama ID (state + PKCE disimpan di server).
+    const { error: failure } = await authClient.signIn.social({
+      provider: "simtama",
+      callbackURL: next ?? "/",
+      errorCallbackURL: "/masuk",
+    })
+    if (failure) {
+      setError(ssoMessageFor(failure.code ?? ""))
+      setPending(false)
+    }
+  }, [next])
+
+  // Langsung ke Simtama bila tidak ada yang perlu dibaca pengguna dulu. Setelah galat atau
+  // keluar tidak otomatis, agar tidak terjadi loop atau langsung masuk lagi.
+  React.useEffect(() => {
+    if (started.current || !sso || !reachable || ssoError || signedOut) return
+    started.current = true
+    void start()
+  }, [sso, reachable, ssoError, signedOut, start])
 
   return (
     <LoginForm
       error={error}
-      pending={pending}
-      onSso={
-        sso
-          ? async () => {
-              setPending(true)
-              setError(undefined)
-              // Better Auth mengarahkan browser ke Simtama ID (state + PKCE disimpan di server).
-              const { error: failure } = await authClient.signIn.social({
-                provider: "simtama",
-                callbackURL: "/",
-                errorCallbackURL: "/masuk",
-              })
-              if (failure) {
-                setError(ssoMessageFor(failure.code ?? ""))
-                setPending(false)
-              }
-            }
+      notice={
+        signedOut
+          ? "Anda sudah keluar. Di perangkat bersama, keluar juga dari Simtama ID."
           : undefined
       }
-      onSubmit={async (event) => {
-        event.preventDefault()
-        const form = new FormData(event.currentTarget)
-        setPending(true)
-        setError(undefined)
-        const { error: failure } = await authClient.signIn.username({
-          username: String(form.get("username") ?? "")
-            .trim()
-            .toLowerCase(),
-          password: String(form.get("password") ?? ""),
-        })
-        if (failure) {
-          setError(messageFor(failure))
-          setPending(false)
-          // Arahkan pengguna langsung ke field yang perlu diperbaiki.
-          const password = event.currentTarget.elements.namedItem("password")
-          if (password instanceof HTMLInputElement) password.select()
-          return
-        }
-        router.replace("/")
-        router.refresh()
-      }}
+      pending={pending}
+      onSso={sso ? () => void start() : undefined}
     />
   )
 }

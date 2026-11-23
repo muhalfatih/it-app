@@ -43,8 +43,6 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
     return { id, permissions: permissionsFor(roles) }
   }

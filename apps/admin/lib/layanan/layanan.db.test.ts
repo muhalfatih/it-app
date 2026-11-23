@@ -68,8 +68,6 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
   }
 

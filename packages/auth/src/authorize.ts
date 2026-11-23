@@ -5,22 +5,13 @@ import { can, type Permission } from "./permissions"
 
 export type Viewer = {
   roles: readonly Role[]
-  mustChangePassword: boolean
   disabled: boolean
 } | null
 
-export type Decision =
-  "ok" | "unauthenticated" | "must_change_password" | "forbidden"
+export type Decision = "ok" | "unauthenticated" | "forbidden"
 
-export function authorize(
-  viewer: Viewer,
-  permission?: Permission,
-  opts: { allowPasswordChange?: boolean } = {}
-): Decision {
+export function authorize(viewer: Viewer, permission?: Permission): Decision {
   if (!viewer || viewer.disabled) return "unauthenticated"
-  if (viewer.mustChangePassword && !opts.allowPasswordChange) {
-    return "must_change_password"
-  }
   if (permission && !can(viewer.roles, permission)) return "forbidden"
   return "ok"
 }

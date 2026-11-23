@@ -1,6 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { betterAuth } from "better-auth"
-import { APIError } from "better-auth/api"
 import { nextCookies } from "better-auth/next-js"
 import { username } from "better-auth/plugins"
 import { db } from "@workspace/db/client"
@@ -8,9 +7,16 @@ import { eq } from "@workspace/db/orm"
 import * as schema from "@workspace/db/schema"
 
 import { isUnitStaff } from "./simtama-api"
-import { simtamaAccountLinking, simtamaOAuth, type SsoConfig } from "./sso"
+import {
+  accountDisabledError,
+  simtamaAccountLinking,
+  simtamaOAuth,
+  simtamaReachable,
+  ssoOnly,
+  type SsoConfig,
+} from "./sso"
 
-/** SSO Simtama ID aktif hanya bila kredensial klien diisi (lihat sso.ts). */
+/** Satu-satunya cara masuk; tanpa kredensial klien, halaman masuk menampilkan galat konfigurasi. */
 const sso: SsoConfig | undefined =
   process.env.SIMTAMA_ISSUER &&
   process.env.SSO_CLIENT_ID &&
@@ -22,6 +28,17 @@ const sso: SsoConfig | undefined =
       }
     : undefined
 export const ssoEnabled = Boolean(sso)
+if (!sso)
+  console.error(
+    JSON.stringify({
+      evt: "sso.not_configured",
+      message: "SIMTAMA_ISSUER/SSO_CLIENT_ID/SSO_CLIENT_SECRET kosong: tidak ada yang bisa masuk",
+    })
+  )
+
+/** Untuk halaman masuk: false bila Simtama ID tidak terjangkau (pesan gangguan, tanpa redirect otomatis). */
+export const ssoReachable = () =>
+  sso ? simtamaReachable(sso.issuer) : Promise.resolve(false)
 
 /**
  * Akun yang dibuat otomatis saat login SSO pertama: pegawai unit IT & Media di Simtama
@@ -47,21 +64,20 @@ async function roleFromSimtamaUnit(u: {
 }
 
 /**
- * Login akun lokal (username + kata sandi). Inilah satu-satunya tempat yang tahu "dari mana login berasal";
- * adapter sistem informasi sekolah nanti menggantikan bagian ini (PRD risiko #1).
+ * Masuk hanya lewat SSO Simtama ID (sso.ts). Inilah satu-satunya tempat yang tahu "dari mana login berasal".
  */
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
   // Profil & username hanya diubah Manajer lewat accounts.ts; endpoint bawaan ini ditutup.
-  disabledPaths: ["/update-user", "/is-username-available"],
-  emailAndPassword: {
-    enabled: true,
-    // Akun hanya dibuat oleh Manajer (lihat accounts.ts), tidak ada pendaftaran mandiri.
-    disableSignUp: true,
-    minPasswordLength: 8,
-  },
+  disabledPaths: [
+    "/update-user",
+    "/is-username-available",
+    ...ssoOnly.disabledPaths,
+  ],
+  emailAndPassword: ssoOnly.emailAndPassword,
+  // Sesi panjang: saat Simtama gangguan, pengguna yang sudah masuk tetap bekerja (sesi hanya dicek di database ini).
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 hari
+    expiresIn: 60 * 60 * 24 * 30, // 30 hari
     updateAge: 60 * 60 * 24, // diperpanjang bila dipakai, paling sering sehari sekali
   },
   user: {
@@ -69,32 +85,23 @@ export const auth = betterAuth({
       unitId: { type: "number", required: false, input: false },
       /** "it", "media", atau "it,media"; kosong untuk Staf Unit Lain. */
       bidang: { type: "string", required: false, input: false },
-      mustChangePassword: {
-        type: "boolean",
-        required: false,
-        defaultValue: false,
-        input: false,
-      },
       disabledAt: { type: "date", required: false, input: false },
     },
   },
   account: { accountLinking: simtamaAccountLinking },
   databaseHooks: {
     // Hanya Better Auth yang memicu hook ini, yaitu pembuatan akun saat login SSO pertama;
-    // akun buatan Manajer (accounts.ts) dan seed ditulis langsung lewat Drizzle.
-    // Berjalan setelah transaksi pembuatan akun selesai, sebelum sesi dibuat.
+    // akun buatan Manajer (accounts.ts) dan seed ditulis langsung lewat Drizzle.    // Berjalan setelah transaksi pembuatan akun selesai, sebelum sesi dibuat.
     user: { create: { after: roleFromSimtamaUnit } },
     session: {
       create: {
         // Akun yang dinonaktifkan Manajer tidak bisa login lagi.
-        before: async (session) => {
+        before: async (session, ctx) => {
           const [u] = await db
             .select({ disabledAt: schema.user.disabledAt })
             .from(schema.user)
             .where(eq(schema.user.id, session.userId))
-          if (u?.disabledAt) {
-            throw new APIError("FORBIDDEN", { message: "Akun dinonaktifkan" })
-          }
+          if (u?.disabledAt) throw accountDisabledError(ctx)
           return { data: session }
         },
       },

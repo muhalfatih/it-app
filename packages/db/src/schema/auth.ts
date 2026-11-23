@@ -30,6 +30,7 @@ export const user = pgTable("user", {
     onDelete: "set null",
   }),
   bidang: text("bidang"),
+  // shortcut: tidak dipakai sejak SSO-only (tanpa kata sandi); hapus kolom bersama fixture tes *.db.test.ts.
   mustChangePassword: boolean("must_change_password").default(false),
   disabledAt: timestamp("disabled_at", { withTimezone: true }),
 })

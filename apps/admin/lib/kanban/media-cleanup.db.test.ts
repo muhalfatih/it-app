@@ -50,8 +50,6 @@ describe.skipIf(!TEST_DB)("hapus entri dan penyapu (database uji)", () => {
       roles: ["manajer"],
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     }))
     const [type] = await dbm.db.insert(t.taskType).values({ name: "Editing" }).returning()
     tt = String(type!.id)

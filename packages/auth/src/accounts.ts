@@ -1,6 +1,6 @@
-// Server-only: satu-satunya jalur pembuatan/perubahan akun dan kredensial.
-// Ditulis langsung lewat Drizzle (saran resmi Better Auth: pakai instance db sendiri);
-// hash kata sandi memakai fungsi hash milik Better Auth agar cocok saat login.
+// Server-only: satu-satunya jalur pembuatan/perubahan akun.
+// Ditulis langsung lewat Drizzle (saran resmi Better Auth: pakai instance db sendiri).
+// Tidak ada kata sandi: semua akun masuk lewat Simtama ID.
 import { randomUUID } from "node:crypto"
 
 import { db } from "@workspace/db/client"
@@ -10,16 +10,9 @@ import type { Bidang, Role } from "@workspace/db/schema/roles"
 
 import {
   assertManagerRemains,
-  passwordSchema,
   syntheticEmail,
   usernameSchema,
 } from "./rules"
-import { auth } from "./server"
-
-async function hashPassword(password: string) {
-  const ctx = await auth.$context
-  return ctx.password.hash(passwordSchema.parse(password))
-}
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 /** Kunci advisory: perubahan peran/nonaktif dijalankan bergiliran agar cek Manajer terakhir tidak balapan. */
@@ -53,12 +46,12 @@ export type AccountInput = {
 
 export class AccountError extends Error {}
 
+/**
+ * Akun manual (tanpa direktori Simtama): hanya username + peran, tanpa kata sandi. Login SSO
+ * pertama dengan username Simtama yang sama menautkannya lewat email sintetis (sso.ts).
+ */
 export async function createAccount(
-  input: AccountInput & {
-    username: string
-    password: string
-    mustChangePassword?: boolean
-  }
+  input: AccountInput & { username: string }
 ): Promise<{ id: string }> {
   const username = usernameSchema.parse(input.username)
   const [taken] = await db
@@ -68,7 +61,6 @@ export async function createAccount(
   if (taken) throw new AccountError("Username sudah dipakai")
 
   const id = randomUUID()
-  const password = await hashPassword(input.password)
   await db.transaction(async (tx) => {
     await tx.insert(user).values({
       id,
@@ -79,14 +71,6 @@ export async function createAccount(
       displayUsername: username,
       unitId: input.unitId,
       bidang: input.bidang.join(",") || null,
-      mustChangePassword: input.mustChangePassword ?? true,
-    })
-    await tx.insert(account).values({
-      id: randomUUID(),
-      accountId: id,
-      providerId: "credential",
-      userId: id,
-      password,
     })
     if (input.roles.length) {
       await tx
@@ -131,7 +115,6 @@ export async function createSimtamaAccount(
       displayUsername: username,
       unitId: input.unitId,
       bidang: input.bidang.join(",") || null,
-      mustChangePassword: false,
     })
     await tx.insert(account).values({
       id: randomUUID(),
@@ -198,25 +181,6 @@ export async function updateAccount(
   })
 }
 
-/** Atur ulang oleh Manajer: wajib ganti kata sandi lagi dan semua sesi lama dicabut. */
-export async function resetPassword(
-  id: string,
-  newPassword: string
-): Promise<void> {
-  const password = await hashPassword(newPassword)
-  await db.transaction(async (tx) => {
-    await tx
-      .update(account)
-      .set({ password })
-      .where(and(eq(account.userId, id), eq(account.providerId, "credential")))
-    await tx
-      .update(user)
-      .set({ mustChangePassword: true })
-      .where(eq(user.id, id))
-    await tx.delete(session).where(eq(session.userId, id))
-  })
-}
-
 /** Nonaktif: login ditolak (hook sesi) dan semua sesi yang ada dicabut. */
 export async function setDisabled(
   id: string,
@@ -232,14 +196,6 @@ export async function setDisabled(
   })
 }
 
-/** Setelah pengguna mengganti kata sandinya sendiri. */
-export async function clearMustChangePassword(id: string): Promise<void> {
-  await db
-    .update(user)
-    .set({ mustChangePassword: false })
-    .where(eq(user.id, id))
-}
-
 export type AccountRow = {
   id: string
   username: string
@@ -248,11 +204,8 @@ export type AccountRow = {
   bidang: Bidang[]
   unitId: number | null
   disabled: boolean
-  mustChangePassword: boolean
-  /** Tertaut ke Simtama ID. */
+  /** Sudah tertaut ke Simtama ID; belum = belum pernah masuk (akun manual). */
   sso: boolean
-  /** Punya kata sandi lokal; akun dari direktori Simtama tidak. */
-  hasPassword: boolean
   createdAt: Date
 }
 
@@ -261,11 +214,11 @@ export async function listAccounts(): Promise<AccountRow[]> {
     db.select().from(user).orderBy(asc(user.name)),
     db.select().from(userRole),
     db
-      .select({ userId: account.userId, providerId: account.providerId })
-      .from(account),
+      .select({ userId: account.userId })
+      .from(account)
+      .where(eq(account.providerId, "simtama")),
   ])
-  const has = (userId: string, providerId: string) =>
-    logins.some((l) => l.userId === userId && l.providerId === providerId)
+  const linked = new Set(logins.map((l) => l.userId))
   return users.map((u) => ({
     id: u.id,
     username: u.username ?? "",
@@ -274,9 +227,7 @@ export async function listAccounts(): Promise<AccountRow[]> {
     bidang: parseBidang(u.bidang),
     unitId: u.unitId,
     disabled: u.disabledAt !== null,
-    mustChangePassword: u.mustChangePassword ?? false,
-    sso: has(u.id, "simtama"),
-    hasPassword: has(u.id, "credential"),
+    sso: linked.has(u.id),
     createdAt: u.createdAt,
   }))
 }

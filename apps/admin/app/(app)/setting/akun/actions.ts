@@ -8,11 +8,10 @@ import {
   createAccount,
   createSimtamaAccount,
   existingSimtama,
-  resetPassword,
   setDisabled,
   updateAccount,
 } from "@workspace/auth/accounts"
-import { passwordSchema, usernameSchema } from "@workspace/auth/rules"
+import { usernameSchema } from "@workspace/auth/rules"
 import { withPermission } from "@workspace/auth/session"
 import {
   getStaff,
@@ -62,10 +61,8 @@ export const createAccountAction = withPermission(
   "setting.kelola",
   async (input: unknown): Promise<ActionResult> =>
     run(async () => {
-      const data = profileSchema
-        .extend({ username: usernameSchema, password: passwordSchema })
-        .parse(input)
-      await createAccount({ ...data, mustChangePassword: true })
+      const data = profileSchema.extend({ username: usernameSchema }).parse(input)
+      await createAccount(data)
     })
 )
 
@@ -75,17 +72,6 @@ export const updateAccountAction = withPermission(
     run(async () => {
       const data = profileSchema.parse(input)
       await updateAccount(z.string().min(1).parse(id), data)
-    })
-)
-
-export const resetPasswordAction = withPermission(
-  "setting.kelola",
-  async (id: string, password: string): Promise<ActionResult> =>
-    run(async () => {
-      await resetPassword(
-        z.string().min(1).parse(id),
-        passwordSchema.parse(password)
-      )
     })
 )
 
