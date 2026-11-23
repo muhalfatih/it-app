@@ -4,15 +4,18 @@ import { db } from "@workspace/db/client"
 import { count, eq } from "@workspace/db/orm"
 import { building, channel, taskType, unit, user } from "@workspace/db/schema"
 
-import { createAccount } from "./accounts"
+import { createAccount, transferManager } from "./accounts"
 import { usernameSchema } from "./rules"
 
+/**
+ * Jadikan username Simtama ID ini satu-satunya Manajer: akun dibuat bila belum ada (tertaut saat
+ * login SSO pertama), lalu peran Manajer dipindahkan ke sana dari akun lain mana pun.
+ */
 async function seedManager() {
   const rawUsername = process.env.SEED_MANAGER_USERNAME
-  const password = process.env.SEED_MANAGER_PASSWORD
-  if (!rawUsername || !password) {
+  if (!rawUsername) {
     console.log(
-      "Lewati akun Manajer: SEED_MANAGER_USERNAME/SEED_MANAGER_PASSWORD belum diisi di .env"
+      "Lewati akun Manajer: SEED_MANAGER_USERNAME belum diisi di .env"
     )
     return
   }
@@ -21,21 +24,20 @@ async function seedManager() {
     .select({ id: user.id })
     .from(user)
     .where(eq(user.username, username))
-  if (exists) {
-    console.log(`Akun Manajer "${username}" sudah ada, dilewati.`)
-    return
-  }
-  await createAccount({
-    username,
-    password,
-    name: "Manajer",
-    roles: ["manajer"],
-    bidang: ["it", "media"],
-    unitId: null,
-    mustChangePassword: true,
-  })
+  const id =
+    exists?.id ??
+    (
+      await createAccount({
+        username,
+        name: "Manajer",
+        roles: [],
+        bidang: ["it", "media"],
+        unitId: null,
+      })
+    ).id
+  await transferManager(id, { allowUnlinked: true })
   console.log(
-    `Akun Manajer "${username}" dibuat (wajib ganti kata sandi saat login pertama).`
+    `Manajer sekarang "${username}"${exists ? "" : " (akun baru; masuk dengan Simtama ID ber-username sama)"}; peran Manajer akun lain dilepas.`
   )
 }
 

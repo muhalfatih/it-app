@@ -14,7 +14,7 @@ vi.mock("@workspace/auth/session", async () => {
     getCurrentUser: async () => ({ id: "u1" }),
     withPermission: (permission: never, fn: never) =>
       withPermissionUsing(
-        async () => ({ roles: viewer.roles, mustChangePassword: false, disabled: false }),
+        async () => ({ roles: viewer.roles, disabled: false }),
         permission,
         fn
       ),

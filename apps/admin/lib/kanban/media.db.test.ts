@@ -89,8 +89,6 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
     return { id, permissions: permissionsFor(roles) }
   }
@@ -101,6 +99,7 @@ describe.skipIf(!TEST_DB)("mutasi media (database uji)", () => {
     presigned.length = 0
     await dbm.db.execute(orm.sql`truncate table "user", task_type, channel cascade`)
     M = await mk("uji.manajer", ["manajer"])
+    await accounts.transferManager(M.id, { allowUnlinked: true })
     K = await mk("uji.khusus", ["sdm_khusus"])
     V = await mk("uji.direktur", ["direktur"]) // tanpa kanban.isi
     const [type] = await dbm.db.insert(t.taskType).values({ name: "Editing" }).returning()

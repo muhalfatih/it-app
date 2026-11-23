@@ -1,47 +1,30 @@
-// Server-only: satu-satunya jalur pembuatan/perubahan akun dan kredensial.
-// Ditulis langsung lewat Drizzle (saran resmi Better Auth: pakai instance db sendiri);
-// hash kata sandi memakai fungsi hash milik Better Auth agar cocok saat login.
+// Server-only: satu-satunya jalur pembuatan/perubahan akun.
+// Ditulis langsung lewat Drizzle (saran resmi Better Auth: pakai instance db sendiri).
+// Tidak ada kata sandi: semua akun masuk lewat Simtama ID.
 import { randomUUID } from "node:crypto"
 
 import { db } from "@workspace/db/client"
-import { and, asc, eq, inArray, or, sql } from "@workspace/db/orm"
+import { and, asc, eq, inArray, ne, or, sql } from "@workspace/db/orm"
 import { account, session, user, userRole } from "@workspace/db/schema"
 import type { Bidang, Role } from "@workspace/db/schema/roles"
 
-import {
-  assertManagerRemains,
-  passwordSchema,
-  syntheticEmail,
-  usernameSchema,
-} from "./rules"
-import { auth } from "./server"
-
-async function hashPassword(password: string) {
-  const ctx = await auth.$context
-  return ctx.password.hash(passwordSchema.parse(password))
-}
+import { syntheticEmail, usernameSchema, withoutManager } from "./rules"
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
-/** Kunci advisory: perubahan peran/nonaktif dijalankan bergiliran agar cek Manajer terakhir tidak balapan. */
+/**
+ * Kunci advisory: perubahan peran, nonaktif, dan pemindahan Manajer dijalankan bergiliran,
+ * agar dua perubahan serentak tidak menghasilkan nol atau dua Manajer.
+ */
 const MANAGER_LOCK = 4270001
+const lockManagers = (tx: Tx) =>
+  tx.execute(sql`select pg_advisory_xact_lock(${MANAGER_LOCK})`)
 
-async function guardManagers(
-  tx: Tx,
-  change: Parameters<typeof assertManagerRemains>[1]
-) {
-  await tx.execute(sql`select pg_advisory_xact_lock(${MANAGER_LOCK})`)
-  const users = await tx
-    .select({ id: user.id, disabledAt: user.disabledAt })
-    .from(user)
-  const roles = await tx.select().from(userRole)
-  assertManagerRemains(
-    users.map((u) => ({
-      id: u.id,
-      disabled: u.disabledAt !== null,
-      roles: roles.filter((r) => r.userId === u.id).map((r) => r.role as Role),
-    })),
-    change
-  )
+async function isManager(tx: Tx, id: string) {
+  const rows = await tx
+    .select({ role: userRole.role })
+    .from(userRole)
+    .where(and(eq(userRole.userId, id), eq(userRole.role, "manajer")))
+  return rows.length > 0
 }
 
 export type AccountInput = {
@@ -53,12 +36,12 @@ export type AccountInput = {
 
 export class AccountError extends Error {}
 
+/**
+ * Akun manual (tanpa direktori Simtama): hanya username + peran, tanpa kata sandi. Login SSO
+ * pertama dengan username Simtama yang sama menautkannya lewat email sintetis (sso.ts).
+ */
 export async function createAccount(
-  input: AccountInput & {
-    username: string
-    password: string
-    mustChangePassword?: boolean
-  }
+  input: AccountInput & { username: string }
 ): Promise<{ id: string }> {
   const username = usernameSchema.parse(input.username)
   const [taken] = await db
@@ -68,7 +51,6 @@ export async function createAccount(
   if (taken) throw new AccountError("Username sudah dipakai")
 
   const id = randomUUID()
-  const password = await hashPassword(input.password)
   await db.transaction(async (tx) => {
     await tx.insert(user).values({
       id,
@@ -79,22 +61,16 @@ export async function createAccount(
       displayUsername: username,
       unitId: input.unitId,
       bidang: input.bidang.join(",") || null,
-      mustChangePassword: input.mustChangePassword ?? true,
     })
-    await tx.insert(account).values({
-      id: randomUUID(),
-      accountId: id,
-      providerId: "credential",
-      userId: id,
-      password,
-    })
-    if (input.roles.length) {
-      await tx
-        .insert(userRole)
-        .values(input.roles.map((role) => ({ userId: id, role })))
-    }
+    await insertRoles(tx, id, input.roles)
   })
   return { id }
+}
+
+/** Peran Manajer tidak pernah ikut dari isian (lihat withoutManager). */
+async function insertRoles(tx: Tx, id: string, roles: readonly Role[]) {
+  const rows = withoutManager(roles).map((role) => ({ userId: id, role }))
+  if (rows.length) await tx.insert(userRole).values(rows)
 }
 
 /**
@@ -131,7 +107,6 @@ export async function createSimtamaAccount(
       displayUsername: username,
       unitId: input.unitId,
       bidang: input.bidang.join(",") || null,
-      mustChangePassword: false,
     })
     await tx.insert(account).values({
       id: randomUUID(),
@@ -139,11 +114,7 @@ export async function createSimtamaAccount(
       providerId: "simtama",
       userId: id,
     })
-    if (input.roles.length) {
-      await tx
-        .insert(userRole)
-        .values(input.roles.map((role) => ({ userId: id, role })))
-    }
+    await insertRoles(tx, id, input.roles)
   })
   return { id }
 }
@@ -180,7 +151,7 @@ export async function updateAccount(
   input: AccountInput
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    await guardManagers(tx, { id, roles: input.roles })
+    await lockManagers(tx)
     await tx
       .update(user)
       .set({
@@ -189,31 +160,47 @@ export async function updateAccount(
         bidang: input.bidang.join(",") || null,
       })
       .where(eq(user.id, id))
-    await tx.delete(userRole).where(eq(userRole.userId, id))
-    if (input.roles.length) {
-      await tx
-        .insert(userRole)
-        .values(input.roles.map((role) => ({ userId: id, role })))
-    }
+    // Peran Manajer akun ini (ada atau tidak) dipertahankan; selebihnya diganti isian.
+    await tx
+      .delete(userRole)
+      .where(and(eq(userRole.userId, id), ne(userRole.role, "manajer")))
+    await insertRoles(tx, id, input.roles)
   })
 }
 
-/** Atur ulang oleh Manajer: wajib ganti kata sandi lagi dan semua sesi lama dicabut. */
-export async function resetPassword(
+/**
+ * Pindahkan peran Manajer ke akun `id`; semua akun lain kehilangan peran Manajer (peran lain
+ * tetap). Akun tujuan harus aktif dan, kecuali `allowUnlinked` (seed), sudah pernah masuk
+ * dengan Simtama ID, agar peran tidak jatuh ke akun yang belum bisa dipakai.
+ */
+export async function transferManager(
   id: string,
-  newPassword: string
+  opts: { allowUnlinked?: boolean } = {}
 ): Promise<void> {
-  const password = await hashPassword(newPassword)
   await db.transaction(async (tx) => {
-    await tx
-      .update(account)
-      .set({ password })
-      .where(and(eq(account.userId, id), eq(account.providerId, "credential")))
-    await tx
-      .update(user)
-      .set({ mustChangePassword: true })
+    await lockManagers(tx)
+    const [target] = await tx
+      .select({ disabledAt: user.disabledAt, linked: account.id })
+      .from(user)
+      .leftJoin(
+        account,
+        and(eq(account.userId, user.id), eq(account.providerId, "simtama"))
+      )
       .where(eq(user.id, id))
-    await tx.delete(session).where(eq(session.userId, id))
+    if (!target) throw new AccountError("Akun tidak ditemukan")
+    if (target.disabledAt)
+      throw new AccountError("Akun nonaktif tidak bisa dijadikan Manajer")
+    if (!target.linked && !opts.allowUnlinked)
+      throw new AccountError(
+        "Pemilik akun belum pernah masuk dengan Simtama ID; minta ia masuk sekali dulu"
+      )
+    await tx
+      .delete(userRole)
+      .where(and(eq(userRole.role, "manajer"), ne(userRole.userId, id)))
+    await tx
+      .insert(userRole)
+      .values({ userId: id, role: "manajer" })
+      .onConflictDoNothing()
   })
 }
 
@@ -223,21 +210,17 @@ export async function setDisabled(
   disabled: boolean
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    if (disabled) await guardManagers(tx, { id, disabled: true })
+    await lockManagers(tx)
+    if (disabled && (await isManager(tx, id)))
+      throw new AccountError(
+        "Manajer tidak bisa dinonaktifkan. Jadikan akun lain Manajer dulu."
+      )
     await tx
       .update(user)
       .set({ disabledAt: disabled ? new Date() : null })
       .where(eq(user.id, id))
     if (disabled) await tx.delete(session).where(eq(session.userId, id))
   })
-}
-
-/** Setelah pengguna mengganti kata sandinya sendiri. */
-export async function clearMustChangePassword(id: string): Promise<void> {
-  await db
-    .update(user)
-    .set({ mustChangePassword: false })
-    .where(eq(user.id, id))
 }
 
 export type AccountRow = {
@@ -248,11 +231,8 @@ export type AccountRow = {
   bidang: Bidang[]
   unitId: number | null
   disabled: boolean
-  mustChangePassword: boolean
-  /** Tertaut ke Simtama ID. */
+  /** Sudah tertaut ke Simtama ID; belum = belum pernah masuk (akun manual). */
   sso: boolean
-  /** Punya kata sandi lokal; akun dari direktori Simtama tidak. */
-  hasPassword: boolean
   createdAt: Date
 }
 
@@ -261,11 +241,11 @@ export async function listAccounts(): Promise<AccountRow[]> {
     db.select().from(user).orderBy(asc(user.name)),
     db.select().from(userRole),
     db
-      .select({ userId: account.userId, providerId: account.providerId })
-      .from(account),
+      .select({ userId: account.userId })
+      .from(account)
+      .where(eq(account.providerId, "simtama")),
   ])
-  const has = (userId: string, providerId: string) =>
-    logins.some((l) => l.userId === userId && l.providerId === providerId)
+  const linked = new Set(logins.map((l) => l.userId))
   return users.map((u) => ({
     id: u.id,
     username: u.username ?? "",
@@ -274,9 +254,7 @@ export async function listAccounts(): Promise<AccountRow[]> {
     bidang: parseBidang(u.bidang),
     unitId: u.unitId,
     disabled: u.disabledAt !== null,
-    mustChangePassword: u.mustChangePassword ?? false,
-    sso: has(u.id, "simtama"),
-    hasPassword: has(u.id, "credential"),
+    sso: linked.has(u.id),
     createdAt: u.createdAt,
   }))
 }

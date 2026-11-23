@@ -4,7 +4,12 @@ import { memoryAdapter } from "better-auth/adapters/memory"
 import { username } from "better-auth/plugins"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { simtamaAccountLinking, simtamaOAuth } from "./sso"
+import {
+  accountDisabledError,
+  simtamaAccountLinking,
+  simtamaOAuth,
+  ssoOnly,
+} from "./sso"
 
 const ISSUER = "https://idp.test"
 const BASE = "http://localhost:3000"
@@ -15,18 +20,20 @@ const auth = betterAuth({
   baseURL: BASE,
   secret: "x".repeat(40),
   database: memoryAdapter(db),
-  emailAndPassword: { enabled: true, disableSignUp: true },
-  user: {
-    additionalFields: {
-      mustChangePassword: {
-        type: "boolean",
-        required: false,
-        defaultValue: false,
-        input: false,
+  ...ssoOnly,
+  account: { accountLinking: simtamaAccountLinking },
+  databaseHooks: {
+    // Tiruan hook akun nonaktif di server.ts (yang membaca database asli).
+    session: {
+      create: {
+        before: async (session, ctx) => {
+          const u = db.user!.find((r) => r.id === session.userId)
+          if (u?.username === "nonaktif") throw accountDisabledError(ctx)
+          return { data: session }
+        },
       },
     },
   },
-  account: { accountLinking: simtamaAccountLinking },
   plugins: [
     username(),
     simtamaOAuth({ issuer: ISSUER, clientId: "itapp", clientSecret: "s3cret" }),
@@ -78,8 +85,18 @@ async function login(account: Row) {
   return { authorize, location: callback.headers.get("location") }
 }
 
-const userBy = (field: string, value: unknown) =>
-  db.user!.find((u) => u[field] === value)
+/** Akun yang didaftarkan Manajer (accounts.ts): username + email sintetis, belum tertaut. */
+async function register(username: string) {
+  return (await auth.$context).internalAdapter.createUser(
+    {
+      email: `${username}@akun.lokal`,
+      name: username,
+      username,
+      emailVerified: false,
+    },
+    { method: "admin" }
+  )
+}
 
 describe("SSO Simtama", () => {
   beforeEach(() => {
@@ -96,23 +113,14 @@ describe("SSO Simtama", () => {
     expect(p.get("redirect_uri")).toBe(`${BASE}/api/auth/callback/simtama`)
     expect(p.get("scope")).toBe("openid profile email")
     expect(p.get("code_challenge_method")).toBe("S256")
-    expect(p.get("prompt")).toBe("select_account")
+    // Tanpa pemilih akun: sesi Simtama yang masih aktif langsung dipakai.
+    expect(p.has("prompt")).toBe(false)
     expect(tokenRequest!.auth).toBe(`Basic ${btoa("itapp:s3cret")}`)
     expect(tokenRequest!.body).toContain("code_verifier=")
   })
 
   it("menautkan akun lokal ber-username sama, lalu mengenali lewat sub", async () => {
-    const ctx = await auth.$context
-    // Seperti akun yang dibuat Manajer (accounts.ts).
-    const local = await ctx.internalAdapter.createUser(
-      {
-        email: "budi@akun.lokal",
-        name: "budi",
-        username: "budi",
-        emailVerified: false,
-      },
-      { method: "admin" }
-    )
+    const local = await register("budi")
     expect((await login({ sub: "1", username: "Budi" })).location).toBe("/")
     // Username Simtama berganti: tetap akun yang sama.
     expect((await login({ sub: "1", username: "budi.baru" })).location).toBe(
@@ -125,20 +133,56 @@ describe("SSO Simtama", () => {
     })
   })
 
-  it("membuat akun tanpa peran untuk pegawai baru", async () => {
-    expect(
-      (await login({ sub: "2", username: "Siti.R", name: "Siti R" })).location
-    ).toBe("/")
-    expect(await login({ sub: "2", username: "siti.r" })).toMatchObject({
-      location: "/",
+  it("menolak pegawai yang belum didaftarkan Manajer", async () => {
+    const { location } = await login({ sub: "2", username: "siti.r" })
+    expect(location).toBe("/masuk?error=signup_disabled")
+    expect(db.user).toHaveLength(0)
+    expect(db.session).toHaveLength(0)
+  })
+
+  it("mengenali akun dari direktori yang sudah tertaut lewat uid", async () => {
+    // Seperti createSimtamaAccount: akun + baris account simtama, username boleh berbeda.
+    const local = await register("siti")
+    db.account!.push({
+      id: "acc-siti",
+      accountId: "7",
+      providerId: "simtama",
+      userId: local.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
+    expect((await login({ sub: "7", username: "siti.r" })).location).toBe("/")
     expect(db.user).toHaveLength(1)
-    expect(userBy("username", "siti.r")).toMatchObject({
-      email: "siti.r@akun.lokal",
-      displayUsername: "siti.r",
-      name: "Siti R",
-      mustChangePassword: false,
+    expect(db.session).toHaveLength(1)
+  })
+
+  it("akun nonaktif kembali ke /masuk dengan kode galat", async () => {
+    await register("nonaktif")
+    const { location } = await login({ sub: "5", username: "nonaktif" })
+    expect(location).toBe("/masuk?error=account_disabled")
+    expect(db.session).toHaveLength(0)
+  })
+
+  it("di luar callback SSO, penolakan akun nonaktif tetap galat 403 biasa", () => {
+    expect(accountDisabledError(null)).toMatchObject({
+      message: "Akun dinonaktifkan",
     })
+  })
+
+  it.each([
+    ["/sign-in/username", { username: "budi", password: "rahasia-123" }],
+    ["/sign-in/email", { email: "budi@akun.lokal", password: "rahasia-123" }],
+    ["/sign-up/email", { email: "x@akun.lokal", password: "rahasia-123", name: "x" }],
+    ["/change-password", { currentPassword: "a", newPassword: "rahasia-123" }],
+  ])("menutup login kata sandi: %s", async (path, body) => {
+    const res = await auth.handler(
+      new Request(`${BASE}/api/auth${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: BASE },
+        body: JSON.stringify(body),
+      })
+    )
+    expect(res.status).toBe(404)
   })
 
   it("menolak username yang tidak lolos aturan akun lokal", async () => {

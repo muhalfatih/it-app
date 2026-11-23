@@ -68,8 +68,6 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
   }
 
@@ -114,6 +112,7 @@ describe.skipIf(!TEST_DB)("pengajuan SDM (database uji)", () => {
       orm.sql`truncate table "user", task_type, unit, channel cascade`
     )
     boss = (await mk("uji.boss", ["manajer"])).id
+    await accounts.transferManager(boss, { allowUnlinked: true })
     staf = (await mk("uji.staf", ["sdm_khusus"])).id
     pengaju = (await mk("uji.pengaju", [])).id
     lain = (await mk("uji.lain", [])).id

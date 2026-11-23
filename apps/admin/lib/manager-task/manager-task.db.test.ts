@@ -38,8 +38,6 @@ describe.skipIf(!TEST_DB)("tugas dari manajer (database uji)", () => {
       roles,
       bidang: [],
       unitId: null,
-      password: "Rahasia-Uji-1",
-      mustChangePassword: false,
     })
   }
 
@@ -54,6 +52,7 @@ describe.skipIf(!TEST_DB)("tugas dari manajer (database uji)", () => {
   beforeEach(async () => {
     await dbm.db.execute(orm.sql`truncate table "user" cascade`)
     boss = (await mk("uji.boss", ["manajer"])).id
+    await accounts.transferManager(boss, { allowUnlinked: true })
     s1 = (await mk("uji.satu", ["sdm_khusus"])).id
     s2 = (await mk("uji.dua", ["sdm_strategi"])).id
   })

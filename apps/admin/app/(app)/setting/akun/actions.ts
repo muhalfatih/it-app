@@ -8,11 +8,11 @@ import {
   createAccount,
   createSimtamaAccount,
   existingSimtama,
-  resetPassword,
   setDisabled,
+  transferManager,
   updateAccount,
 } from "@workspace/auth/accounts"
-import { passwordSchema, usernameSchema } from "@workspace/auth/rules"
+import { usernameSchema } from "@workspace/auth/rules"
 import { withPermission } from "@workspace/auth/session"
 import {
   getStaff,
@@ -48,12 +48,6 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
       return { error: error.issues[0]?.message ?? "Isian tidak valid" }
     }
     if (error instanceof AccountError) return { error: error.message }
-    if (
-      error instanceof Error &&
-      error.message.startsWith("Harus ada minimal satu Manajer")
-    ) {
-      return { error: error.message }
-    }
     throw error
   }
 }
@@ -62,10 +56,8 @@ export const createAccountAction = withPermission(
   "setting.kelola",
   async (input: unknown): Promise<ActionResult> =>
     run(async () => {
-      const data = profileSchema
-        .extend({ username: usernameSchema, password: passwordSchema })
-        .parse(input)
-      await createAccount({ ...data, mustChangePassword: true })
+      const data = profileSchema.extend({ username: usernameSchema }).parse(input)
+      await createAccount(data)
     })
 )
 
@@ -78,14 +70,12 @@ export const updateAccountAction = withPermission(
     })
 )
 
-export const resetPasswordAction = withPermission(
+/** Serahkan peran Manajer ke akun lain; pemanggil (Manajer saat ini) kehilangan peran itu. */
+export const transferManagerAction = withPermission(
   "setting.kelola",
-  async (id: string, password: string): Promise<ActionResult> =>
+  async (id: string): Promise<ActionResult> =>
     run(async () => {
-      await resetPassword(
-        z.string().min(1).parse(id),
-        passwordSchema.parse(password)
-      )
+      await transferManager(z.string().min(1).parse(id))
     })
 )
 

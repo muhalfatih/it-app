@@ -12,33 +12,33 @@ export const usernameSchema = z
     message: "Username 3–30 karakter: huruf, angka, titik, atau garis bawah",
   })
 
-export const passwordSchema = z
-  .string()
-  .min(8, { message: "Kata sandi minimal 8 karakter" })
+/** Header berisi path + query permintaan, dipasang proxy.ts agar guard tahu halaman asal. */
+export const PATH_HEADER = "x-app-path"
 
-type AccountState = { id: string; roles: readonly Role[]; disabled: boolean }
-
-/** Mencegah aplikasi kehilangan Manajer aktif terakhir (tidak ada lagi yang bisa mengelola akun). */
-export function assertManagerRemains(
-  accounts: readonly AccountState[],
-  change: { id: string; roles?: readonly Role[]; disabled?: boolean }
-): void {
-  const after = accounts.map((a) =>
-    a.id === change.id
-      ? {
-          ...a,
-          roles: change.roles ?? a.roles,
-          disabled: change.disabled ?? a.disabled,
-        }
-      : a
-  )
-  const activeManagers = after.filter(
-    (a) => !a.disabled && a.roles.includes("manajer")
-  )
-  if (activeManagers.length === 0) {
-    throw new Error("Harus ada minimal satu Manajer aktif")
-  }
+/**
+ * Tujuan setelah masuk: hanya path internal (bukan `//host` atau `/\host`, yang dibaca browser
+ * sebagai domain lain) dan bukan halaman masuk/endpoint auth (mencegah loop). Selain itu undefined.
+ */
+export function safeNext(value: string | null | undefined): string | undefined {
+  if (!value || !value.startsWith("/") || /^\/[/\\]/.test(value)) return
+  if (/[\u0000-\u001f\\]/.test(value)) return
+  if (/^\/(masuk|api\/auth)(\/|\?|$)/.test(value)) return
+  return value
 }
+
+export function loginPath(from: string | null | undefined): string {
+  const next = safeNext(from)
+  return next && next !== "/"
+    ? `/masuk?next=${encodeURIComponent(next)}`
+    : "/masuk"
+}
+
+/**
+ * Tepat satu Manajer: peran ini tidak bisa diberikan atau dicabut lewat form akun, hanya
+ * dipindahkan dengan transferManager (accounts.ts). Peran lain dari isian dipakai apa adanya.
+ */
+export const withoutManager = (roles: readonly Role[]): Role[] =>
+  roles.filter((r) => r !== "manajer")
 
 /** Email wajib di tabel Better Auth; akun lokal memakai email sintetis yang tidak dipakai untuk apa pun. */
 // shortcut: email sintetis, ganti dengan email asli saat adapter sistem informasi sekolah dipasang.

@@ -38,7 +38,8 @@ Yang harus diisi sendiri:
 | Variabel | Cara mengisi |
 |---|---|
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` (minimal 32 karakter) |
-| `SEED_MANAGER_PASSWORD` | kata sandi akun Manajer awal; wajib diganti saat login pertama |
+| `SIMTAMA_ISSUER`, `SSO_CLIENT_ID`, `SSO_CLIENT_SECRET` | klien SSO Simtama ID; **wajib**, satu-satunya cara masuk |
+| `SEED_MANAGER_USERNAME` | username Simtama ID Manajer (hanya satu); `db:seed` menjadikannya Manajer dan melepas Manajer lama |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `pnpm dlx web-push generate-vapid-keys`; tanpa ketiganya push mati dan hanya dicatat di log |
 
 Sisanya sudah berisi nilai bawaan untuk pengembangan lokal. Di produksi, `BETTER_AUTH_URL`,
