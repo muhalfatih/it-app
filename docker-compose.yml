@@ -1,5 +1,70 @@
-# PostgreSQL dan RustFS (penyimpanan file, API S3) untuk pengembangan lokal. Variabel dibaca dari .env di root repo.
+# Seluruh stack dalam satu perintah: `docker compose up -d --build`. Variabel dibaca dari .env di root repo.
+#
+# Jaringan: antarlayanan memakai jaringan internal compose dengan nama layanan (db:5432, rustfs:9000).
+# Port host hanya untuk akses dari luar Docker. Template per layanan:
+#   ports:
+#     - "127.0.0.1:<port host>:<port container>"   # hanya mesin ini
+#     - "<port host>:<port container>"             # terbuka ke jaringan (LAN/HP)
+# Hapus `#` di baris yang ingin dibuka, lalu `docker compose up -d` lagi.
 services:
+  app:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Alamat internal menimpa nilai localhost di .env. BETTER_AUTH_URL dan S3_PUBLIC_URL tetap dari .env
+      # karena dipakai browser.
+      DATABASE_URL: postgres://${POSTGRES_USER:-itapp}:${POSTGRES_PASSWORD:-itapp}@db:5432/${POSTGRES_DB:-itapp}
+      S3_ENDPOINT: http://rustfs:9000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rustfs-init:
+        condition: service_completed_successfully
+
+  # Sekali jalan: migrasi drizzle sebelum aplikasi start.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      target: deps
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-itapp}:${POSTGRES_PASSWORD:-itapp}@db:5432/${POSTGRES_DB:-itapp}
+    # .env dibaca skrip seed (`tsx --env-file`); DATABASE_URL di atas tetap menang (tidak ditimpa).
+    volumes:
+      - ./.env:/repo/.env:ro
+    command: ["pnpm", "--filter", "@workspace/db", "db:migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Pekerjaan cron (push:reminder, report:freeze, dst.); tidak ikut `up`, dipanggil dari crontab host:
+  #   docker compose run --rm -T tasks pnpm --filter admin push:reminder
+  # Lihat docs/operasional-cron.md.
+  tasks:
+    profiles: [tasks]
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      target: deps
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-itapp}:${POSTGRES_PASSWORD:-itapp}@db:5432/${POSTGRES_DB:-itapp}
+      S3_ENDPOINT: http://rustfs:9000
+    # Skrip memakai `tsx --env-file=../../.env`; variabel di atas tetap menang.
+    volumes:
+      - ./.env:/repo/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+
   db:
     image: postgres:17
     restart: unless-stopped
@@ -7,9 +72,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-itapp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-itapp}
       POSTGRES_DB: ${POSTGRES_DB:-itapp}
-    ports:
-      # Hanya bisa diakses dari mesin ini.
-      - "127.0.0.1:5432:5432"
+    # Internal saja. Buka bila menjalankan `pnpm dev` dari host atau memakai alat DB.
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +94,7 @@ services:
       # Konsol hanya dibuka di localhost; jangan biarkan bawaan "*".
       RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: http://localhost:9001
     ports:
-      # Hanya bisa diakses dari mesin ini. 9000 = API S3, 9001 = konsol.
+      # 9000 = API S3, WAJIB terjangkau browser (URL bertanda tangan = S3_PUBLIC_URL). 9001 = konsol.
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     volumes:

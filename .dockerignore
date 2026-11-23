@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+**/.turbo
+.git
+.env
+.env.*
+.claude
+.superpowers
+.agents
+file_test

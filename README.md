@@ -45,11 +45,27 @@ Yang harus diisi sendiri:
 Sisanya sudah berisi nilai bawaan untuk pengembangan lokal. Di produksi, `BETTER_AUTH_URL`,
 `APP_ORIGIN`, dan `S3_PUBLIC_URL` harus origin publik `https://…` tanpa path.
 
-## Pasang pertama kali
+## Jalankan semua dengan Docker
+
+```bash
+docker compose up -d --build                      # app + migrasi + Postgres + RustFS, http://localhost:3000
+docker compose run --rm migrate pnpm --filter @workspace/auth db:seed   # sekali: akun Manajer awal
+```
+
+Antarlayanan memakai jaringan internal compose (`db:5432`, `rustfs:9000`). Hanya `app` (3000) dan
+RustFS (9000 API, wajib terjangkau browser; 9001 konsol) yang dibuka ke host, semuanya di
+`127.0.0.1`. Untuk membuka port lain, hapus `#` pada blok `ports:` layanan itu di
+`docker-compose.yml` (templatnya ada di kepala berkas). `NEXT_PUBLIC_VAPID_PUBLIC_KEY` ditanam saat
+build: setelah mengubahnya, jalankan ulang dengan `--build`.
+
+## Pasang pertama kali (pengembangan di host)
+
+Buka dulu port `db` (`127.0.0.1:5432:5432`) di `docker-compose.yml`; `pnpm dev` memakai port 3000
+yang sama dengan layanan `app`, jadi jangan jalankan keduanya bersamaan.
 
 ```bash
 pnpm install
-docker compose up -d                              # Postgres, RustFS, dan init bucket + CORS
+docker compose up -d db rustfs rustfs-init        # Postgres, RustFS, dan init bucket + CORS
 pnpm --filter @workspace/db db:migrate            # migrasi skema
 pnpm --filter @workspace/auth db:seed             # akun Manajer awal + contoh data Setting
 pnpm dev                                          # http://localhost:3000
@@ -94,7 +110,64 @@ DATABASE_URL=postgres://itapp:itapp@127.0.0.1:5432/itapp_test pnpm test
 
 ## Produksi (VPS)
 
-Aplikasi berjalan di host dengan pnpm/nvm; Postgres dan RustFS tetap di Docker Compose.
+### Dengan Docker (disarankan)
+
+VPS hanya butuh Docker Engine + plugin Compose (x86 maupun ARM). Contoh di bawah memakai dua
+subdomain: `app.domainmu` (aplikasi) dan `files.domainmu` (RustFS, dijangkau browser untuk unggah
+dan unduh).
+
+1. Clone repo (mis. ke `/srv/it-app`), lalu `cp env.example .env` dan isi. Yang berbeda dari lokal:
+   - `BETTER_AUTH_URL` dan `APP_ORIGIN` = `https://app.domainmu`, `S3_PUBLIC_URL` = `https://files.domainmu`.
+   - `BETTER_AUTH_SECRET` baru; `POSTGRES_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` diganti nilai
+     acak yang kuat. `POSTGRES_PASSWORD` tanpa `@ : / ?` karena dipakai di URL koneksi.
+   - `DATABASE_URL` dan `S3_ENDPOINT` boleh dibiarkan; compose menimpanya dengan alamat internal.
+2. Minta admin Simtama mendaftarkan redirect `https://app.domainmu/api/auth/callback/simtama`.
+3. Jalankan:
+
+   ```bash
+   docker compose up -d --build
+   docker compose run --rm migrate pnpm --filter @workspace/auth db:seed   # hanya untuk basis data baru
+   ```
+
+4. Pasang reverse proxy HTTPS di VPS yang sama. Port aplikasi dan RustFS terikat ke `127.0.0.1`,
+   jadi tidak terbuka ke internet tanpa proxy. Contoh `Caddyfile` (sertifikat otomatis):
+
+   ```caddyfile
+   app.domainmu {
+     reverse_proxy 127.0.0.1:3000
+   }
+   files.domainmu {
+     reverse_proxy 127.0.0.1:9000
+   }
+   ```
+
+   Memakai nginx: naikkan `client_max_body_size` di blok `files.domainmu` agar unggahan video lolos.
+5. Pasang cron: bagian "Pasang (VPS dengan Docker saja)" di `docs/operasional-cron.md`.
+
+Memperbarui ke versi baru:
+
+```bash
+git pull
+docker compose up -d --build                      # migrasi baru dijalankan otomatis oleh layanan migrate
+docker compose --profile tasks build tasks        # image pekerjaan cron
+```
+
+Memindahkan data dari server lama (basis data dan file tidak ikut `git`):
+
+```bash
+# server lama
+docker compose exec -T db pg_dump -U itapp -Fc itapp > itapp.dump
+# server baru, setelah `docker compose up -d db`
+docker compose exec -T db pg_restore -U itapp -d itapp --clean --if-exists < itapp.dump
+```
+
+Isi bucket disalin dengan klien S3 apa pun (mis. `aws s3 sync` dari endpoint lama ke endpoint baru)
+dengan port 9000 dibuka sementara, atau dengan menyalin volume `rustfsdata`.
+
+### Dengan pnpm di host
+
+Aplikasi berjalan di host dengan pnpm/nvm; Postgres dan RustFS tetap di Docker Compose (buka port
+`db` di `docker-compose.yml`).
 
 ```bash
 pnpm install --frozen-lockfile
