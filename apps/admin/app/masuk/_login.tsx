@@ -4,7 +4,6 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 
 import { authClient } from "@workspace/auth/client"
-import { Button } from "@workspace/ui/components/button"
 import { LoginForm } from "@workspace/ui/components/login-form"
 
 /** Pesan galat dalam bahasa pengguna; kode dari Better Auth. */
@@ -42,10 +41,28 @@ export function LoginClient({
   )
   const [pending, setPending] = React.useState(false)
 
-  const form = (
+  return (
     <LoginForm
       error={error}
       pending={pending}
+      onSso={
+        sso
+          ? async () => {
+              setPending(true)
+              setError(undefined)
+              // Better Auth mengarahkan browser ke Simtama ID (state + PKCE disimpan di server).
+              const { error: failure } = await authClient.signIn.social({
+                provider: "simtama",
+                callbackURL: "/",
+                errorCallbackURL: "/masuk",
+              })
+              if (failure) {
+                setError(ssoMessageFor(failure.code ?? ""))
+                setPending(false)
+              }
+            }
+          : undefined
+      }
       onSubmit={async (event) => {
         event.preventDefault()
         const form = new FormData(event.currentTarget)
@@ -69,33 +86,5 @@ export function LoginClient({
         router.refresh()
       }}
     />
-  )
-  if (!sso) return form
-
-  return (
-    <div className="flex flex-col gap-4">
-      {form}
-      <Button
-        type="button"
-        variant="outline"
-        disabled={pending}
-        onClick={async () => {
-          setPending(true)
-          setError(undefined)
-          // Better Auth mengarahkan browser ke Simtama ID (state + PKCE disimpan di server).
-          const { error: failure } = await authClient.signIn.social({
-            provider: "simtama",
-            callbackURL: "/",
-            errorCallbackURL: "/masuk",
-          })
-          if (failure) {
-            setError(ssoMessageFor(failure.code ?? ""))
-            setPending(false)
-          }
-        }}
-      >
-        Masuk dengan Simtama ID
-      </Button>
-    </div>
   )
 }
