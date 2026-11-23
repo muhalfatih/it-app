@@ -2,7 +2,14 @@
 // Jalankan: pnpm --filter @workspace/auth db:seed  (membaca .env di root repo)
 import { db } from "@workspace/db/client"
 import { count, eq } from "@workspace/db/orm"
-import { building, channel, taskType, unit, user } from "@workspace/db/schema"
+import {
+  building,
+  channel,
+  taskType,
+  unit,
+  user,
+  userRole,
+} from "@workspace/db/schema"
 
 import { createAccount } from "./accounts"
 import { usernameSchema } from "./rules"
@@ -22,7 +29,12 @@ async function seedManager() {
     .from(user)
     .where(eq(user.username, username))
   if (exists) {
-    console.log(`Akun Manajer "${username}" sudah ada, dilewati.`)
+    // Mis. sudah dibuat otomatis saat login SSO pertama: pastikan perannya Manajer (peran lain tetap).
+    await db
+      .insert(userRole)
+      .values({ userId: exists.id, role: "manajer" })
+      .onConflictDoNothing()
+    console.log(`Akun "${username}" sudah ada; peran Manajer dipastikan.`)
     return
   }
   await createAccount({
