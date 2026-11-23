@@ -9,6 +9,9 @@ try {
 }
 
 const nextConfig: NextConfig = {
+  // Image Docker (apps/admin/Dockerfile); root pelacakan = root monorepo agar packages/* ikut.
+  output: "standalone",
+  outputFileTracingRoot: path.resolve(import.meta.dirname, "../.."),
   transpilePackages: ["@workspace/ui", "@workspace/db", "@workspace/auth"],
 }
 

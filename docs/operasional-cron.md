@@ -1,14 +1,14 @@
 # Operasional: pekerjaan terjadwal (cron)
 
 Empat pekerjaan berkala dijalankan lewat **crontab pengguna di VPS**, bukan infrastruktur baru.
-Aplikasi berjalan di host dengan pnpm/nvm; Postgres dan RustFS tetap di Docker Compose
-(`restart: unless-stopped`, jadi ikut hidup setelah VPS reboot).
+Ada dua cara memasang, sesuai cara aplikasi dijalankan: lewat pnpm/nvm di host (bagian berikut),
+atau seluruhnya lewat Docker Compose (bagian "Pasang (VPS dengan Docker saja)").
+
+## Pasang (host dengan pnpm/nvm)
 
 Semua pekerjaan dipanggil lewat `scripts/cron-run.sh`. Pembungkus itu memuat nvm (cron berjalan
 dengan PATH minimal sehingga `pnpm` tidak ditemukan tanpa itu) dan menurunkan root repo dari lokasi
 berkasnya sendiri, jadi **repo boleh dipasang di direktori mana pun** tanpa mengubah isi crontab.
-
-## Pasang
 
 Ganti `/srv/it-app` dengan lokasi repo di VPS, lalu `crontab -e` sebagai pengguna yang memiliki
 repo dan `~/.nvm`:
@@ -35,6 +35,32 @@ Siapkan dulu direktori lognya: `mkdir -p $HOME/log`.
 `CRON_TZ=Asia/Jakarta` dipakai karena VPS umumnya berjalan di UTC sementara jam 15.45 pada
 spesifikasi adalah WIB. Tanggal di dalam kode tetap dihitung sendiri dengan `todayWib()`, jadi
 salah set zona hanya menggeser jam pemicunya, bukan tanggal datanya.
+
+## Pasang (VPS dengan Docker saja)
+
+Bila aplikasi berjalan lewat `docker compose` dan host tidak punya pnpm/nvm, cron memanggil layanan
+`tasks` (profil `tasks`: tidak ikut `up`, hanya hidup selama pekerjaan berjalan). Layanan ini
+memakai alamat internal `db:5432` dan `rustfs:9000`, serta `.env` di root repo. Pengguna crontab
+harus boleh menjalankan `docker` (anggota grup `docker`). `-T` wajib karena cron tidak punya TTY.
+
+```cron
+CRON_TZ=Asia/Jakarta
+MAILTO=""
+DC="docker compose -f /srv/it-app/docker-compose.yml run --rm -T tasks pnpm --filter admin"
+
+45 15 * * 1-6 $DC push:reminder >> $HOME/log/it-app-cron.log 2>&1
+0 7 * * 1-6   $DC push:overdue  >> $HOME/log/it-app-cron.log 2>&1
+15 10 * * 1-6 $DC report:freeze >> $HOME/log/it-app-cron.log 2>&1
+0 3 * * *     $DC media:sweep   >> $HOME/log/it-app-cron.log 2>&1
+```
+
+Setelah `git pull` yang mengubah kode skrip, bangun ulang image-nya:
+`docker compose --profile tasks build tasks`. Uji sekali jalan ke basis data uji:
+
+```bash
+docker compose run --rm -T -e DATABASE_URL=postgres://itapp:itapp@db:5432/itapp_test \
+  tasks pnpm --filter admin push:reminder
+```
 
 ## Kenapa `1-6`
 
