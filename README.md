@@ -48,6 +48,7 @@ Sisanya sudah berisi nilai bawaan untuk pengembangan lokal. Di produksi, `BETTER
 ## Jalankan semua dengan Docker
 
 ```bash
+docker network create cloudflare_tunnel           # sekali; network eksternal untuk Cloudflare Tunnel
 docker compose up -d --build                      # app + migrasi + Postgres + RustFS, http://localhost:3000
 docker compose run --rm migrate pnpm --filter @workspace/auth db:seed   # sekali: akun Manajer awal
 ```
@@ -122,15 +123,30 @@ dan unduh).
      acak yang kuat. `POSTGRES_PASSWORD` tanpa `@ : / ?` karena dipakai di URL koneksi.
    - `DATABASE_URL` dan `S3_ENDPOINT` boleh dibiarkan; compose menimpanya dengan alamat internal.
 2. Minta admin Simtama mendaftarkan redirect `https://app.domainmu/api/auth/callback/simtama`.
-3. Jalankan:
+3. Jalankan (network `cloudflare_tunnel` dibuat sekali; compose menolak `up` bila belum ada):
 
    ```bash
+   docker network create cloudflare_tunnel
    docker compose up -d --build
    docker compose run --rm migrate pnpm --filter @workspace/auth db:seed   # hanya untuk basis data baru
    ```
 
-4. Pasang reverse proxy HTTPS di VPS yang sama. Port aplikasi dan RustFS terikat ke `127.0.0.1`,
-   jadi tidak terbuka ke internet tanpa proxy. Contoh `Caddyfile` (sertifikat otomatis):
+4. Pasang HTTPS di depan aplikasi. Port aplikasi dan RustFS terikat ke `127.0.0.1`, jadi tidak
+   terbuka ke internet tanpa tunnel atau proxy.
+
+   **Cloudflare Tunnel di Docker (disarankan):** container `cloudflared` ikut network
+   `cloudflare_tunnel` (di compose-nya: `networks: [cloudflare_tunnel]` + `cloudflare_tunnel:
+   {external: true}`). Di dasbor Cloudflare (Public Hostname), arahkan:
+
+   | Hostname | Service |
+   |---|---|
+   | `app.domainmu` | `http://it-app-web:3000` |
+   | `files.domainmu` | `http://it-app-files:9000` |
+
+   Alias `it-app-*` unik per proyek, jadi aman berbagi network dengan proyek lain; `db` tidak ikut
+   network ini. Batas unggahan lewat Cloudflare 100 MB per permintaan (paket Free).
+
+   **Alternatif, reverse proxy di host.** Contoh `Caddyfile` (sertifikat otomatis):
 
    ```caddyfile
    app.domainmu {

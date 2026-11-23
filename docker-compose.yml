@@ -6,6 +6,13 @@
 #     - "127.0.0.1:<port host>:<port container>"   # hanya mesin ini
 #     - "<port host>:<port container>"             # terbuka ke jaringan (LAN/HP)
 # Hapus `#` di baris yang ingin dibuka, lalu `docker compose up -d` lagi.
+#
+# Cloudflare Tunnel: app dan rustfs juga bergabung ke network eksternal `cloudflare_tunnel` dengan alias
+# unik (it-app-web:3000, it-app-files:9000) agar tidak bentrok dengan proyek lain di network itu.
+# Buat sekali sebelum `up`: docker network create cloudflare_tunnel
+# Nama proyek tetap (bukan nama folder) agar container/volume tidak tertukar dengan proyek lain.
+name: it-app
+
 services:
   app:
     build:
@@ -22,6 +29,10 @@ services:
       S3_ENDPOINT: http://rustfs:9000
     ports:
       - "127.0.0.1:3000:3000"
+    networks:
+      default: {}
+      cloudflare_tunnel:
+        aliases: [it-app-web]
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -97,6 +108,10 @@ services:
       # 9000 = API S3, WAJIB terjangkau browser (URL bertanda tangan = S3_PUBLIC_URL). 9001 = konsol.
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
+    networks:
+      default: {}
+      cloudflare_tunnel:
+        aliases: [it-app-files]
     volumes:
       - rustfsdata:/data
     healthcheck:
@@ -123,6 +138,10 @@ services:
       $$s3 head-bucket --bucket "$$S3_BUCKET" 2>/dev/null || $$s3 create-bucket --bucket "$$S3_BUCKET";
       $$s3 put-bucket-cors --bucket "$$S3_BUCKET" --cors-configuration "{\"CORSRules\":[{\"AllowedOrigins\":[\"$$APP_ORIGIN\"],\"AllowedMethods\":[\"GET\",\"HEAD\",\"POST\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\",\"Content-Length\",\"Content-Range\"],\"MaxAgeSeconds\":3600}]}"
       && echo "bucket $$S3_BUCKET siap, CORS: $$APP_ORIGIN"'
+
+networks:
+  cloudflare_tunnel:
+    external: true
 
 volumes:
   pgdata:
