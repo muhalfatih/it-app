@@ -51,6 +51,7 @@ describe.skipIf(!TEST_DB)("hapus entri dan penyapu (database uji)", () => {
       bidang: [],
       unitId: null,
     }))
+    await accounts.transferManager(userId, { allowUnlinked: true })
     const [type] = await dbm.db.insert(t.taskType).values({ name: "Editing" }).returning()
     tt = String(type!.id)
     const [c] = await dbm.db.insert(t.channel).values({ name: "WA Grup" }).returning()

@@ -55,6 +55,7 @@ describe.skipIf(!TEST_DB)("planner (database uji)", () => {
       orm.sql`truncate table "user", task_type, channel cascade`
     )
     admin = (await mk("uji.boss", ["manajer"])).id
+    await accounts.transferManager(admin, { allowUnlinked: true })
     s1 = (await mk("uji.satu", ["sdm_khusus"])).id
     s2 = (await mk("uji.dua", ["sdm_khusus"])).id
     const [t] = await db

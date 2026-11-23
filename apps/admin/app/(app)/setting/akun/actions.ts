@@ -9,6 +9,7 @@ import {
   createSimtamaAccount,
   existingSimtama,
   setDisabled,
+  transferManager,
   updateAccount,
 } from "@workspace/auth/accounts"
 import { usernameSchema } from "@workspace/auth/rules"
@@ -47,12 +48,6 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
       return { error: error.issues[0]?.message ?? "Isian tidak valid" }
     }
     if (error instanceof AccountError) return { error: error.message }
-    if (
-      error instanceof Error &&
-      error.message.startsWith("Harus ada minimal satu Manajer")
-    ) {
-      return { error: error.message }
-    }
     throw error
   }
 }
@@ -72,6 +67,15 @@ export const updateAccountAction = withPermission(
     run(async () => {
       const data = profileSchema.parse(input)
       await updateAccount(z.string().min(1).parse(id), data)
+    })
+)
+
+/** Serahkan peran Manajer ke akun lain; pemanggil (Manajer saat ini) kehilangan peran itu. */
+export const transferManagerAction = withPermission(
+  "setting.kelola",
+  async (id: string): Promise<ActionResult> =>
+    run(async () => {
+      await transferManager(z.string().min(1).parse(id))
     })
 )
 

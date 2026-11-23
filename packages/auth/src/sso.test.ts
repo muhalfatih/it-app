@@ -85,8 +85,18 @@ async function login(account: Row) {
   return { authorize, location: callback.headers.get("location") }
 }
 
-const userBy = (field: string, value: unknown) =>
-  db.user!.find((u) => u[field] === value)
+/** Akun yang didaftarkan Manajer (accounts.ts): username + email sintetis, belum tertaut. */
+async function register(username: string) {
+  return (await auth.$context).internalAdapter.createUser(
+    {
+      email: `${username}@akun.lokal`,
+      name: username,
+      username,
+      emailVerified: false,
+    },
+    { method: "admin" }
+  )
+}
 
 describe("SSO Simtama", () => {
   beforeEach(() => {
@@ -110,17 +120,7 @@ describe("SSO Simtama", () => {
   })
 
   it("menautkan akun lokal ber-username sama, lalu mengenali lewat sub", async () => {
-    const ctx = await auth.$context
-    // Seperti akun yang dibuat Manajer (accounts.ts).
-    const local = await ctx.internalAdapter.createUser(
-      {
-        email: "budi@akun.lokal",
-        name: "budi",
-        username: "budi",
-        emailVerified: false,
-      },
-      { method: "admin" }
-    )
+    const local = await register("budi")
     expect((await login({ sub: "1", username: "Budi" })).location).toBe("/")
     // Username Simtama berganti: tetap akun yang sama.
     expect((await login({ sub: "1", username: "budi.baru" })).location).toBe(
@@ -133,22 +133,31 @@ describe("SSO Simtama", () => {
     })
   })
 
-  it("membuat akun tanpa peran untuk pegawai baru", async () => {
-    expect(
-      (await login({ sub: "2", username: "Siti.R", name: "Siti R" })).location
-    ).toBe("/")
-    expect(await login({ sub: "2", username: "siti.r" })).toMatchObject({
-      location: "/",
+  it("menolak pegawai yang belum didaftarkan Manajer", async () => {
+    const { location } = await login({ sub: "2", username: "siti.r" })
+    expect(location).toBe("/masuk?error=signup_disabled")
+    expect(db.user).toHaveLength(0)
+    expect(db.session).toHaveLength(0)
+  })
+
+  it("mengenali akun dari direktori yang sudah tertaut lewat uid", async () => {
+    // Seperti createSimtamaAccount: akun + baris account simtama, username boleh berbeda.
+    const local = await register("siti")
+    db.account!.push({
+      id: "acc-siti",
+      accountId: "7",
+      providerId: "simtama",
+      userId: local.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
+    expect((await login({ sub: "7", username: "siti.r" })).location).toBe("/")
     expect(db.user).toHaveLength(1)
-    expect(userBy("username", "siti.r")).toMatchObject({
-      email: "siti.r@akun.lokal",
-      displayUsername: "siti.r",
-      name: "Siti R",
-    })
+    expect(db.session).toHaveLength(1)
   })
 
   it("akun nonaktif kembali ke /masuk dengan kode galat", async () => {
+    await register("nonaktif")
     const { location } = await login({ sub: "5", username: "nonaktif" })
     expect(location).toBe("/masuk?error=account_disabled")
     expect(db.session).toHaveLength(0)

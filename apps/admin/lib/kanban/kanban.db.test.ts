@@ -52,6 +52,7 @@ describe.skipIf(!TEST_DB)("kanban (database uji)", () => {
       orm.sql`truncate table "user", task_type, channel cascade`
     )
     M = await mk("uji.manajer", ["manajer"])
+    await accounts.transferManager(M.id, { allowUnlinked: true })
     S = await mk("uji.strategi", ["sdm_strategi"])
     D = await mk("uji.direktur", ["direktur"])
     K = await mk("uji.khusus", ["sdm_khusus"])

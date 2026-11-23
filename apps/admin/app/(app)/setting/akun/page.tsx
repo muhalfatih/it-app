@@ -29,7 +29,7 @@ export default async function AkunPage() {
           Akun &amp; peran
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
-          Buat akun untuk staf unit dan pegawai unit lain. Akun tanpa peran
+          Hanya akun yang terdaftar di sini yang bisa masuk. Akun tanpa peran
           hanya bisa membuka menu Layanan.
         </p>
       </div>

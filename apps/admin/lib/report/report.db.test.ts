@@ -61,6 +61,7 @@ describe.skipIf(!TEST_DB)("laporan harian (database uji)", () => {
       orm.sql`truncate table "user", task_type, channel, holiday cascade`
     )
     boss = (await mk("uji.boss", ["manajer"])).id
+    await accounts.transferManager(boss, { allowUnlinked: true })
     s1 = (await mk("uji.satu", ["sdm_khusus"])).id
     s2 = (await mk("uji.dua", ["sdm_khusus"])).id
     // Hari pertama laporan = max(akun dibuat, REPORT_START_DATE): patok ke 1 Des agar tak ikut jam asli.

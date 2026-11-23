@@ -2,20 +2,16 @@
 // Jalankan: pnpm --filter @workspace/auth db:seed  (membaca .env di root repo)
 import { db } from "@workspace/db/client"
 import { count, eq } from "@workspace/db/orm"
-import {
-  building,
-  channel,
-  taskType,
-  unit,
-  user,
-  userRole,
-} from "@workspace/db/schema"
+import { building, channel, taskType, unit, user } from "@workspace/db/schema"
 
-import { createAccount } from "./accounts"
+import { createAccount, transferManager } from "./accounts"
 import { usernameSchema } from "./rules"
 
+/**
+ * Jadikan username Simtama ID ini satu-satunya Manajer: akun dibuat bila belum ada (tertaut saat
+ * login SSO pertama), lalu peran Manajer dipindahkan ke sana dari akun lain mana pun.
+ */
 async function seedManager() {
-  // Username Simtama ID Manajer: login SSO pertama dengan username ini menautkan akunnya.
   const rawUsername = process.env.SEED_MANAGER_USERNAME
   if (!rawUsername) {
     console.log(
@@ -28,24 +24,20 @@ async function seedManager() {
     .select({ id: user.id })
     .from(user)
     .where(eq(user.username, username))
-  if (exists) {
-    // Mis. sudah dibuat otomatis saat login SSO pertama: pastikan perannya Manajer (peran lain tetap).
-    await db
-      .insert(userRole)
-      .values({ userId: exists.id, role: "manajer" })
-      .onConflictDoNothing()
-    console.log(`Akun "${username}" sudah ada; peran Manajer dipastikan.`)
-    return
-  }
-  await createAccount({
-    username,
-    name: "Manajer",
-    roles: ["manajer"],
-    bidang: ["it", "media"],
-    unitId: null,
-  })
+  const id =
+    exists?.id ??
+    (
+      await createAccount({
+        username,
+        name: "Manajer",
+        roles: [],
+        bidang: ["it", "media"],
+        unitId: null,
+      })
+    ).id
+  await transferManager(id, { allowUnlinked: true })
   console.log(
-    `Akun Manajer "${username}" dibuat; masuk dengan Simtama ID ber-username sama.`
+    `Manajer sekarang "${username}"${exists ? "" : " (akun baru; masuk dengan Simtama ID ber-username sama)"}; peran Manajer akun lain dilepas.`
   )
 }
 

@@ -42,6 +42,7 @@ describe.skipIf(!TEST_DB)("absensi (database uji)", () => {
   beforeEach(async () => {
     await dbm.db.execute(orm.sql`truncate table "user", holiday cascade`)
     boss = (await mk("uji.boss", ["manajer"])).id
+    await accounts.transferManager(boss, { allowUnlinked: true })
     s1 = (await mk("uji.satu", ["sdm_khusus"])).id
     dir = (await mk("uji.dir", ["direktur"])).id
   })

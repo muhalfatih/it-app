@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  assertManagerRemains,
   loginPath,
   safeNext,
   simtamaUserInfo,
   usernameSchema,
+  withoutManager,
 } from "./rules"
 
 describe("usernameSchema", () => {
@@ -50,48 +50,10 @@ describe("safeNext / loginPath", () => {
   })
 })
 
-describe("assertManagerRemains", () => {
-  const accounts = [
-    { id: "m1", roles: ["manajer" as const], disabled: false },
-    { id: "s1", roles: ["sdm_khusus" as const], disabled: false },
-  ]
-
-  it("menolak melepas peran Manajer aktif terakhir", () => {
-    expect(() =>
-      assertManagerRemains(accounts, { id: "m1", roles: ["sdm_strategi"] })
-    ).toThrow("Harus ada minimal satu Manajer aktif")
-  })
-
-  it("menolak menonaktifkan Manajer aktif terakhir", () => {
-    expect(() =>
-      assertManagerRemains(accounts, { id: "m1", disabled: true })
-    ).toThrow("Harus ada minimal satu Manajer aktif")
-  })
-
-  it("aman bila masih ada Manajer aktif lain", () => {
-    const two = [
-      ...accounts,
-      { id: "m2", roles: ["manajer" as const], disabled: false },
-    ]
-    expect(() =>
-      assertManagerRemains(two, { id: "m1", disabled: true })
-    ).not.toThrow()
-  })
-
-  it("Manajer lain yang nonaktif tidak dihitung", () => {
-    const withDisabled = [
-      ...accounts,
-      { id: "m2", roles: ["manajer" as const], disabled: true },
-    ]
-    expect(() =>
-      assertManagerRemains(withDisabled, { id: "m1", roles: [] })
-    ).toThrow()
-  })
-
-  it("perubahan akun non-Manajer selalu aman", () => {
-    expect(() =>
-      assertManagerRemains(accounts, { id: "s1", disabled: true })
-    ).not.toThrow()
+describe("withoutManager", () => {
+  it("membuang Manajer, peran lain tetap", () => {
+    expect(withoutManager(["manajer", "sdm_khusus"])).toEqual(["sdm_khusus"])
+    expect(withoutManager([])).toEqual([])
   })
 })
 

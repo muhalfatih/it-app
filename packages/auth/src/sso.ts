@@ -28,12 +28,8 @@ export function simtamaOAuth(sso: SsoConfig) {
         // Tanpa `prompt`: pengguna yang masih masuk di Simtama langsung kembali ke aplikasi.
         // Respons token sudah memuat `account`; /userinfo tidak perlu dipanggil.
         getUserInfo: async (tokens) => simtamaUserInfo(tokens.raw?.account),
-        // Pegawai yang belum punya akun dibuat otomatis saat login pertama, tanpa peran
-        // (= Staf Unit Lain, spesifikasi §3.1). Hanya berlaku saat akun dibuat.
-        mapProfileToUser: (profile) => ({
-          username: profile.username as string,
-          displayUsername: profile.username as string,
-        }),
+        // Akun hanya dibuat Manajer (Setting → Akun); pegawai yang belum didaftarkan ditolak.
+        disableImplicitSignUp: true,
       },
     ],
   })

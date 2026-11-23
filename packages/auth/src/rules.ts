@@ -33,29 +33,12 @@ export function loginPath(from: string | null | undefined): string {
     : "/masuk"
 }
 
-type AccountState = { id: string; roles: readonly Role[]; disabled: boolean }
-
-/** Mencegah aplikasi kehilangan Manajer aktif terakhir (tidak ada lagi yang bisa mengelola akun). */
-export function assertManagerRemains(
-  accounts: readonly AccountState[],
-  change: { id: string; roles?: readonly Role[]; disabled?: boolean }
-): void {
-  const after = accounts.map((a) =>
-    a.id === change.id
-      ? {
-          ...a,
-          roles: change.roles ?? a.roles,
-          disabled: change.disabled ?? a.disabled,
-        }
-      : a
-  )
-  const activeManagers = after.filter(
-    (a) => !a.disabled && a.roles.includes("manajer")
-  )
-  if (activeManagers.length === 0) {
-    throw new Error("Harus ada minimal satu Manajer aktif")
-  }
-}
+/**
+ * Tepat satu Manajer: peran ini tidak bisa diberikan atau dicabut lewat form akun, hanya
+ * dipindahkan dengan transferManager (accounts.ts). Peran lain dari isian dipakai apa adanya.
+ */
+export const withoutManager = (roles: readonly Role[]): Role[] =>
+  roles.filter((r) => r !== "manajer")
 
 /** Email wajib di tabel Better Auth; akun lokal memakai email sintetis yang tidak dipakai untuk apa pun. */
 // shortcut: email sintetis, ganti dengan email asli saat adapter sistem informasi sekolah dipasang.

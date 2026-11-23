@@ -11,6 +11,9 @@ function ssoMessageFor(code: string) {
     return "Simtama ID belum memberi Anda akses ke aplikasi ini. Hubungi Manajer unit."
   if (code === "account_disabled")
     return "Akun Anda dinonaktifkan. Hubungi Manajer unit."
+  // Login SSO tidak membuat akun (sso.ts); akun didaftarkan Manajer di Setting → Akun.
+  if (code === "signup_disabled")
+    return "Akun Anda belum terdaftar di aplikasi ini. Minta Manajer unit mendaftarkannya."
   return "Gagal masuk dengan Simtama ID. Coba lagi."
 }
 

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import {
   useTable,
   type ColumnDef,
@@ -13,12 +14,14 @@ import {
   PencilIcon,
   PlusIcon,
   PowerIcon,
+  CrownIcon,
   SearchIcon,
   UsersIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROLE_LABEL } from "@workspace/auth/permissions"
+import { withoutManager } from "@workspace/auth/rules"
 import type { Bidang, Role } from "@workspace/db/schema/roles"
 import {
   AlertDialog,
@@ -109,6 +112,7 @@ import {
   createFromSimtamaAction,
   searchSimtamaAction,
   setDisabledAction,
+  transferManagerAction,
   updateAccountAction,
   type ActionResult,
   type StaffResult,
@@ -462,10 +466,11 @@ function AccountSheet({
               <FieldLegend variant="label">Peran</FieldLegend>
               <FieldDescription>
                 Boleh lebih dari satu. Tanpa peran = staf unit lain (hanya menu
-                Layanan).
+                Layanan). Manajer hanya satu; pindahkan lewat menu Jadikan
+                Manajer di daftar akun.
               </FieldDescription>
               <div className="flex flex-col gap-2">
-                {ROLE_ORDER.map((role) => {
+                {withoutManager(ROLE_ORDER).map((role) => {
                   const id = `${formId}-role-${role}`
                   return (
                     <FieldLabel key={role} htmlFor={id}>
@@ -593,6 +598,8 @@ export function AccountsClient({
     account: null,
   })
   const [toggleFor, setToggleFor] = React.useState<Account | null>(null)
+  const [transferTo, setTransferTo] = React.useState<Account | null>(null)
+  const router = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "name", desc: false },
@@ -716,8 +723,15 @@ export function AccountsClient({
                     <PencilIcon />
                     Ubah
                   </DropdownMenuItem>
+                  {self || a.disabled || a.roles.includes("manajer") ? null : (
+                    <DropdownMenuItem onClick={() => setTransferTo(a)}>
+                      <CrownIcon />
+                      Jadikan Manajer
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuGroup>
-                {self ? null : (
+                {/* Manajer tidak bisa dinonaktifkan (pindahkan perannya dulu). */}
+                {self || a.roles.includes("manajer") ? null : (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -839,6 +853,47 @@ export function AccountsClient({
               }
             >
               {toggleFor?.disabled ? "Aktifkan" : "Nonaktifkan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={transferTo !== null}
+        onOpenChange={(open) => !open && setTransferTo(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Jadikan {transferTo?.name} Manajer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Manajer hanya satu. Peran Manajer Anda pindah ke{" "}
+              {transferTo?.name}, dan Anda tidak bisa membuka Setting lagi.
+              Peran Anda yang lain tetap. Hanya Manajer baru yang bisa
+              mengembalikannya.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  if (!transferTo) return
+                  const result = await transferManagerAction(transferTo.id)
+                  if (
+                    reportResult(
+                      result,
+                      `${transferTo.name} sekarang Manajer`
+                    )
+                  ) {
+                    setTransferTo(null)
+                    // Setting hanya untuk Manajer; halaman ini tidak berlaku lagi bagi Anda.
+                    router.replace("/")
+                  }
+                })
+              }
+            >
+              Jadikan Manajer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
