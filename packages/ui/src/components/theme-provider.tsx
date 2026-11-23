@@ -13,6 +13,13 @@ function ThemeProvider({
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      // React 19 memperingatkan <script> yang dirender di klien. Script ini sudah jalan dari HTML server,
+      // jadi salinan di klien dibuat non-eksekusi. shortcut: hapus bila next-themes > 0.4.6 memperbaikinya.
+      scriptProps={
+        typeof window === "undefined"
+          ? undefined
+          : { type: "application/json", suppressHydrationWarning: true }
+      }
       {...props}
     >
       <ThemeHotkey />
