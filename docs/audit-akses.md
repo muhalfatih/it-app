@@ -41,8 +41,10 @@ Halaman:
   keduanya. Ini benar, karena satu halaman melayani dua baris matriks yang berbeda
   (Semua untuk Direktur dan Manajer, Diri sendiri untuk SDM).
 - `/layanan/page.tsx` hanya `redirect("/layanan/sdm")`.
-- `/galeri` hanya `requireUser`, jadi Staf Unit Lain bisa membukanya. Isinya galeri komponen
-  tanpa data unit, dan matriks §3.3 tidak memuat barisnya. Dicatat, tidak diperbaiki.
+- `/galeri` memakai `requireUser` lalu menolak akun tanpa peran, karena matriks §3.3 tidak
+  memuat barisnya dan Staf Unit Lain hanya boleh membuka menu Layanan (§3.1). Pemeriksaannya
+  inline seperti di halaman rekap, bukan izin tersendiri, sebab tidak ada izin yang berarti
+  "anggota unit" di `PERMISSIONS`.
 - `masuk/page.tsx` dan `layout.tsx` teratas memang tanpa penjaga. `(app)/layout.tsx`
   memanggil `requireUser()`.
 
@@ -86,7 +88,7 @@ Tidak ada temuan Critical atau Important di kode aplikasi.
 | Tingkat | Temuan | Status |
 |---|---|---|
 | Important | `scripts/verify-access.sh` tidak bisa lagi membuat sesi. Skrip login lewat `POST /api/auth/sign-in/username`, dan sejak PR #16 jalur itu ada di `ssoOnly.disabledPaths` (`packages/auth/src/sso.ts:45`), jadi hanya blok "tanpa sesi" yang masih jalan. Akibatnya kriteria PRD §10 belum bisa dibuktikan ulang. | Selesai (5.1) |
-| Low | `/galeri` terbuka untuk Staf Unit Lain | Dicatat, dibiarkan |
+| Low | `/galeri` terbuka untuk Staf Unit Lain | Ditutup 24 Nov 2026; diuji di `verify-access.sh` |
 | Low | Tidak ada tes yang mengunci pemetaan halaman ke izin, jadi halaman baru tanpa penjaga tidak akan tertangkap | Selesai (5.2) |
 
 ## 4. Cakupan `verify-access.sh` sekarang

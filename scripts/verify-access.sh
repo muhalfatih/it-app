@@ -74,6 +74,10 @@ login() { # login <label> <peran> <var-cookie>
 }
 denied="307 $BASE_URL/?akses=ditolak"
 
+# Server mati membuat semua cek jadi 000; satu pesan jelas lebih berguna dari puluhan FAIL.
+[[ "$(status /masuk)" != 000* ]] ||
+  { printf "Server di %s tidak merespons\n" "$BASE_URL" >&2; exit 1; }
+
 echo "== Tanpa sesi"
 for path in /setting/akun /setting/kanal /galeri /planner /konten /konten/1 /laporan /laporan/tim /laporan/rekap /absensi/rekap /tugas /absensi /layanan/sdm /layanan/internet /layanan/internet/rekap /layanan/sdm/persetujuan /inventaris /inventaris/peminjaman /; do
   check "GET $path -> /masuk" "307 $BASE_URL/masuk" "$(status "$path")"
@@ -127,7 +131,7 @@ check "GET /laporan (staf unit lain) -> ditolak" "$denied" "$(status /laporan "$
 for path in /layanan/sdm /layanan/sdm/saya /layanan/internet; do
   check "GET $path (staf unit lain) -> 200" "200" "$(status "$path" "$OTHER")"
 done
-for path in /layanan/sdm/persetujuan /layanan/internet/rekap /inventaris /inventaris/peminjaman /inventaris/peminjaman/baru; do
+for path in /galeri /layanan/sdm/persetujuan /layanan/internet/rekap /inventaris /inventaris/peminjaman /inventaris/peminjaman/baru; do
   check "GET $path (staf unit lain) -> ditolak" "$denied" "$(status "$path" "$OTHER")"
 done
 # Pengajuan milik orang lain harus 404 (keberadaannya tidak dibocorkan).

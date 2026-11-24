@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { redirect } from "next/navigation"
 import {
   CalendarCheckIcon,
   InboxIcon,
@@ -113,7 +114,10 @@ function Section({
 }
 
 export default async function GaleriPage() {
-  await requireUser()
+  const user = await requireUser()
+  // Galeri komponen hanya untuk anggota unit; tanpa peran = Staf Unit Lain, yang hanya
+  // boleh membuka menu Layanan (spesifikasi §3.1). Matriks §3.3 tidak memuat baris galeri.
+  if (user.roles.length === 0) redirect("/?akses=ditolak")
   return (
     <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 px-4 py-6 sm:px-6">
       <header className="flex items-start justify-between gap-4">
