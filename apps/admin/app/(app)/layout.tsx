@@ -11,7 +11,7 @@ import {
 } from "@workspace/ui/components/sidebar"
 
 import { signOutWithPush } from "@/lib/push/sign-out"
-import { menuFor, NAV_SECONDARY } from "@/lib/menu"
+import { menuFor, NAV_ACCOUNT } from "@/lib/menu"
 
 // Kerangka aplikasi (blok sidebar-07). Layout bukan gerbang keamanan:
 // setiap halaman dan aksi server tetap memeriksa izinnya sendiri.
@@ -29,7 +29,7 @@ export default async function AppLayout({
       <AppSidebar
         className="print:hidden"
         sections={menuFor(user)}
-        secondary={NAV_SECONDARY}
+        accountItems={NAV_ACCOUNT}
         user={{ name: user.name, subtitle }}
         onSignOut={signOutWithPush}
       />

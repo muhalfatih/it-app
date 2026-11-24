@@ -5,7 +5,6 @@ import { MonitorPlayIcon } from "lucide-react"
 
 import {
   NavGrouped,
-  type NavItem,
   type NavSection,
 } from "@workspace/ui/components/domain/nav-grouped"
 import { NavUser } from "@workspace/ui/components/nav-user"
@@ -25,13 +24,13 @@ import {
  */
 export function AppSidebar({
   sections,
-  secondary,
+  accountItems,
   user,
   onSignOut,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   sections: NavSection[]
-  secondary?: NavItem[]
+  accountItems?: React.ComponentProps<typeof NavUser>["items"]
   user: React.ComponentProps<typeof NavUser>["user"]
   onSignOut: () => Promise<void>
 }) {
@@ -49,10 +48,10 @@ export function AppSidebar({
         />
       </SidebarHeader>
       <SidebarContent>
-        <NavGrouped sections={sections} secondary={secondary} />
+        <NavGrouped sections={sections} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} onSignOut={onSignOut} />
+        <NavUser user={user} items={accountItems} onSignOut={onSignOut} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

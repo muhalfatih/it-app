@@ -10,7 +10,6 @@ import {
 } from "@workspace/ui/components/collapsible"
 import {
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
@@ -39,17 +38,10 @@ function useLocationKey() {
 /**
  * Navigasi berkelompok bergaya sidebar-07: judul > menu > sub-menu. Menu
  * bersub-menu membuka/menutup saat diklik; menu tanpa sub-menu berupa link.
- * `secondary` tampil di bawah.
  */
-export function NavGrouped({
-  sections,
-  secondary = [],
-}: {
-  sections: NavSection[]
-  secondary?: NavItem[]
-}) {
+export function NavGrouped({ sections }: { sections: NavSection[] }) {
   const loc = useLocationKey()
-  const urls = [...sections.flatMap((s) => s.items), ...secondary].flatMap(
+  const urls = sections.flatMap((s) => s.items).flatMap(
     (item) => [item.url, ...item.items.map((sub) => sub.url)]
   )
   let active: string | null = null
@@ -70,32 +62,6 @@ export function NavGrouped({
           </SidebarMenu>
         </SidebarGroup>
       ))}
-      {secondary.length > 0 && (
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondary.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    size="sm"
-                    tooltip={item.title}
-                    isActive={item.url === active}
-                    render={
-                      <a
-                        href={item.url}
-                        aria-current={item.url === active ? "page" : undefined}
-                      />
-                    }
-                  >
-                    {item.icon}
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      )}
     </>
   )
 }

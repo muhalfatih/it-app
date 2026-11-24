@@ -28,9 +28,12 @@ function initials(name: string) {
 
 export function NavUser({
   user,
+  items = [],
   onSignOut,
 }: {
   user: { name: string; subtitle: string }
+  /** Link halaman akun (mis. Notifikasi) di pop-up, di atas Keluar. */
+  items?: { title: string; url: string; icon: React.ReactNode }[]
   /** Server action keluar (menghapus sesi lalu mengarahkan ke /masuk). */
   onSignOut: () => Promise<void>
 }) {
@@ -73,6 +76,22 @@ export function NavUser({
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            {items.length > 0 && (
+              <>
+                <DropdownMenuGroup>
+                  {items.map((item) => (
+                    <DropdownMenuItem
+                      key={item.url}
+                      render={<a href={item.url} />}
+                    >
+                      {item.icon}
+                      {item.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => void onSignOut()}>
               <LogOutIcon />
               Keluar

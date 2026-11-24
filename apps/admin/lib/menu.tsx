@@ -236,8 +236,9 @@ const MENU: { title: string; items: Entry[] }[] = [
   },
 ]
 
-export const NAV_SECONDARY: NavItem[] = [
-  { title: "Notifikasi", url: "/notifikasi", icon: <BellIcon />, items: [] },
+/** Link di pop-up akun (footer sidebar); tampil untuk semua akun. */
+export const NAV_ACCOUNT = [
+  { title: "Notifikasi", url: "/notifikasi", icon: <BellIcon /> },
 ]
 
 /**
