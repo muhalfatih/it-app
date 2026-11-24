@@ -53,7 +53,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "tugas_manajer.kelola",
     "kanban.lihat",
     "kanban.isi",
-    // PRD #3 dan #4: hak cadangan Manajer.
+    // PRD §9 butir 3 dan 4: hak cadangan Manajer, disetujui 24 Nov 2026 (docs/audit-akses.md).
     "kanban.ide_ke_draft",
     "kanban.draft_ke_review",
     "kanban.tayang",

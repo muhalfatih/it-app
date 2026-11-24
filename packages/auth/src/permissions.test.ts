@@ -29,7 +29,7 @@ const MATRIX: [Permission, string][] = [
   ["tugas_manajer.kelola", "M"],
   ["kanban.lihat", "DMSK"],
   ["kanban.isi", "MSK"],
-  // PRD #3 dan #4: Manajer diberi hak cadangan.
+  // PRD §9 butir 3 dan 4: hak cadangan Manajer, disetujui 24 Nov 2026 (docs/audit-akses.md).
   ["kanban.ide_ke_draft", "MS"],
   ["kanban.draft_ke_review", "M"],
   ["kanban.review_ke_disetujui", "D"],

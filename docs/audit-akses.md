@@ -25,8 +25,18 @@ Empat izin Manajer berada di luar bacaan literal matriks, semuanya disengaja:
 | `planner.hapus_terkunci` | Hapus entri pada tahap Review ke atas (§4.5, konfirmasi dua langkah) |
 | `laporan.buka_kunci` | Buka kunci laporan yang sudah terkunci pukul 10.00 (§5) |
 
-Dua yang pertama masih berstatus usul di PRD dan belum dikonfirmasi Manajer. Kalau nanti
-ditolak, cukup hapus dari `ROLE_PERMISSIONS` dan sesuaikan MATRIX di tes.
+Dua yang pertama berasal dari usul PRD §9 butir 3 dan 4, dan **disetujui pengguna pada
+24 Nov 2026**: Manajer boleh memindahkan Ide → Draft, dan boleh membatalkan centang kanal.
+Kode sudah sesuai keputusan itu, jadi tidak ada perubahan yang perlu dikerjakan.
+
+Matriks §3.3 di `resources/spesifikasi-aplikasi-unit-it-media-tahap-1.md` dan tabel PRD §9
+masih memuat bentuk lamanya. Keduanya dokumen kebutuhan, jadi penyelarasannya diserahkan ke
+pengguna; sampai itu dilakukan, dokumen ini yang memuat keputusan terbaru.
+
+Catatan untuk pembaca berikutnya: `kanban.batal_tayang` hanya dimiliki Manajer. Kalau suatu
+saat dicabut, tidak ada peran yang memilikinya, `canUncheck` selalu false, dan seluruh jalur
+batal centang menjadi kode mati (`uncheckChannelAction`, `uncheckChannel`, jenis event
+`batal_centang`). Jadi pencabutannya adalah keputusan menghapus fitur, bukan sekadar izin.
 
 ## 2. Inventaris penjaga
 
