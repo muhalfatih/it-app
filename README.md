@@ -182,8 +182,16 @@ dengan port 9000 dibuka sementara, atau dengan menyalin volume `rustfsdata`.
 
 ### Dengan pnpm di host
 
-Aplikasi berjalan di host dengan pnpm/nvm; Postgres dan RustFS tetap di Docker Compose (buka port
-`db` di `docker-compose.yml`).
+Aplikasi berjalan di host dengan pnpm/nvm; Postgres dan RustFS tetap di Docker Compose. Port `db`
+dibuka lewat `docker-compose.override.yml` (tidak dilacak git), bukan dengan mengubah
+`docker-compose.yml`:
+
+```yaml
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+```
 
 ```bash
 pnpm install --frozen-lockfile
