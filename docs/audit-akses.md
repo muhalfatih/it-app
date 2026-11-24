@@ -127,9 +127,17 @@ gagal sampai dimasukkan ke tabel, halaman yang dihapus juga gagal, dan tipe `Per
 membuat nama izin yang tidak ada ditolak `tsc`. Diuji dengan mutasi: menukar izin `/absensi`
 dan menambah halaman tanpa entri keduanya membuat tes gagal.
 
-Batasnya sekarang: tabel itu memeriksa izin yang *dideklarasikan* di sumber halaman, bukan
-perilaku HTTP-nya. Penyempitan data per ID dan penolakan nyata tetap dibuktikan
-`verify-access.sh` dan tes DB per modul.
+Tabel kedua mengunci 44 aksi server yang dibungkus `withPermission` ke matriks yang sama,
+dengan kunci `"<file>:<nama ekspor>"`. Penegakannya sendiri sudah dibuktikan di
+`packages/auth/src/authorize.test.ts`, dan pembungkus itu dipakai bersama semua aksi, jadi yang
+dikunci di sini adalah pemilihan izinnya. Sebelas aksi di `konten/actions.ts` di luar tabel
+karena semuanya lewat pembungkus `action` yang bergerbang `kanban.lihat`, sementara wewenang
+rincinya diputuskan `lib/kanban/rules.ts` yang punya tesnya sendiri. Diuji dengan mutasi juga:
+menukar izin `unlock` dan menambah aksi tanpa entri keduanya membuat tes gagal.
+
+Batasnya sekarang: kedua tabel memeriksa izin yang *dideklarasikan* di sumber, bukan perilaku
+HTTP-nya. Penyempitan data per ID dan penolakan nyata tetap dibuktikan `verify-access.sh` dan
+tes DB per modul.
 
 ## 5. Sisa pekerjaan
 

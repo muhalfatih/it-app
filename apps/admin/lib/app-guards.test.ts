@@ -90,6 +90,61 @@ const SESI_SAJA = new Set([
   "app/masuk/page.tsx", // publik
 ])
 
+// Izin yang diharapkan di `withPermission` tiap aksi server, diturunkan dari matriks §3.3.
+// Kunci: "<file>:<nama ekspor>". Penegakannya sendiri sudah dibuktikan di
+// packages/auth/src/authorize.test.ts (pembungkusnya dipakai bersama semua aksi), jadi yang
+// dikunci di sini adalah pemilihan izinnya, yang sebelumnya tidak diuji apa pun.
+const IZIN_AKSI: Record<string, Permission> = {
+  "app/(app)/absensi/actions.ts:saveAttendance": "absensi.isi",
+  // Hari libur diatur di menu Absensi (spesifikasi §7.2), jadi izinnya sama.
+  "app/(app)/absensi/libur/actions.ts:addHolidayAction": "absensi.isi",
+  "app/(app)/absensi/libur/actions.ts:removeHolidayAction": "absensi.isi",
+  "app/(app)/inventaris/actions.ts:createEquipmentAction": "inventaris.kelola",
+  "app/(app)/inventaris/actions.ts:updateEquipmentAction": "inventaris.kelola",
+  "app/(app)/inventaris/actions.ts:setEquipmentActiveAction": "inventaris.kelola",
+  "app/(app)/inventaris/actions.ts:deleteEquipmentAction": "inventaris.kelola",
+  "app/(app)/inventaris/actions.ts:resolveProblemAction": "inventaris.kelola",
+  "app/(app)/inventaris/peminjaman/baru/actions.ts:createLoanAction": "peminjaman.catat",
+  "app/(app)/inventaris/peminjaman/[id]/actions.ts:returnLoanAction": "peminjaman.catat",
+  "app/(app)/laporan/actions.ts:answerTask": "laporan.isi",
+  "app/(app)/laporan/actions.ts:saveReportNotes": "laporan.isi",
+  "app/(app)/laporan/actions.ts:addOwnTask": "laporan.isi",
+  "app/(app)/laporan/actions.ts:renameOwnTask": "laporan.isi",
+  "app/(app)/laporan/actions.ts:removeOwnTask": "laporan.isi",
+  "app/(app)/laporan/actions.ts:sendReport": "laporan.isi",
+  "app/(app)/laporan/tim/actions.ts:unlock": "laporan.buka_kunci",
+  "app/(app)/layanan/internet/actions.ts:submitComplaintAction": "layanan.ajukan",
+  "app/(app)/layanan/sdm/actions.ts:submitRequestAction": "layanan.ajukan",
+  "app/(app)/layanan/sdm/actions.ts:startRundownUploadAction": "layanan.ajukan",
+  // Pemiliknya sendiri yang menarik pengajuan; kepemilikan diperiksa withdrawRequest.
+  "app/(app)/layanan/sdm/[id]/actions.ts:withdrawAction": "layanan.ajukan",
+  "app/(app)/layanan/sdm/[id]/actions.ts:rejectAction": "layanan.setujui_sdm",
+  "app/(app)/layanan/sdm/[id]/actions.ts:approveTasksAction": "layanan.setujui_sdm",
+  "app/(app)/layanan/sdm/[id]/actions.ts:cancelAction": "layanan.setujui_sdm",
+  // Jalur `?pengajuan=` memeriksa layanan.setujui_sdm di dalam createEntry, dan
+  // penghapusan tahap Review ke atas memeriksa planner.hapus_terkunci di deleteEntry.
+  "app/(app)/planner/actions.ts:saveEntry": "planner.ubah",
+  "app/(app)/planner/actions.ts:removeEntry": "planner.ubah",
+  "app/(app)/setting/akun/actions.ts:createAccountAction": "setting.kelola",
+  "app/(app)/setting/akun/actions.ts:updateAccountAction": "setting.kelola",
+  "app/(app)/setting/akun/actions.ts:transferManagerAction": "setting.kelola",
+  "app/(app)/setting/akun/actions.ts:setDisabledAction": "setting.kelola",
+  "app/(app)/setting/akun/actions.ts:searchSimtamaAction": "setting.kelola",
+  "app/(app)/setting/akun/actions.ts:createFromSimtamaAction": "setting.kelola",
+  "app/(app)/setting/kanal/actions.ts:addChannel": "setting.kelola",
+  "app/(app)/setting/kanal/actions.ts:updateChannel": "setting.kelola",
+  "app/(app)/setting/penugasan/actions.ts:addTaskType": "setting.kelola",
+  "app/(app)/setting/penugasan/actions.ts:updateTaskType": "setting.kelola",
+  "app/(app)/setting/tugas-rutin/actions.ts:addRoutineTask": "setting.kelola",
+  "app/(app)/setting/tugas-rutin/actions.ts:updateRoutineTask": "setting.kelola",
+  "app/(app)/setting/unit-gedung/actions.ts:addUnit": "setting.kelola",
+  "app/(app)/setting/unit-gedung/actions.ts:updateUnit": "setting.kelola",
+  "app/(app)/setting/unit-gedung/actions.ts:addBuilding": "setting.kelola",
+  "app/(app)/setting/unit-gedung/actions.ts:updateBuilding": "setting.kelola",
+  "app/(app)/tugas/actions.ts:saveTask": "tugas_manajer.kelola",
+  "app/(app)/tugas/actions.ts:removeTask": "tugas_manajer.kelola",
+}
+
 const AKSES_DITOLAK = /redirect\("\/\?akses=ditolak"\)/
 const izinDi = (text: string) =>
   [
@@ -140,6 +195,32 @@ describe("izin per halaman cocok matriks §3.3", () => {
     const f = pages.find((x) => x.path === "app/(app)/galeri/page.tsx")
     expect(f?.text).toMatch(/roles\.length === 0/)
     expect(f?.text).toMatch(AKSES_DITOLAK)
+  })
+})
+
+describe("izin per aksi server cocok matriks §3.3", () => {
+  const ditemukan = new Map<string, string>()
+  for (const f of files.filter((x) => /^\s*["']use server["']/.test(x.text)))
+    for (const m of f.text.matchAll(
+      /export const (\w+) = withPermission\(\s*"([a-z_.]+)"/g
+    ))
+      ditemukan.set(`${f.path}:${m[1]}`, m[2])
+
+  it("tabel dan isi file aksi sinkron", () => {
+    // Aksi withPermission baru wajib ditambahkan ke tabel.
+    expect([...ditemukan.keys()].filter((k) => !(k in IZIN_AKSI)).sort()).toEqual(
+      []
+    )
+    // Tabel tidak boleh memuat aksi yang sudah dihapus, dipindah, atau diganti namanya.
+    expect(
+      Object.keys(IZIN_AKSI)
+        .filter((k) => !ditemukan.has(k))
+        .sort()
+    ).toEqual([])
+  })
+
+  it.each(Object.entries(IZIN_AKSI))("%s -> %s", (kunci, izin) => {
+    expect(ditemukan.get(kunci)).toBe(izin)
   })
 })
 
