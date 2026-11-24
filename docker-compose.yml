@@ -83,9 +83,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-itapp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-itapp}
       POSTGRES_DB: ${POSTGRES_DB:-itapp}
-    # Internal saja. Buka bila menjalankan `pnpm dev` dari host atau memakai alat DB.
-    # ports:
-    #   - "127.0.0.1:5432:5432"
+    # Internal saja. Untuk `pnpm dev` dari host atau alat DB, buka portnya lewat
+    # docker-compose.override.yml (tidak dilacak git), jangan dengan mengubah file ini.
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

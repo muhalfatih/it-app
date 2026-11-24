@@ -57,3 +57,6 @@ AGENTS.md
 
 file_test
 AKUN-UJI.md
+
+# Pengaturan compose per mesin (mis. membuka port db ke host untuk pnpm dev dan vitest)
+docker-compose.override.yml
