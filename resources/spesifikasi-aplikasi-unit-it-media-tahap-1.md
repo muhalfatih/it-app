@@ -77,10 +77,11 @@ Aplikasi web untuk mengelola kerja **Unit IT & Media**. Unit ini satu unit yang 
 | Beri/ubah Tugas dari Manajer | — | ✅ | — | — | — |
 | Lihat Kanban & komentar | ✅ | ✅ | ✅ | ✅ | — |
 | Isi kartu (tahap Ide/Draft) | — | ✅ | ✅ | ✅ | — |
-| Ide → Draft | — | — | ✅ | — | — |
+| Ide → Draft | — | ✅ | ✅ | — | — |
 | Draft → Review | — | ✅ | — | — | — |
 | Review → Disetujui | ✅ | — | — | — | — |
 | Centang Tayang per kanal | — | ✅ | ✅ | ✅ | — |
+| Batalkan centang Tayang | — | ✅ | — | — | — |
 | Isi Absensi | — | ✅ | — | — | — |
 | Rekap Absensi | Semua | Semua | Diri sendiri | Diri sendiri | — |
 | Ajukan SDM / Pengaduan Internet | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -89,6 +90,10 @@ Aplikasi web untuk mengelola kerja **Unit IT & Media**. Unit ini satu unit yang 
 | Kelola data inventaris | — | ✅ | — | — | — |
 | Catat pinjam & kembali alat | — | ✅ | ✅ | ✅ | — |
 | Setting | — | ✅ | — | — | — |
+
+Dua baris diputuskan pada 24 Nov 2026, menutup PRD §9 butir 3 dan 4: Manajer boleh memindahkan
+Ide → Draft bila SDM Strategi kosong atau berhalangan, dan Manajer boleh membatalkan centang
+Tayang. Rinciannya di §6.2 dan §6.5.
 
 ### 3.4 Menu Setting (khusus Manajer)
 
@@ -256,7 +261,7 @@ Ide → Draft → Review → Disetujui → Telah Tayang
 
 | Perpindahan | Oleh |
 |---|---|
-| Ide → Draft | SDM Strategi |
+| Ide → Draft | SDM Strategi, atau Manajer bila SDM Strategi kosong/berhalangan |
 | Draft → Review | Manajer |
 | Review → Disetujui | Direktur |
 | Disetujui → Telah Tayang | Staf mana pun selain Direktur, lewat centang per kanal (6.5) |
@@ -286,6 +291,9 @@ Ide → Draft → Review → Disetujui → Telah Tayang
 - Kanal yang diatur **"Wajib link"** (misalnya YouTube atau Instagram) harus diisi **link postingannya** saat dicentang.
 - Kanal tanpa "Wajib link" (misalnya WA Grup atau TV Display) cukup dicentang.
 - Begitu **semua kanal tercentang**, kartu otomatis pindah ke **Telah Tayang**.
+- **Manajer** dapat membatalkan centang sebuah kanal dengan **alasan wajib**. Bila kartu sudah
+  di Telah Tayang, pembatalan menariknya kembali ke **Disetujui**. Pembatalan tercatat di
+  riwayat kartu (§6.6).
 
 > Link postingan menjadi jembatan ke **Laporan Media Sosial (Tahap 2)**. Saat statistik diimpor, sistem bisa mencocokkan statistik ke konten Planner, menandai postingan yang tidak tercatat di Planner, dan menandai konten yang dicentang "Tayang" tapi tidak ditemukan di platform.
 

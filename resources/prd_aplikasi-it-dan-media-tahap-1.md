@@ -144,8 +144,8 @@ Risiko terbesar adalah mekanisme login — arsitektur autentikasi tidak bisa fin
 | --- | --- | --- | --- |
 | 1 | Mekanisme login ke sistem informasi sekolah (SSO/API atau baca database) belum pasti | Memblokir desain `packages/auth` | Manajer × pengelola sistem informasi; siapkan cadangan akun lokal bila integrasi tidak memungkinkan |
 | 2 | Batas ukuran & format file video belum ditetapkan | Menentukan kapasitas server dan UX unggah | Tetapkan bersama Manajer sebelum modul Kanban dibangun |
-| 3 | Ide → Draft hanya oleh SDM Strategi | Kartu tertahan bila posisi kosong/berhalangan | Usul: Manajer juga boleh memindahkan — konfirmasi ke Manajer |
-| 4 | Centang "Tayang" tidak bisa dibatalkan | Salah centang/link keliru tak terkoreksi | Usul: Manajer boleh membatalkan centang kanal — konfirmasi |
+| 3 | Ide → Draft hanya oleh SDM Strategi | Kartu tertahan bila posisi kosong/berhalangan | Selesai 24 Nov 2026: Manajer juga boleh memindahkan (spesifikasi §3.3 dan §6.2) |
+| 4 | Centang "Tayang" tidak bisa dibatalkan | Salah centang/link keliru tak terkoreksi | Selesai 24 Nov 2026: Manajer boleh membatalkan centang kanal dengan alasan wajib (spesifikasi §3.3 dan §6.5) |
 | 5 | Laporan terkunci pukul 10.00, tapi absensi non-Hadir bisa diisi belakangan | Staf izin bisa terlanjur kena skor 0 | Pastikan: absensi non-Hadir yang diisi kapan pun tetap menyembunyikan laporan hari itu dari skor |
 | 6 | Rangkap peran belum diatur (mis. SDM Strategi sekaligus Khusus) | Model data peran | Konfirmasi: satu akun satu peran, atau multi-peran |
 | 7 | Inventaris tidak punya kolom jumlah rusak/hilang (§9.1 vs §9.3) | Rumus stok tersedia tak bisa dihitung | Tambahkan kolom jumlah rusak/hilang per alat di data inventaris |

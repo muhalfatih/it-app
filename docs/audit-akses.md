@@ -20,8 +20,8 @@ Empat izin Manajer berada di luar bacaan literal matriks, semuanya disengaja:
 
 | Izin | Alasan |
 |---|---|
-| `kanban.ide_ke_draft` | Usul PRD §9 butir 3: kartu tertahan bila SDM Strategi kosong atau berhalangan |
-| `kanban.batal_tayang` | Usul PRD §9 butir 4: salah centang atau link keliru harus bisa dikoreksi |
+| `kanban.ide_ke_draft` | PRD §9 butir 3, selesai 24 Nov 2026: kartu tertahan bila SDM Strategi kosong atau berhalangan |
+| `kanban.batal_tayang` | PRD §9 butir 4, selesai 24 Nov 2026: salah centang atau link keliru harus bisa dikoreksi |
 | `planner.hapus_terkunci` | Hapus entri pada tahap Review ke atas (§4.5, konfirmasi dua langkah) |
 | `laporan.buka_kunci` | Buka kunci laporan yang sudah terkunci pukul 10.00 (§5) |
 
@@ -29,9 +29,15 @@ Dua yang pertama berasal dari usul PRD §9 butir 3 dan 4, dan **disetujui penggu
 24 Nov 2026**: Manajer boleh memindahkan Ide → Draft, dan boleh membatalkan centang kanal.
 Kode sudah sesuai keputusan itu, jadi tidak ada perubahan yang perlu dikerjakan.
 
-Matriks §3.3 di `resources/spesifikasi-aplikasi-unit-it-media-tahap-1.md` dan tabel PRD §9
-masih memuat bentuk lamanya. Keduanya dokumen kebutuhan, jadi penyelarasannya diserahkan ke
-pengguna; sampai itu dilakukan, dokumen ini yang memuat keputusan terbaru.
+Kedua dokumen kebutuhan sudah diselaraskan pada 24 Nov 2026: baris `Ide → Draft` di matriks
+§3.3 kini bercentang untuk Manajer, ada baris baru `Batalkan centang Tayang` untuk Manajer,
+§6.2 menyebut Manajer sebagai pengganti bila SDM Strategi berhalangan, §6.5 memuat aturan
+pembatalan centang beserta alasan wajibnya, dan PRD §9 butir 3 dan 4 ditandai selesai.
+
+Yang masih di luar matriks §3.3: `planner.hapus_terkunci` dan `laporan.buka_kunci`. Keduanya
+bukan keputusan baru, melainkan turunan wewenang Manajer yang sudah dijelaskan di §4.5 dan §5,
+jadi barisnya belum ditambahkan. Kalau diinginkan, keduanya bisa dijadikan baris matriks
+tersendiri agar §3.3 memuat seluruh izin yang ada di `ROLE_PERMISSIONS`.
 
 Catatan untuk pembaca berikutnya: `kanban.batal_tayang` hanya dimiliki Manajer. Kalau suatu
 saat dicabut, tidak ada peran yang memilikinya, `canUncheck` selalu false, dan seluruh jalur
