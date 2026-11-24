@@ -118,7 +118,18 @@ cookie tanpa awalan `__Secure-` hanya cocok untuk http.
 `apps/admin/lib/app-guards.test.ts` memindai `apps/admin/app` dan `apps/admin/lib`: setiap
 `page.tsx` harus memanggil `requirePermission`/`requireUser`, dan setiap ekspor file
 `"use server"` harus dibungkus `withPermission`/`action`. Pengecualian eksplisit ada di
-kepala tes. Pemindai hanya memeriksa keberadaan penjaga, bukan kecocokan izinnya dengan matriks.
+kepala tes.
+
+Sejak 24 Nov 2026 file yang sama juga memuat tabel izin per halaman yang diturunkan dari
+matriks §3.3: 31 halaman `requirePermission`, 2 halaman yang memeriksa dua izin di body
+(`/laporan/rekap`, `/absensi/rekap`), dan 5 halaman tanpa izin beserta alasannya. Halaman baru
+gagal sampai dimasukkan ke tabel, halaman yang dihapus juga gagal, dan tipe `Permission`
+membuat nama izin yang tidak ada ditolak `tsc`. Diuji dengan mutasi: menukar izin `/absensi`
+dan menambah halaman tanpa entri keduanya membuat tes gagal.
+
+Batasnya sekarang: tabel itu memeriksa izin yang *dideklarasikan* di sumber halaman, bukan
+perilaku HTTP-nya. Penyempitan data per ID dan penolakan nyata tetap dibuktikan
+`verify-access.sh` dan tes DB per modul.
 
 ## 5. Sisa pekerjaan
 
