@@ -3,48 +3,59 @@
 import * as React from "react"
 import { MonitorPlayIcon } from "lucide-react"
 
-import { NavMain } from "@workspace/ui/components/nav-main"
+import {
+  NavGrouped,
+  type NavItem,
+  type NavSection,
+} from "@workspace/ui/components/domain/nav-grouped"
 import { NavUser } from "@workspace/ui/components/nav-user"
-import { TeamSwitcher } from "@workspace/ui/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
 } from "@workspace/ui/components/sidebar"
 
-type NavItem = React.ComponentProps<typeof NavMain>["items"][number]
-
 /**
- * Kerangka sidebar (blok sidebar-07). Menu dan pengguna dikirim dari server
- * (sudah disaring sesuai izin peran); `onSignOut` berupa server action.
+ * Kerangka sidebar (pola blok sidebar-08, tetap bisa diciutkan ke ikon).
+ * Menu dan pengguna dikirim dari server (sudah disaring sesuai izin peran);
+ * `onSignOut` berupa server action.
  */
 export function AppSidebar({
-  navMain,
+  sections,
+  secondary,
   user,
   onSignOut,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  navMain: NavItem[]
+  sections: NavSection[]
+  secondary?: NavItem[]
   user: React.ComponentProps<typeof NavUser>["user"]
   onSignOut: () => Promise<void>
 }) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher
-          teams={[
-            {
-              name: "Unit IT & Media",
-              logo: <MonitorPlayIcon />,
-              plan: "SIT Insantama",
-            },
-          ]}
-        />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" render={<a href="/" />}>
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <MonitorPlayIcon className="size-4" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">Unit IT &amp; Media</span>
+                <span className="truncate text-xs">SIT Insantama</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavGrouped sections={sections} secondary={secondary} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} onSignOut={onSignOut} />
