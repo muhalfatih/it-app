@@ -56,6 +56,11 @@
     --color-info: var(--info);
     --color-success-foreground: var(--success-foreground);
     --color-success: var(--success);
+    --color-att-hadir: var(--att-hadir);
+    --color-att-izin: var(--att-izin);
+    --color-att-izin-kegiatan: var(--att-izin-kegiatan);
+    --color-att-sakit: var(--att-sakit);
+    --color-att-tanpa-keterangan: var(--att-tanpa-keterangan);
     --color-destructive-foreground: var(--destructive-foreground);
 }
 
@@ -101,6 +106,12 @@
     --warning-foreground: oklch(0.45 0.09 70);
     --invert: oklch(0.25 0.03 217);
     --invert-foreground: oklch(0.985 0.005 217);
+    /* Status kehadiran; mengikuti token lain sehingga ikut berganti terang/gelap. */
+    --att-hadir: var(--primary);
+    --att-izin: var(--info);
+    --att-izin-kegiatan: var(--chart-1);
+    --att-sakit: var(--warning);
+    --att-tanpa-keterangan: var(--destructive);
 }
 
 .dark {

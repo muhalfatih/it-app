@@ -47,3 +47,15 @@ export async function attendanceOf(
     )
   return new Map(rows.map((r) => [r.date, r.status as AttendanceStatus]))
 }
+
+/** Semua baris absensi dalam rentang (satu query untuk grafik tim). */
+export async function attendanceRange(
+  from: IsoDate,
+  to: IsoDate
+): Promise<{ userId: string; date: IsoDate; status: AttendanceStatus }[]> {
+  const rows = await db
+    .select({ userId: attendance.userId, date: attendance.date, status: attendance.status })
+    .from(attendance)
+    .where(and(gte(attendance.date, from), lte(attendance.date, to)))
+  return rows.map((r) => ({ ...r, status: r.status as AttendanceStatus }))
+}
