@@ -8,7 +8,8 @@
 #   cookie = better-auth.session_token=<token>.<base64(HMAC-SHA256(token, BETTER_AUTH_SECRET))>
 # Akun uji berawalan `uji-akses-` (SDM Strategi, SDM Khusus, Direktur, Staf Unit Lain) dihapus
 # saat keluar; Manajer memakai akun yang sudah ada, hanya sesinya yang dihapus. Kalau skrip
-# mati paksa, hapus sisa akun: delete from "user" where id like 'uji-akses-%'.
+# mati paksa, sisanya dibereskan oleh jalan berikutnya, atau hapus manual:
+#   delete from session where id like 'uji-akses-%'; delete from "user" where id like 'uji-akses-%';
 #
 # Pakai (server dev/produksi berjalan, container docker compose `db` hidup, .env berisi BETTER_AUTH_SECRET):
 #   BASE_URL=http://localhost:3000 scripts/verify-access.sh
@@ -34,10 +35,12 @@ status() { # status <path> [cookie]
 }
 psql_db() { (cd "$ROOT" && docker compose exec -T db psql -U "${POSTGRES_USER:-itapp}" -d "${POSTGRES_DB:-itapp}" -qtAc "$1"); }
 
-TOKENS=()
+# Sesi uji dikenali dari awalan id, bukan dari daftar token di memori: session_cookie dipanggil
+# lewat command substitution (subshell), jadi variabel yang diisi di sana tidak sampai ke sini.
+# Pola ini sekaligus membereskan sisa dari jalan sebelumnya yang mati paksa.
 cleanup() {
+  psql_db "delete from session where id like 'uji-akses-%'" >/dev/null || true
   psql_db "delete from \"user\" where id like 'uji-akses-%'" >/dev/null || true
-  for t in "${TOKENS[@]}"; do psql_db "delete from session where token = '$t'" >/dev/null || true; done
 }
 trap cleanup EXIT
 
@@ -53,7 +56,6 @@ session_cookie() {
     [[ "$role" == none ]] || psql_db "insert into user_role (user_id, role) values ('$uid', '$role') on conflict do nothing" >/dev/null
   fi
   token=$(openssl rand -hex 16)
-  TOKENS+=("$token")
   psql_db "insert into session (id, token, expires_at, created_at, updated_at, user_id) values ('uji-akses-$token', '$token', now() + interval '1 hour', now(), now(), '$uid')" >/dev/null
   sig=$(printf %s "$token" | openssl dgst -sha256 -hmac "$SECRET" -binary | openssl base64 -A)
   printf 'better-auth.session_token=%s.%s' "$token" "$sig"
