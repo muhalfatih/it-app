@@ -1,7 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
-import { username } from "better-auth/plugins"
 import { db } from "@workspace/db/client"
 import { eq } from "@workspace/db/orm"
 import * as schema from "@workspace/db/schema"
@@ -12,6 +11,7 @@ import {
   simtamaOAuth,
   simtamaReachable,
   ssoOnly,
+  usernamePlugin,
   type SsoConfig,
 } from "./sso"
 
@@ -83,7 +83,7 @@ export const auth = betterAuth({
   },
   // nextCookies harus paling akhir agar cookie dari server action ikut terpasang.
   plugins: [
-    username({ minUsernameLength: 3, maxUsernameLength: 30 }),
+    usernamePlugin(),
     ...(sso ? [simtamaOAuth(sso)] : []),
     nextCookies(),
   ],

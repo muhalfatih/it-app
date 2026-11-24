@@ -2,9 +2,17 @@
 // Panduan: https://demo-api-doc.simtama.net/docs/panduan
 // Tanpa impor database agar bisa diuji dengan memoryAdapter (sso.test.ts).
 import { APIError } from "better-auth/api"
-import { genericOAuth } from "better-auth/plugins"
+import { genericOAuth, username } from "better-auth/plugins"
 
-import { simtamaUserInfo } from "./rules"
+import { simtamaUserInfo, usernameSchema } from "./rules"
+
+/** Plugin username dengan aturan yang sama seperti akun lokal (termasuk username berupa email). */
+export const usernamePlugin = () =>
+  username({
+    minUsernameLength: 3,
+    maxUsernameLength: 254,
+    usernameValidator: (u) => usernameSchema.safeParse(u).success,
+  })
 
 export type SsoConfig = {
   issuer: string

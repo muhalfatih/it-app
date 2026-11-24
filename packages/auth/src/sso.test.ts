@@ -1,7 +1,6 @@
 // Alur SSO ujung ke ujung dengan konfigurasi asli (sso.ts), memoryAdapter, dan IdP tiruan.
 import { betterAuth } from "better-auth"
 import { memoryAdapter } from "better-auth/adapters/memory"
-import { username } from "better-auth/plugins"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
@@ -9,6 +8,7 @@ import {
   simtamaAccountLinking,
   simtamaOAuth,
   ssoOnly,
+  usernamePlugin,
 } from "./sso"
 
 const ISSUER = "https://idp.test"
@@ -35,7 +35,7 @@ const auth = betterAuth({
     },
   },
   plugins: [
-    username(),
+    usernamePlugin(),
     simtamaOAuth({ issuer: ISSUER, clientId: "itapp", clientSecret: "s3cret" }),
   ],
 })
@@ -131,6 +131,31 @@ describe("SSO Simtama", () => {
       userId: local.id,
       accountId: "1",
     })
+  })
+
+  it("menautkan akun lokal yang username-nya berupa email", async () => {
+    const local = await (await auth.$context).internalAdapter.createUser(
+      {
+        email: "budi@sekolah.id",
+        name: "Budi",
+        username: "budi@sekolah.id",
+        emailVerified: false,
+      },
+      { method: "admin" }
+    )
+    const { location } = await login({ sub: "8", username: "Budi@Sekolah.id" })
+    expect(location).toBe("/")
+    expect(db.account!.find((a) => a.providerId === "simtama")).toMatchObject({
+      userId: local.id,
+      accountId: "8",
+    })
+  })
+
+  it("username email ber-domain sintetis tidak menyamar sebagai akun lokal", async () => {
+    await register("budi")
+    const { location } = await login({ sub: "9", username: "budi@akun.lokal" })
+    expect(location).toContain("/masuk?error=")
+    expect(db.account!.some((a) => a.providerId === "simtama")).toBe(false)
   })
 
   it("menolak pegawai yang belum didaftarkan Manajer", async () => {

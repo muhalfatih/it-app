@@ -3,14 +3,28 @@ import { z } from "zod"
 
 import type { Role } from "@workspace/db/schema/roles"
 
-/** Sesuai batas plugin username Better Auth: 3–30 karakter, huruf/angka/titik/garis bawah, huruf kecil. */
+const SYNTHETIC_DOMAIN = "@akun.lokal"
+
+/**
+ * Username lokal (3–30 karakter, huruf/angka/titik/garis bawah) atau email, karena sebagian
+ * username Simtama ID berupa email. Email ber-domain sintetis ditolak agar tidak menyamar
+ * sebagai akun lokal lain (`budi@akun.lokal` = email sintetis milik `budi`).
+ */
 export const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .regex(/^[a-z0-9._]{3,30}$/, {
-    message: "Username 3–30 karakter: huruf, angka, titik, atau garis bawah",
-  })
+  .refine(
+    (v) =>
+      /^[a-z0-9._]{3,30}$/.test(v) ||
+      (v.length <= 254 &&
+        z.email().safeParse(v).success &&
+        !v.endsWith(SYNTHETIC_DOMAIN)),
+    {
+      message:
+        "Username 3–30 karakter (huruf, angka, titik, atau garis bawah) atau alamat email",
+    }
+  )
 
 /** Header berisi path + query permintaan, dipasang proxy.ts agar guard tahu halaman asal. */
 export const PATH_HEADER = "x-app-path"
@@ -42,7 +56,9 @@ export const withoutManager = (roles: readonly Role[]): Role[] =>
 
 /** Email wajib di tabel Better Auth; akun lokal memakai email sintetis yang tidak dipakai untuk apa pun. */
 // shortcut: email sintetis, ganti dengan email asli saat adapter sistem informasi sekolah dipasang.
-export const syntheticEmail = (username: string) => `${username}@akun.lokal`
+// Username berupa email dipakai apa adanya (tidak bentrok: email akun lain selalu sintetis).
+export const syntheticEmail = (username: string) =>
+  username.includes("@") ? username : `${username}${SYNTHETIC_DOMAIN}`
 
 /**
  * Profil SSO Simtama ID dari objek `account` di respons token.

@@ -137,7 +137,7 @@ export const createFromSimtamaAction = withPermission(
         )
       if (!usernameSchema.safeParse(staff.username).success)
         throw new AccountError(
-          `Username Simtama "${staff.username}" tidak didukung aplikasi ini (3–30 karakter: huruf, angka, titik, garis bawah)`
+          `Username Simtama "${staff.username}" tidak didukung aplikasi ini (3–30 karakter: huruf, angka, titik, garis bawah; atau alamat email)`
         )
       try {
         await grantAccess(accountId)

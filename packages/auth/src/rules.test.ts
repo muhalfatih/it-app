@@ -13,7 +13,21 @@ describe("usernameSchema", () => {
     expect(usernameSchema.parse("  Budi ")).toBe("budi")
     expect(usernameSchema.parse("Siti.R_2")).toBe("siti.r_2")
   })
-  it.each(["a", "ab", "budi santoso", "budi-s", "x".repeat(31), "bu@di"])(
+  it("menerima username berupa email", () => {
+    expect(usernameSchema.parse(" Budi.S@Sma-X.sch.id ")).toBe(
+      "budi.s@sma-x.sch.id"
+    )
+  })
+  it.each([
+    "a",
+    "ab",
+    "budi santoso",
+    "budi-s",
+    "x".repeat(31),
+    "bu@di",
+    "budi@akun.lokal",
+    `${"x".repeat(250)}@a.id`,
+  ])(
     "menolak %j",
     (value) => {
       expect(usernameSchema.safeParse(value).success).toBe(false)
@@ -73,6 +87,11 @@ describe("simtamaUserInfo", () => {
       emailVerified: false,
       username: "budi",
     })
+  })
+  it("username email dipakai langsung sebagai email", () => {
+    expect(
+      simtamaUserInfo({ sub: 9, username: "Budi@Sekolah.id" })
+    ).toMatchObject({ email: "budi@sekolah.id", username: "budi@sekolah.id" })
   })
   it.each([
     undefined,
