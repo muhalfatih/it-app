@@ -13,7 +13,7 @@ import {
 import { signOutWithPush } from "@/lib/push/sign-out"
 import { menuFor, NAV_SECONDARY } from "@/lib/menu"
 
-// Kerangka aplikasi (pola blok sidebar-08). Layout bukan gerbang keamanan:
+// Kerangka aplikasi (blok sidebar-07). Layout bukan gerbang keamanan:
 // setiap halaman dan aksi server tetap memeriksa izinnya sendiri.
 export default async function AppLayout({
   children,

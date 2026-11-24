@@ -13,7 +13,6 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -38,8 +37,9 @@ function useLocationKey() {
 }
 
 /**
- * Navigasi berkelompok pola sidebar-08: judul > menu (link) > sub-menu
- * (dibuka lewat tombol panah terpisah). `secondary` tampil di bawah.
+ * Navigasi berkelompok bergaya sidebar-07: judul > menu > sub-menu. Menu
+ * bersub-menu membuka/menutup saat diklik; menu tanpa sub-menu berupa link.
+ * `secondary` tampil di bawah.
  */
 export function NavGrouped({
   sections,
@@ -109,25 +109,29 @@ function NavEntry({ item, active }: { item: NavItem; active: string | null }) {
     <Collapsible
       key={subActive ? "open" : "closed"}
       defaultOpen={subActive}
+      className="group/collapsible"
       render={<SidebarMenuItem />}
     >
-      <SidebarMenuButton
-        tooltip={item.title}
-        isActive={selfActive}
-        render={
-          <a href={item.url} aria-current={selfActive ? "page" : undefined} />
-        }
-      >
-        {item.icon}
-        <span>{item.title}</span>
-      </SidebarMenuButton>
+      {!hasSub && (
+        <SidebarMenuButton
+          tooltip={item.title}
+          isActive={selfActive}
+          render={
+            <a href={item.url} aria-current={selfActive ? "page" : undefined} />
+          }
+        >
+          {item.icon}
+          <span>{item.title}</span>
+        </SidebarMenuButton>
+      )}
       {hasSub && (
         <>
           <CollapsibleTrigger
-            render={<SidebarMenuAction className="aria-expanded:rotate-90" />}
+            render={<SidebarMenuButton tooltip={item.title} />}
           >
-            <ChevronRightIcon />
-            <span className="sr-only">Buka/tutup sub-menu {item.title}</span>
+            {item.icon}
+            <span>{item.title}</span>
+            <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <SidebarMenuSub>
