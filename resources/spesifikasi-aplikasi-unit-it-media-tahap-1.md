@@ -71,9 +71,11 @@ Aplikasi web untuk mengelola kerja **Unit IT & Media**. Unit ini satu unit yang 
 |---|---|---|---|---|---|
 | Lihat Media Planner | ✅ | ✅ | ✅ | ✅ (awal: "Pekerjaan saya saja") | — |
 | Isi/ubah Media Planner | — | ✅ | ✅ | — | — |
+| Hapus entri Planner tahap Review ke atas | — | ✅ | — | — | — |
 | Unduh PDF Planner | ✅ | ✅ | ✅ | ✅ | — |
 | Isi Laporan Harian | — | ✅ | ✅ | ✅ | — |
 | Rekap Laporan Harian | Semua | Semua | Diri sendiri | Diri sendiri | — |
+| Buka kunci Laporan Harian | — | ✅ | — | — | — |
 | Beri/ubah Tugas dari Manajer | — | ✅ | — | — | — |
 | Lihat Kanban & komentar | ✅ | ✅ | ✅ | ✅ | — |
 | Isi kartu (tahap Ide/Draft) | — | ✅ | ✅ | ✅ | — |
@@ -94,6 +96,11 @@ Aplikasi web untuk mengelola kerja **Unit IT & Media**. Unit ini satu unit yang 
 Dua baris diputuskan pada 24 Nov 2026, menutup PRD §9 butir 3 dan 4: Manajer boleh memindahkan
 Ide → Draft bila SDM Strategi kosong atau berhalangan, dan Manajer boleh membatalkan centang
 Tayang. Rinciannya di §6.2 dan §6.5.
+
+Baris "Hapus entri Planner tahap Review ke atas" dan "Buka kunci Laporan Harian" ditambahkan
+pada tanggal yang sama. Keduanya bukan wewenang baru, hanya pencatatan wewenang Manajer yang
+sudah dijelaskan di §4.5 dan §5, supaya tabel ini memuat seluruh hak akses yang ditegakkan
+aplikasi dan bisa dipakai sebagai satu-satunya acuan saat pengujian.
 
 ### 3.4 Menu Setting (khusus Manajer)
 

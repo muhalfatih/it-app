@@ -34,10 +34,11 @@ Kedua dokumen kebutuhan sudah diselaraskan pada 24 Nov 2026: baris `Ide → Draf
 §6.2 menyebut Manajer sebagai pengganti bila SDM Strategi berhalangan, §6.5 memuat aturan
 pembatalan centang beserta alasan wajibnya, dan PRD §9 butir 3 dan 4 ditandai selesai.
 
-Yang masih di luar matriks §3.3: `planner.hapus_terkunci` dan `laporan.buka_kunci`. Keduanya
-bukan keputusan baru, melainkan turunan wewenang Manajer yang sudah dijelaskan di §4.5 dan §5,
-jadi barisnya belum ditambahkan. Kalau diinginkan, keduanya bisa dijadikan baris matriks
-tersendiri agar §3.3 memuat seluruh izin yang ada di `ROLE_PERMISSIONS`.
+`planner.hapus_terkunci` dan `laporan.buka_kunci` juga mendapat barisnya sendiri di §3.3 pada
+tanggal yang sama ("Hapus entri Planner tahap Review ke atas" dan "Buka kunci Laporan Harian").
+Keduanya bukan wewenang baru, hanya pencatatan, tapi tanpa baris itu komentar tabel di
+`permissions.test.ts` yang menyebut dirinya "matriks akses spesifikasi §3.3" tidak akurat.
+Sejak itu seluruh 25 izin di `PERMISSIONS` punya padanan baris di §3.3.
 
 Catatan untuk pembaca berikutnya: `kanban.batal_tayang` hanya dimiliki Manajer. Kalau suatu
 saat dicabut, tidak ada peran yang memilikinya, `canUncheck` selalu false, dan seluruh jalur
