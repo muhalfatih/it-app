@@ -1,5 +1,13 @@
 import Link from "next/link"
-import { HandHelpingIcon } from "lucide-react"
+import {
+  BoxesIcon,
+  CalendarCheckIcon,
+  CalendarClockIcon,
+  CircleDotIcon,
+  HandHelpingIcon,
+  Building2Icon,
+  UserIcon,
+} from "lucide-react"
 
 import {
   Empty,
@@ -8,7 +16,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@workspace/ui/components/empty"
-import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge as StatusBadgeBase } from "@workspace/ui/components/domain/status-badge"
 import {
   Table,
   TableBody,
@@ -29,7 +37,11 @@ const STATUS_VARIANT = {
 } as const
 
 export function StatusBadge({ status }: { status: LoanStatus }) {
-  return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABELS[status]}</Badge>
+  return (
+    <StatusBadgeBase variant={STATUS_VARIANT[status]}>
+      {STATUS_LABELS[status]}
+    </StatusBadgeBase>
+  )
 }
 
 export function LoanList({ rows }: { rows: LoanRow[] }) {
@@ -52,18 +64,18 @@ export function LoanList({ rows }: { rows: LoanRow[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Peminjam</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead>Alat</TableHead>
-            <TableHead>Mulai</TableHead>
-            <TableHead>Rencana kembali</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead icon={UserIcon}>Peminjam</TableHead>
+            <TableHead icon={Building2Icon}>Unit</TableHead>
+            <TableHead icon={BoxesIcon}>Alat</TableHead>
+            <TableHead icon={CalendarCheckIcon}>Mulai</TableHead>
+            <TableHead icon={CalendarClockIcon}>Rencana kembali</TableHead>
+            <TableHead icon={CircleDotIcon}>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((r) => (
             <TableRow key={r.id}>
-              <TableCell className="font-medium">
+              <TableCell icon={UserIcon} data-label="Peminjam" className="font-medium">
                 <Link
                   href={`/inventaris/peminjaman/${r.id}`}
                   className="underline-offset-4 hover:underline"
@@ -71,17 +83,17 @@ export function LoanList({ rows }: { rows: LoanRow[] }) {
                   {r.borrowerName}
                 </Link>
               </TableCell>
-              <TableCell>{r.unitName}</TableCell>
-              <TableCell className="max-w-64 whitespace-normal">
+              <TableCell icon={Building2Icon} data-label="Unit">{r.unitName}</TableCell>
+              <TableCell icon={BoxesIcon} data-label="Alat" className="max-w-64 whitespace-normal">
                 {r.itemsLabel}
               </TableCell>
-              <TableCell className="tabular-nums">
+              <TableCell icon={CalendarCheckIcon} data-label="Mulai" className="tabular-nums">
                 {formatDateTime(r.startedAt)}
               </TableCell>
-              <TableCell className="tabular-nums">
+              <TableCell icon={CalendarClockIcon} data-label="Rencana kembali" className="tabular-nums">
                 {formatDateTime(r.dueAt)}
               </TableCell>
-              <TableCell>
+              <TableCell icon={CircleDotIcon} data-label="Status">
                 <StatusBadge status={r.status} />
               </TableCell>
             </TableRow>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { LockOpenIcon } from "lucide-react"
+import { CircleDotIcon, GaugeIcon, LockOpenIcon, UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
-import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import { Spinner } from "@workspace/ui/components/spinner"
 import {
   Table,
@@ -121,9 +121,9 @@ export function TeamTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nama</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Skor hari ini</TableHead>
+            <TableHead icon={UserIcon}>Nama</TableHead>
+            <TableHead icon={CircleDotIcon}>Status</TableHead>
+            <TableHead icon={GaugeIcon} numeric>Skor hari ini</TableHead>
             {canUnlock && (
               <TableHead className="w-40">
                 <span className="sr-only">Aksi</span>
@@ -136,7 +136,7 @@ export function TeamTable({
             const badge = STATE_BADGE[r.state]
             return (
               <TableRow key={r.id}>
-                <TableCell className="font-medium">
+                <TableCell data-label="Nama" className="font-medium">
                   <Link
                     href={`/laporan/tim/${r.id}?tanggal=${date}`}
                     className="underline-offset-4 outline-none hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring"
@@ -144,12 +144,12 @@ export function TeamTable({
                     {r.name}
                   </Link>
                 </TableCell>
-                <TableCell>
-                  <Badge variant={badge.variant}>{badge.label}</Badge>
+                <TableCell icon={CircleDotIcon} data-label="Status">
+                  <StatusBadge variant={badge.variant}>{badge.label}</StatusBadge>
                 </TableCell>
-                <TableCell className="tabular-nums">{r.score ?? "—"}</TableCell>
+                <TableCell icon={GaugeIcon} numeric data-label="Skor hari ini">{r.score ?? "—"}</TableCell>
                 {canUnlock && (
-                  <TableCell>
+                  <TableCell data-label="Aksi">
                     {r.state === "terkunci" && (
                       <UnlockButton userId={r.id} name={r.name} date={date} />
                     )}

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { CircleDotIcon, UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -74,15 +75,15 @@ export function AttendanceTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nama</TableHead>
-            <TableHead className="w-64">Status</TableHead>
+            <TableHead icon={UserIcon}>Nama</TableHead>
+            <TableHead icon={CircleDotIcon} className="w-64">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((r) => (
             <TableRow key={r.id}>
-              <TableCell className="font-medium">{r.name}</TableCell>
-              <TableCell>
+              <TableCell data-label="Nama" className="font-medium">{r.name}</TableCell>
+              <TableCell icon={CircleDotIcon} data-label="Status">
                 <Select
                   items={ITEMS}
                   value={values.get(r.id) ?? "hadir"}

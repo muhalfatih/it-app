@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Trash2Icon } from "lucide-react"
+import { CalendarIcon, PartyPopperIcon, Trash2Icon } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import { toast } from "sonner"
@@ -19,6 +19,13 @@ import {
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
 import { Pattern as DatePicker } from "@workspace/ui/components/examples/c-calendar-24"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@workspace/ui/components/empty"
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import {
@@ -106,8 +113,8 @@ export function HolidayList({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tanggal</TableHead>
-              <TableHead>Nama</TableHead>
+              <TableHead icon={CalendarIcon}>Tanggal</TableHead>
+              <TableHead icon={PartyPopperIcon}>Nama</TableHead>
               <TableHead className="w-12">
                 <span className="sr-only">Hapus</span>
               </TableHead>
@@ -116,20 +123,30 @@ export function HolidayList({
           <TableBody>
             {holidays.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-muted-foreground">
-                  Belum ada hari libur.
+                <TableCell colSpan={3} className="max-md:justify-center max-md:text-center">
+                  <Empty className="border-0 p-6">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <PartyPopperIcon />
+                      </EmptyMedia>
+                      <EmptyTitle>Belum ada hari libur</EmptyTitle>
+                      <EmptyDescription>
+                        Tambahkan tanggal libur lewat formulir di atas.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 </TableCell>
               </TableRow>
             ) : (
               holidays.map((h) => (
                 <TableRow key={h.date}>
-                  <TableCell className="whitespace-nowrap tabular-nums">
+                  <TableCell icon={CalendarIcon} data-label="Tanggal" className="whitespace-nowrap tabular-nums">
                     {format(parseISO(h.date), "EEE, d MMM yyyy", {
                       locale: localeId,
                     })}
                   </TableCell>
-                  <TableCell>{h.name}</TableCell>
-                  <TableCell>
+                  <TableCell icon={PartyPopperIcon} data-label="Nama">{h.name}</TableCell>
+                  <TableCell data-label="Aksi">
                     <AlertDialog>
                       <AlertDialogTrigger
                         render={

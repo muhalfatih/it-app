@@ -3,10 +3,14 @@
 import * as React from "react"
 import {
   BoldIcon,
+  BoxIcon,
   ChevronRightIcon,
+  HashIcon,
   ItalicIcon,
   LaptopIcon,
+  MapPinIcon,
   SearchIcon,
+  SigmaIcon,
 } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -54,6 +58,13 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 import { Toggle } from "@workspace/ui/components/toggle"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@workspace/ui/components/empty"
 import { SettingList } from "@workspace/ui/components/domain/setting-list"
 import type { SettingRow } from "@workspace/ui/components/domain/setting-list"
 import { ThemeToggle } from "@workspace/ui/components/domain/theme-toggle"
@@ -267,29 +278,61 @@ export function MiscDemo() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Kode</TableHead>
-                  <TableHead>Aset</TableHead>
-                  <TableHead>Lokasi</TableHead>
-                  <TableHead className="text-right">Jumlah</TableHead>
+                  <TableHead icon={HashIcon}>Kode</TableHead>
+                  <TableHead icon={BoxIcon}>Aset</TableHead>
+                  <TableHead icon={MapPinIcon}>Lokasi</TableHead>
+                  <TableHead icon={SigmaIcon} numeric>Jumlah</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ASET.map((a) => (
                   <TableRow key={a.kode}>
-                    <TableCell className="font-mono text-xs">
+                    <TableCell icon={HashIcon} data-label="Kode" className="font-mono text-xs">
                       {a.kode}
                     </TableCell>
-                    <TableCell>{a.nama}</TableCell>
-                    <TableCell>
+                    <TableCell icon={BoxIcon} data-label="Aset">{a.nama}</TableCell>
+                    <TableCell icon={MapPinIcon} data-label="Lokasi">
                       <Badge variant="outline" size="sm">
                         {a.lokasi}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell icon={SigmaIcon} numeric data-label="Jumlah">
                       {a.n}
                     </TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Block>
+      </div>
+
+      <div className="md:col-span-2">
+        <Block title="Tabel kosong">
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead icon={HashIcon}>Kode</TableHead>
+                  <TableHead icon={BoxIcon}>Aset</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={2}>
+                    <Empty className="border-0 p-6">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <BoxIcon />
+                        </EmptyMedia>
+                        <EmptyTitle>Belum ada aset</EmptyTitle>
+                        <EmptyDescription>
+                          Aset yang ditambahkan tampil di sini.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </div>

@@ -8,11 +8,20 @@ import {
   type SortingState,
 } from "@tanstack/react-table"
 import {
+  CalendarClockIcon,
   CalendarRangeIcon,
+  CircleCheckIcon,
+  CircleDotIcon,
   ClipboardListIcon,
   DownloadIcon,
+  FileTextIcon,
+  GaugeIcon,
+  LayersIcon,
   PlusIcon,
+  RadioTowerIcon,
   Settings2Icon,
+  UserCheckIcon,
+  UserIcon,
 } from "lucide-react"
 
 import {
@@ -36,14 +45,17 @@ import {
 } from "@workspace/ui/components/domain/content-card"
 import { Progress } from "@workspace/ui/components/progress"
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   DataGrid,
   dataGridFeatures,
   type DataGridFeatures,
 } from "@workspace/ui/components/reui/data-grid/data-grid"
-import { DataGridColumnHeader } from "@workspace/ui/components/reui/data-grid/data-grid-column-header"
+import { DataGridHeader, gridMeta } from "@workspace/ui/components/domain/data-grid-header"
 import { DataGridColumnVisibility } from "@workspace/ui/components/reui/data-grid/data-grid-column-visibility"
 import { DataGridPagination } from "@workspace/ui/components/reui/data-grid/data-grid-pagination"
+import { DataGridStacked } from "@workspace/ui/components/domain/data-grid-stacked"
+import { DataGridPaginationCompact } from "@workspace/ui/components/domain/data-grid-pagination-compact"
 import { DataGridScrollArea } from "@workspace/ui/components/reui/data-grid/data-grid-scroll-area"
 import {
   DataGridTable,
@@ -164,17 +176,18 @@ const score = (r: Recap) => {
 }
 
 function statusBadge(value: number) {
-  if (value >= 85) return <Badge variant="success-light">Baik</Badge>
-  if (value >= 70) return <Badge variant="warning-light">Perlu perhatian</Badge>
-  return <Badge variant="destructive-light">Rendah</Badge>
+  if (value >= 85) return <StatusBadge variant="success-light">Baik</StatusBadge>
+  if (value >= 70) return <StatusBadge variant="warning-light">Perlu perhatian</StatusBadge>
+  return <StatusBadge variant="destructive-light">Rendah</StatusBadge>
 }
 
 const RECAP_COLUMNS: ColumnDef<DataGridFeatures, Recap>[] = [
   {
     accessorKey: "name",
     id: "name",
+    meta: gridMeta({ headerTitle: "Staf", icon: UserIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Staf" column={column} />
+      <DataGridHeader title="Staf" column={column} />
     ),
     cell: ({ row }) => (
       <div className="flex min-w-0 items-center gap-3">
@@ -197,10 +210,10 @@ const RECAP_COLUMNS: ColumnDef<DataGridFeatures, Recap>[] = [
   },
   ...SOURCES.map(([key, title]): ColumnDef<DataGridFeatures, Recap> => ({
     id: key,
-    meta: { headerTitle: title },
+    meta: gridMeta({ headerTitle: title, icon: CircleCheckIcon }),
     accessorFn: (r) => r[key].done,
     header: ({ column }) => (
-      <DataGridColumnHeader title={title} visibility column={column} />
+      <DataGridHeader title={title} visibility column={column} />
     ),
     cell: ({ row }) => (
       <span className="tabular-nums">
@@ -216,10 +229,10 @@ const RECAP_COLUMNS: ColumnDef<DataGridFeatures, Recap>[] = [
   })),
   {
     id: "skor",
-    meta: { headerTitle: "Skor" },
+    meta: gridMeta({ headerTitle: "Skor", icon: GaugeIcon }),
     accessorFn: score,
     header: ({ column }) => (
-      <DataGridColumnHeader title="Skor" visibility column={column} />
+      <DataGridHeader title="Skor" visibility column={column} />
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue())
@@ -242,10 +255,10 @@ const RECAP_COLUMNS: ColumnDef<DataGridFeatures, Recap>[] = [
   },
   {
     id: "status",
-    meta: { headerTitle: "Status" },
+    meta: gridMeta({ headerTitle: "Status", icon: CircleDotIcon }),
     accessorFn: score,
     header: ({ column }) => (
-      <DataGridColumnHeader title="Status" visibility column={column} />
+      <DataGridHeader title="Status" visibility column={column} />
     ),
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1">
@@ -333,7 +346,7 @@ export function RecapGrid() {
       tableLayout={LAYOUT}
     >
       <Card className="w-full gap-0 p-0">
-        <CardHeader className="px-4 py-3">
+        <CardHeader className="px-4 py-3 max-md:grid-cols-1!">
           <CardTitle className="flex items-center gap-2">
             <ClipboardListIcon
               aria-hidden
@@ -344,7 +357,7 @@ export function RecapGrid() {
           <CardDescription>
             Pekan 16–21 November · {RECAP.length} staf wajib lapor
           </CardDescription>
-          <CardAction className="flex gap-2">
+          <CardAction className="flex gap-2 max-md:col-start-1 max-md:row-span-1 max-md:row-start-3 max-md:mt-2 max-md:justify-self-start">
             <DataGridColumnVisibility
               table={table}
               trigger={
@@ -361,39 +374,45 @@ export function RecapGrid() {
           </CardAction>
         </CardHeader>
         <CardContent className="border-y px-0">
-          <DataGridScrollArea>
+          <DataGridScrollArea className="hidden md:block">
             <DataGridTable footerContent={footer} />
           </DataGridScrollArea>
+          <DataGridStacked />
         </CardContent>
-        <CardFooter className="flex flex-col items-stretch gap-2 border-none bg-transparent! px-4 py-2.5">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              Tertinggi{" "}
-              <span className="font-medium text-foreground">
+        <CardFooter className="flex flex-col items-stretch gap-4 border-none bg-transparent! px-4 py-4 max-md:bg-muted/50! md:gap-2 md:py-2.5">
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground md:flex-row md:flex-wrap md:gap-x-4 md:gap-y-1 md:text-xs">
+            <span className="flex items-baseline justify-between gap-4 md:justify-start md:gap-1">
+              Tertinggi
+              <span className="text-right font-medium text-foreground md:text-left">
                 {high?.name.split(" ")[0]} {fmtPct(Math.max(...scores))}
               </span>
             </span>
-            <span>
-              Terendah{" "}
-              <span className="font-medium text-foreground">
+            <span className="flex items-baseline justify-between gap-4 md:justify-start md:gap-1">
+              Terendah
+              <span className="text-right font-medium text-foreground md:text-left">
                 {low?.name.split(" ")[0]} {fmtPct(Math.min(...scores))}
               </span>
             </span>
-            <span>
-              Status{" "}
-              <span className="font-medium text-foreground">
-                {scores.filter((s) => s >= 85).length} baik ·{" "}
-                {scores.filter((s) => s >= 70 && s < 85).length} perlu perhatian
-                · {scores.filter((s) => s < 70).length} rendah
+            <span className="flex items-baseline justify-between gap-4 md:justify-start md:gap-1">
+              Status
+              <span className="text-right font-medium text-foreground md:text-left">
+                {[
+                  `${scores.filter((s) => s >= 85).length} baik`,
+                  `${scores.filter((s) => s >= 70 && s < 85).length} perlu perhatian`,
+                  `${scores.filter((s) => s < 70).length} rendah`,
+                ].join(" \u00b7 ")}
               </span>
             </span>
             {visible.size < RECAP_COLUMNS.length ? (
-              <span>
+              <span className="flex items-baseline justify-between gap-4 md:justify-start md:gap-1">
                 {RECAP_COLUMNS.length - visible.size} kolom disembunyikan
               </span>
             ) : null}
           </div>
-          <DataGridPagination />
+          <div className="hidden md:block">
+            <DataGridPagination />
+          </div>
+          <DataGridPaginationCompact className="border-t pt-4" />
         </CardFooter>
       </Card>
     </DataGrid>
@@ -484,8 +503,9 @@ const ENTRY_COLUMNS: ColumnDef<DataGridFeatures, Entry>[] = [
   {
     accessorKey: "name",
     id: "name",
+    meta: gridMeta({ headerTitle: "Konten/Kegiatan", icon: FileTextIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Konten/Kegiatan" column={column} />
+      <DataGridHeader title="Konten/Kegiatan" column={column} />
     ),
     cell: ({ row }) => (
       <div className="flex min-w-0 flex-col">
@@ -506,9 +526,9 @@ const ENTRY_COLUMNS: ColumnDef<DataGridFeatures, Entry>[] = [
   },
   {
     id: "people",
-    meta: { headerTitle: "Penugasan" },
+    meta: gridMeta({ headerTitle: "Penugasan", icon: UserCheckIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Penugasan" visibility column={column} />
+      <DataGridHeader title="Penugasan" visibility column={column} />
     ),
     cell: ({ row }) => (
       <AvatarGroup>
@@ -524,9 +544,9 @@ const ENTRY_COLUMNS: ColumnDef<DataGridFeatures, Entry>[] = [
   },
   {
     id: "channels",
-    meta: { headerTitle: "Kanal" },
+    meta: gridMeta({ headerTitle: "Kanal", icon: RadioTowerIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Kanal" visibility column={column} />
+      <DataGridHeader title="Kanal" visibility column={column} />
     ),
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1">
@@ -543,14 +563,14 @@ const ENTRY_COLUMNS: ColumnDef<DataGridFeatures, Entry>[] = [
   {
     accessorKey: "stage",
     id: "stage",
-    meta: { headerTitle: "Tahap" },
+    meta: gridMeta({ headerTitle: "Tahap", icon: LayersIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Tahap" visibility column={column} />
+      <DataGridHeader title="Tahap" visibility column={column} />
     ),
     cell: ({ row }) => (
-      <Badge variant={STAGE_VARIANT[row.original.stage]}>
+      <StatusBadge variant={STAGE_VARIANT[row.original.stage]}>
         {CONTENT_STAGE_LABEL[row.original.stage]}
-      </Badge>
+      </StatusBadge>
     ),
     size: 130,
     enableSorting: true,
@@ -558,10 +578,10 @@ const ENTRY_COLUMNS: ColumnDef<DataGridFeatures, Entry>[] = [
   },
   {
     id: "publish",
-    meta: { headerTitle: "Tayang" },
+    meta: gridMeta({ headerTitle: "Tayang", icon: CalendarClockIcon }),
     accessorKey: "publishSort",
     header: ({ column }) => (
-      <DataGridColumnHeader title="Tayang" visibility column={column} />
+      <DataGridHeader title="Tayang" visibility column={column} />
     ),
     cell: ({ row }) => (
       <span className="tabular-nums">{row.original.publish}</span>
@@ -599,7 +619,7 @@ export function PlannerGrid() {
       tableLayout={LAYOUT}
     >
       <Card className="w-full gap-0 p-0">
-        <CardHeader className="px-4 py-3">
+        <CardHeader className="px-4 py-3 max-md:grid-cols-1!">
           <CardTitle className="flex items-center gap-2">
             <CalendarRangeIcon
               aria-hidden
@@ -608,7 +628,7 @@ export function PlannerGrid() {
             Daftar Planner
           </CardTitle>
           <CardDescription>November 2026 · urut tanggal tayang</CardDescription>
-          <CardAction className="flex gap-2">
+          <CardAction className="flex gap-2 max-md:col-start-1 max-md:row-span-1 max-md:row-start-3 max-md:mt-2 max-md:justify-self-start">
             <DataGridColumnVisibility
               table={table}
               trigger={
@@ -625,11 +645,12 @@ export function PlannerGrid() {
           </CardAction>
         </CardHeader>
         <CardContent className="border-y px-0">
-          <DataGridScrollArea>
+          <DataGridScrollArea className="hidden md:block">
             <DataGridTable />
           </DataGridScrollArea>
+          <DataGridStacked />
         </CardContent>
-        <CardFooter className="flex flex-wrap items-center gap-2 border-none bg-transparent! px-4 py-2.5 text-xs text-muted-foreground">
+        <CardFooter className="flex flex-wrap items-center gap-2 border-none bg-transparent! px-4 py-2.5 text-xs text-muted-foreground max-md:bg-muted/50! max-md:py-4 max-md:text-sm">
           <span>
             <span className="font-medium text-foreground tabular-nums">
               {ENTRIES.length}

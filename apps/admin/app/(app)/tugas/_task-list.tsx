@@ -4,7 +4,13 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTable, type ColumnDef } from "@tanstack/react-table"
-import { CheckIcon } from "lucide-react"
+import {
+  CalendarIcon,
+  CheckIcon,
+  ClipboardListIcon,
+  StickyNoteIcon,
+  UsersIcon,
+} from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 
@@ -14,7 +20,8 @@ import {
   dataGridFeatures,
   type DataGridFeatures,
 } from "@workspace/ui/components/reui/data-grid/data-grid"
-import { DataGridColumnHeader } from "@workspace/ui/components/reui/data-grid/data-grid-column-header"
+import { DataGridHeader, gridMeta } from "@workspace/ui/components/domain/data-grid-header"
+import { DataGridStacked } from "@workspace/ui/components/domain/data-grid-stacked"
 import { DataGridScrollArea } from "@workspace/ui/components/reui/data-grid/data-grid-scroll-area"
 import { DataGridTable } from "@workspace/ui/components/reui/data-grid/data-grid-table"
 import { DATA_GRID_I18N_ID } from "@workspace/ui/lib/i18n-id"
@@ -37,7 +44,8 @@ const COLUMNS: ColumnDef<DataGridFeatures, ManagerTaskRow>[] = [
   {
     accessorKey: "title",
     id: "title",
-    header: ({ column }) => <DataGridColumnHeader title="Judul" column={column} />,
+    meta: gridMeta({ headerTitle: "Judul", icon: ClipboardListIcon }),
+    header: ({ column }) => <DataGridHeader title="Judul" column={column} />,
     cell: ({ row }) => (
       <Link
         href={`/tugas/${row.original.id}`}
@@ -53,7 +61,8 @@ const COLUMNS: ColumnDef<DataGridFeatures, ManagerTaskRow>[] = [
   },
   {
     id: "assignees",
-    header: ({ column }) => <DataGridColumnHeader title="Staf" column={column} />,
+    meta: gridMeta({ headerTitle: "Staf", icon: UsersIcon }),
+    header: ({ column }) => <DataGridHeader title="Staf" column={column} />,
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1">
         {row.original.assignees.map((a) => (
@@ -74,7 +83,8 @@ const COLUMNS: ColumnDef<DataGridFeatures, ManagerTaskRow>[] = [
   },
   {
     id: "range",
-    header: ({ column }) => <DataGridColumnHeader title="Tanggal" column={column} />,
+    meta: gridMeta({ headerTitle: "Tanggal", icon: CalendarIcon }),
+    header: ({ column }) => <DataGridHeader title="Tanggal" column={column} />,
     cell: ({ row }) => (
       <span className="whitespace-nowrap tabular-nums">
         {rangeLabel(row.original.startDate, row.original.endDate)}
@@ -85,7 +95,8 @@ const COLUMNS: ColumnDef<DataGridFeatures, ManagerTaskRow>[] = [
   },
   {
     id: "note",
-    header: ({ column }) => <DataGridColumnHeader title="Catatan" column={column} />,
+    meta: gridMeta({ headerTitle: "Catatan", icon: StickyNoteIcon }),
+    header: ({ column }) => <DataGridHeader title="Catatan" column={column} />,
     cell: ({ row }) => (
       <span className="line-clamp-2 text-sm text-muted-foreground">
         {row.original.note ?? "—"}
@@ -114,9 +125,10 @@ export function TaskList({ rows }: { rows: ManagerTaskRow[] }) {
       onRowClick={(row) => router.push(`/tugas/${row.id}`)}
     >
       <div className="rounded-lg border">
-        <DataGridScrollArea>
+        <DataGridScrollArea className="hidden md:block">
           <DataGridTable />
         </DataGridScrollArea>
+        <DataGridStacked />
       </div>
     </DataGrid>
   )

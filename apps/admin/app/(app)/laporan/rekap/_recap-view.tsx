@@ -1,14 +1,28 @@
 import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
+import {
+  CalendarIcon,
+  CircleCheckIcon,
+  CircleDotIcon,
+  ClipboardListIcon,
+  GaugeIcon,
+  ListChecksIcon,
+  MessageSquareTextIcon,
+  PercentIcon,
+  RouteIcon,
+  SigmaIcon,
+} from "lucide-react"
 
 import type { TaskSource } from "@workspace/db/schema/stages"
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
+  EmptyMedia,
   EmptyTitle,
 } from "@workspace/ui/components/empty"
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   Table,
   TableBody,
@@ -79,9 +93,9 @@ export function RecapView({ recap }: { recap: Recap }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Skor</TableHead>
+                <TableHead icon={CalendarIcon}>Tanggal</TableHead>
+                <TableHead icon={CircleDotIcon}>Status</TableHead>
+                <TableHead icon={GaugeIcon} numeric>Skor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,11 +103,11 @@ export function RecapView({ recap }: { recap: Recap }) {
                 const badge = STATE_BADGE[d.state]
                 return (
                   <TableRow key={d.date}>
-                    <TableCell className="whitespace-nowrap">{day(d.date)}</TableCell>
-                    <TableCell>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                    <TableCell icon={CalendarIcon} data-label="Tanggal" className="whitespace-nowrap">{day(d.date)}</TableCell>
+                    <TableCell icon={CircleDotIcon} data-label="Status">
+                      <StatusBadge variant={badge.variant}>{badge.label}</StatusBadge>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell icon={GaugeIcon} numeric data-label="Skor">
                       {d.pct === null ? "—" : formatPercent(d.pct)}
                     </TableCell>
                   </TableRow>
@@ -110,10 +124,10 @@ export function RecapView({ recap }: { recap: Recap }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Sumber</TableHead>
-                <TableHead className="text-right">Tuntas</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Persen</TableHead>
+                <TableHead icon={RouteIcon}>Sumber</TableHead>
+                <TableHead icon={CircleCheckIcon} numeric>Tuntas</TableHead>
+                <TableHead icon={SigmaIcon} numeric>Total</TableHead>
+                <TableHead icon={PercentIcon} numeric>Persen</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -121,10 +135,10 @@ export function RecapView({ recap }: { recap: Recap }) {
                 const { done: d, total: t } = recap.bySource[s]
                 return (
                   <TableRow key={s}>
-                    <TableCell>{SOURCE_LABEL[s]}</TableCell>
-                    <TableCell className="text-right tabular-nums">{d}</TableCell>
-                    <TableCell className="text-right tabular-nums">{t}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell icon={RouteIcon} data-label="Sumber">{SOURCE_LABEL[s]}</TableCell>
+                    <TableCell icon={CircleCheckIcon} numeric data-label="Tuntas">{d}</TableCell>
+                    <TableCell icon={SigmaIcon} numeric data-label="Total">{t}</TableCell>
+                    <TableCell icon={PercentIcon} numeric data-label="Persen">
                       {t === 0 ? "—" : formatPercent((d / t) * 100)}
                     </TableCell>
                   </TableRow>
@@ -138,31 +152,39 @@ export function RecapView({ recap }: { recap: Recap }) {
       <section className="flex flex-col gap-2">
         <h3 className="text-base font-semibold">Tugas TL atau Tertunda</h3>
         {recap.open.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Tidak ada pada periode ini.</p>
+          <Empty className="border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ListChecksIcon />
+              </EmptyMedia>
+              <EmptyTitle>Tidak ada tugas TL atau tertunda</EmptyTitle>
+              <EmptyDescription>Semua tugas pada periode ini sudah tuntas.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Tugas</TableHead>
-                  <TableHead>Sumber</TableHead>
-                  <TableHead>Keterangan</TableHead>
+                  <TableHead icon={CalendarIcon}>Tanggal</TableHead>
+                  <TableHead icon={ClipboardListIcon}>Tugas</TableHead>
+                  <TableHead icon={RouteIcon}>Sumber</TableHead>
+                  <TableHead icon={MessageSquareTextIcon}>Keterangan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recap.open.map((o) => (
                   <TableRow key={`${o.date}:${o.key}`}>
-                    <TableCell className="whitespace-nowrap">{day(o.date)}</TableCell>
-                    <TableCell className="break-words whitespace-normal">{o.title}</TableCell>
-                    <TableCell>{SOURCE_LABEL[o.source]}</TableCell>
-                    <TableCell>
+                    <TableCell icon={CalendarIcon} data-label="Tanggal" className="whitespace-nowrap">{day(o.date)}</TableCell>
+                    <TableCell icon={ClipboardListIcon} data-label="Tugas" className="break-words whitespace-normal">{o.title}</TableCell>
+                    <TableCell icon={RouteIcon} data-label="Sumber">{SOURCE_LABEL[o.source]}</TableCell>
+                    <TableCell icon={MessageSquareTextIcon} data-label="Keterangan">
                       <div className="flex flex-wrap gap-1">
                         {o.status === "TL" && <Badge variant="outline" size="sm">Tindak lanjut</Badge>}
                         {o.overdueDays > 0 && (
-                          <Badge variant="warning-light" size="sm">
+                          <StatusBadge variant="warning-light" size="sm">
                             Tertunda {o.overdueDays} hari
-                          </Badge>
+                          </StatusBadge>
                         )}
                       </div>
                     </TableCell>

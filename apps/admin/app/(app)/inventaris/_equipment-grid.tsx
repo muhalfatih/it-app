@@ -3,12 +3,20 @@
 import * as React from "react"
 import { useTable, type ColumnDef } from "@tanstack/react-table"
 import {
+  BoxIcon,
+  CircleCheckIcon,
+  CircleDotIcon,
+  HandHelpingIcon,
   MoreHorizontalIcon,
   PackageIcon,
   PencilIcon,
   PlusIcon,
   PowerIcon,
+  PowerOffIcon,
+  SigmaIcon,
+  TagIcon,
   Trash2Icon,
+  TriangleAlertIcon,
 } from "lucide-react"
 
 import {
@@ -21,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
+import { DataGridHeader, gridMeta } from "@workspace/ui/components/domain/data-grid-header"
 import {
   Card,
   CardAction,
@@ -59,11 +68,13 @@ import {
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   DataGrid,
   dataGridFeatures,
   type DataGridFeatures,
 } from "@workspace/ui/components/reui/data-grid/data-grid"
+import { DataGridStacked } from "@workspace/ui/components/domain/data-grid-stacked"
 import { DataGridScrollArea } from "@workspace/ui/components/reui/data-grid/data-grid-scroll-area"
 import { DataGridTable } from "@workspace/ui/components/reui/data-grid/data-grid-table"
 import {
@@ -98,8 +109,9 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
     () => [
       {
         id: "name",
+        meta: gridMeta({ headerTitle: "Nama", icon: BoxIcon }),
         accessorKey: "name",
-        header: "Nama",
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) => (
           <span className="font-medium text-foreground">
             {row.original.name}
@@ -107,11 +119,12 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
         ),
         size: 200,
       },
-      { id: "brand", accessorKey: "brand", header: "Merek", size: 140 },
+      { id: "brand", meta: gridMeta({ headerTitle: "Merek", icon: TagIcon }), accessorKey: "brand", header: "Merek", size: 140 },
       {
         id: "total",
+        meta: gridMeta({ headerTitle: "Jumlah", icon: SigmaIcon }),
         accessorKey: "total",
-        header: "Jumlah",
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) => (
           <span className="tabular-nums">{row.original.total}</span>
         ),
@@ -119,8 +132,9 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
       },
       {
         id: "onLoan",
+        meta: gridMeta({ headerTitle: "Dipinjam", icon: HandHelpingIcon }),
         accessorKey: "onLoan",
-        header: "Dipinjam",
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) => (
           <span className="tabular-nums">{row.original.onLoan}</span>
         ),
@@ -128,11 +142,12 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
       },
       {
         id: "unresolved",
+        meta: gridMeta({ headerTitle: "Rusak/hilang", icon: TriangleAlertIcon }),
         accessorKey: "unresolved",
-        header: "Rusak/hilang",
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) =>
           row.original.unresolved > 0 ? (
-            <Badge variant="warning-light">{row.original.unresolved}</Badge>
+            <StatusBadge variant="warning-light">{row.original.unresolved}</StatusBadge>
           ) : (
             <span className="tabular-nums">0</span>
           ),
@@ -140,8 +155,9 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
       },
       {
         id: "available",
+        meta: gridMeta({ headerTitle: "Tersedia", icon: CircleCheckIcon }),
         accessorKey: "available",
-        header: "Tersedia",
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) => (
           <span className="font-medium tabular-nums">
             {row.original.available}
@@ -151,13 +167,14 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
       },
       {
         id: "active",
+        meta: gridMeta({ headerTitle: "Status", icon: CircleDotIcon }),
         accessorKey: "active",
-        header: "Status",
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) =>
           row.original.active ? (
-            <Badge variant="success-light">Aktif</Badge>
+            <StatusBadge variant="success-light">Aktif</StatusBadge>
           ) : (
-            <Badge variant="invert-light">Nonaktif</Badge>
+            <StatusBadge variant="invert-light" icon={PowerOffIcon}>Nonaktif</StatusBadge>
           ),
         size: 100,
       },
@@ -240,9 +257,9 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
         }
       >
         <Card className="w-full gap-0 p-0">
-          <CardHeader className="px-4 py-3">
+          <CardHeader className="px-4 py-3 max-md:grid-cols-1!">
             <CardTitle>Daftar alat</CardTitle>
-            <CardAction>
+            <CardAction className="max-md:col-start-1 max-md:row-span-1 max-md:row-start-3 max-md:mt-2 max-md:justify-self-start">
               <Button size="sm" onClick={() => setForm({ open: true, row: null })}>
                 <PlusIcon data-icon="inline-start" />
                 Tambah alat
@@ -250,9 +267,10 @@ export function EquipmentGrid({ equipment }: { equipment: EquipmentRow[] }) {
             </CardAction>
           </CardHeader>
           <CardContent className="border-t px-0">
-            <DataGridScrollArea>
+            <DataGridScrollArea className="hidden md:block">
               <DataGridTable />
             </DataGridScrollArea>
+            <DataGridStacked />
           </CardContent>
         </Card>
       </DataGrid>

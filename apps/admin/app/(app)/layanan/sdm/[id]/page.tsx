@@ -2,7 +2,15 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { cache, type ReactNode } from "react"
-import { DownloadIcon, ListChecksIcon, CalendarPlusIcon, MessageSquareTextIcon } from "lucide-react"
+import {
+  CalendarIcon,
+  CalendarPlusIcon,
+  ClipboardListIcon,
+  DownloadIcon,
+  ListChecksIcon,
+  MessageSquareTextIcon,
+  UserIcon,
+} from "lucide-react"
 
 import { requirePermission } from "@workspace/auth/session"
 import { Alert, AlertDescription, AlertTitle } from "@workspace/ui/components/alert"
@@ -14,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   Table,
   TableBody,
@@ -94,7 +102,7 @@ export default async function PengajuanDetailPage({ params }: Props) {
         <h1 className="min-w-0 text-2xl font-semibold tracking-tight break-words">
           {r.activityName}
         </h1>
-        <Badge variant={STATUS_VARIANT[r.status]}>{STATUS_LABELS[r.status]}</Badge>
+        <StatusBadge variant={STATUS_VARIANT[r.status]}>{STATUS_LABELS[r.status]}</StatusBadge>
         <div className="flex flex-wrap gap-2 sm:ml-auto">
           {isOwner && r.status === "diajukan" && <WithdrawRequest id={r.id} />}
           {isManager && r.status === "diajukan" && (
@@ -177,19 +185,19 @@ export default async function PengajuanDetailPage({ params }: Props) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nama</TableHead>
-                    <TableHead>Tugas</TableHead>
-                    <TableHead>Tanggal</TableHead>
+                    <TableHead icon={UserIcon}>Nama</TableHead>
+                    <TableHead icon={ClipboardListIcon}>Tugas</TableHead>
+                    <TableHead icon={CalendarIcon}>Tanggal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {r.staff.map((s, i) => (
                     <TableRow key={i}>
-                      <TableCell className={s.name ? undefined : "text-muted-foreground"}>
+                      <TableCell icon={UserIcon} data-label="Nama" className={s.name ? undefined : "text-muted-foreground"}>
                         {s.name ?? "Belum ditentukan"}
                       </TableCell>
-                      <TableCell className="max-w-56 whitespace-normal">{s.label}</TableCell>
-                      <TableCell className="tabular-nums">{rangeLabel(s.start, s.end)}</TableCell>
+                      <TableCell icon={ClipboardListIcon} data-label="Tugas" className="max-w-56 whitespace-normal">{s.label}</TableCell>
+                      <TableCell icon={CalendarIcon} data-label="Tanggal" className="tabular-nums">{rangeLabel(s.start, s.end)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

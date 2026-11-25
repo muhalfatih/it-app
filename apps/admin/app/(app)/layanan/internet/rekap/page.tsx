@@ -2,7 +2,19 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import {
+  Building2Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  HashIcon,
+  MapPinIcon,
+  MessageSquareTextIcon,
+  UserIcon,
+  UsersIcon,
+  WifiOffIcon,
+  type LucideIcon,
+} from "lucide-react"
 
 import { requirePermission } from "@workspace/auth/session"
 import { buttonVariants } from "@workspace/ui/components/button"
@@ -139,6 +151,7 @@ export default async function RekapPengaduanPage({
             <CountTable
               title="Per gedung"
               head="Gedung"
+              icon={Building2Icon}
               rows={summary.buildings.map((b) => ({
                 key: b.name,
                 label: b.name,
@@ -148,6 +161,7 @@ export default async function RekapPengaduanPage({
             <CountTable
               title="Per jenis kendala"
               head="Jenis kendala"
+              icon={WifiOffIcon}
               rows={summary.issues.map((i) => ({
                 key: i.issue,
                 label: `${i.issue}. ${i.label}`,
@@ -164,44 +178,38 @@ export default async function RekapPengaduanPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Mulai (WIB)</TableHead>
-                    <TableHead>Lokasi</TableHead>
-                    <TableHead>Jenis kendala</TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      Pengguna lain
-                    </TableHead>
-                    <TableHead className="hidden lg:table-cell">
-                      Deskripsi
-                    </TableHead>
-                    <TableHead className="hidden sm:table-cell">
-                      Pelapor
-                    </TableHead>
+                    <TableHead icon={ClockIcon}>Mulai (WIB)</TableHead>
+                    <TableHead icon={MapPinIcon}>Lokasi</TableHead>
+                    <TableHead icon={WifiOffIcon}>Jenis kendala</TableHead>
+                    <TableHead icon={UsersIcon}>Pengguna lain</TableHead>
+                    <TableHead icon={MessageSquareTextIcon}>Deskripsi</TableHead>
+                    <TableHead icon={UserIcon}>Pelapor</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="align-top tabular-nums">
+                      <TableCell icon={ClockIcon} data-label="Mulai (WIB)" className="align-top tabular-nums">
                         {timeWib.format(r.startedAt)}
                       </TableCell>
-                      <TableCell className="max-w-48 align-top whitespace-normal">
+                      <TableCell icon={MapPinIcon} data-label="Lokasi" className="max-w-48 align-top whitespace-normal">
                         <div className="font-medium">{r.buildingName}</div>
                         <div className="text-muted-foreground break-words">
                           {r.room}
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-72 align-top whitespace-normal">
+                      <TableCell icon={WifiOffIcon} data-label="Jenis kendala" className="max-w-72 align-top whitespace-normal">
                         {r.issue}. {ISSUE_LABELS[r.issue as Issue]}
                       </TableCell>
-                      <TableCell className="hidden align-top md:table-cell">
+                      <TableCell icon={UsersIcon} data-label="Pengguna lain" className="align-top">
                         {OTHERS_LABELS[r.othersAffected as OthersAffected]}
                       </TableCell>
-                      <TableCell className="hidden max-w-80 align-top whitespace-normal break-words lg:table-cell">
+                      <TableCell icon={MessageSquareTextIcon} data-label="Deskripsi" className="max-w-80 align-top whitespace-normal break-words">
                         {r.description ?? (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="hidden align-top sm:table-cell">
+                      <TableCell icon={UserIcon} data-label="Pelapor" className="align-top">
                         {r.reporterName}
                       </TableCell>
                     </TableRow>
@@ -219,10 +227,12 @@ export default async function RekapPengaduanPage({
 function CountTable({
   title,
   head,
+  icon,
   rows,
 }: {
   title: string
   head: string
+  icon: LucideIcon
   rows: { key: string; label: string; count: number }[]
 }) {
   return (
@@ -234,15 +244,15 @@ function CountTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{head}</TableHead>
-              <TableHead className="text-right">Jumlah</TableHead>
+              <TableHead icon={icon}>{head}</TableHead>
+              <TableHead icon={HashIcon} numeric>Jumlah</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.key}>
-                <TableCell className="whitespace-normal">{r.label}</TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell icon={icon} data-label={head} className="whitespace-normal">{r.label}</TableCell>
+                <TableCell icon={HashIcon} numeric data-label="Jumlah">
                   {r.count}
                 </TableCell>
               </TableRow>

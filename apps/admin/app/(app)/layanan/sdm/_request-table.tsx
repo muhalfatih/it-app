@@ -1,6 +1,13 @@
 import Link from "next/link"
 import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
+import {
+  Building2Icon,
+  CalendarIcon,
+  CircleDotIcon,
+  ClipboardListIcon,
+  UserIcon,
+} from "lucide-react"
 
 import {
   Empty,
@@ -8,7 +15,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@workspace/ui/components/empty"
-import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   Table,
   TableBody,
@@ -61,19 +68,19 @@ export function RequestTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nama kegiatan</TableHead>
-            <TableHead>Tanggal</TableHead>
-            <TableHead className="hidden sm:table-cell">Unit</TableHead>
+            <TableHead icon={ClipboardListIcon}>Nama kegiatan</TableHead>
+            <TableHead icon={CalendarIcon}>Tanggal</TableHead>
+            <TableHead icon={Building2Icon}>Unit</TableHead>
             {showRequester && (
-              <TableHead className="hidden md:table-cell">Pengaju</TableHead>
+              <TableHead icon={UserIcon}>Pengaju</TableHead>
             )}
-            <TableHead>Status</TableHead>
+            <TableHead icon={CircleDotIcon}>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((r) => (
             <TableRow key={r.id}>
-              <TableCell className="max-w-64 whitespace-normal">
+              <TableCell data-label="Nama kegiatan" className="max-w-64 whitespace-normal">
                 <Link
                   href={`/layanan/sdm/${r.id}`}
                   className="line-clamp-2 font-medium underline-offset-4 outline-none hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring"
@@ -81,19 +88,19 @@ export function RequestTable({
                   {r.activityName}
                 </Link>
               </TableCell>
-              <TableCell className="tabular-nums">
+              <TableCell icon={CalendarIcon} data-label="Tanggal" className="tabular-nums">
                 {rangeLabel(r.startDate, r.endDate)}
               </TableCell>
-              <TableCell className="hidden sm:table-cell">{r.unitName}</TableCell>
+              <TableCell icon={Building2Icon} data-label="Unit">{r.unitName}</TableCell>
               {showRequester && (
-                <TableCell className="hidden md:table-cell">
+                <TableCell icon={UserIcon} data-label="Pengaju">
                   {r.requesterName}
                 </TableCell>
               )}
-              <TableCell>
-                <Badge variant={STATUS_VARIANT[r.status]} size="sm">
+              <TableCell icon={CircleDotIcon} data-label="Status">
+                <StatusBadge variant={STATUS_VARIANT[r.status]}>
                   {STATUS_LABELS[r.status]}
-                </Badge>
+                </StatusBadge>
               </TableCell>
             </TableRow>
           ))}

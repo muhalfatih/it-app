@@ -4,6 +4,14 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
+  CalendarCheckIcon,
+  CalendarClockIcon,
+  FileTextIcon,
+  LayersIcon,
+  RadioTowerIcon,
+  UserCheckIcon,
+} from "lucide-react"
+import {
   useTable,
   type ColumnDef,
   type SortingState,
@@ -16,12 +24,14 @@ import {
   type ContentStage,
 } from "@workspace/ui/components/domain/content-card"
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   DataGrid,
   dataGridFeatures,
   type DataGridFeatures,
 } from "@workspace/ui/components/reui/data-grid/data-grid"
-import { DataGridColumnHeader } from "@workspace/ui/components/reui/data-grid/data-grid-column-header"
+import { DataGridHeader, gridMeta } from "@workspace/ui/components/domain/data-grid-header"
+import { DataGridStacked } from "@workspace/ui/components/domain/data-grid-stacked"
 import { DataGridScrollArea } from "@workspace/ui/components/reui/data-grid/data-grid-scroll-area"
 import { DataGridTable } from "@workspace/ui/components/reui/data-grid/data-grid-table"
 import { DATA_GRID_I18N_ID } from "@workspace/ui/lib/i18n-id"
@@ -45,8 +55,9 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
   {
     accessorKey: "name",
     id: "name",
+    meta: gridMeta({ headerTitle: "Nama konten", icon: FileTextIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Nama konten" column={column} />
+      <DataGridHeader title="Nama konten" column={column} />
     ),
     cell: ({ row }) => (
       <div className="flex min-w-0 flex-col">
@@ -67,8 +78,9 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
   },
   {
     id: "activity",
+    meta: gridMeta({ headerTitle: "Kegiatan", icon: CalendarCheckIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Kegiatan" column={column} />
+      <DataGridHeader title="Kegiatan" column={column} />
     ),
     cell: ({ row }) => (
       <span className="tabular-nums">{row.original.activity ?? "—"}</span>
@@ -78,8 +90,9 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
   },
   {
     id: "assignments",
+    meta: gridMeta({ headerTitle: "Penugasan", icon: UserCheckIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Penugasan" column={column} />
+      <DataGridHeader title="Penugasan" column={column} />
     ),
     cell: ({ row }) => (
       <span className="line-clamp-2 text-sm">{row.original.assignments}</span>
@@ -89,8 +102,9 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
   },
   {
     id: "channels",
+    meta: gridMeta({ headerTitle: "Kanal", icon: RadioTowerIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Kanal" column={column} />
+      <DataGridHeader title="Kanal" column={column} />
     ),
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1">
@@ -107,8 +121,9 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
   {
     accessorKey: "publishDate",
     id: "publish",
+    meta: gridMeta({ headerTitle: "Tayang", icon: CalendarClockIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Tayang" column={column} />
+      <DataGridHeader title="Tayang" column={column} />
     ),
     cell: ({ row }) => (
       <span className="tabular-nums">
@@ -123,13 +138,14 @@ const COLUMNS: ColumnDef<DataGridFeatures, ListRow>[] = [
   {
     accessorKey: "stage",
     id: "stage",
+    meta: gridMeta({ headerTitle: "Tahap", icon: LayersIcon }),
     header: ({ column }) => (
-      <DataGridColumnHeader title="Tahap" column={column} />
+      <DataGridHeader title="Tahap" column={column} />
     ),
     cell: ({ row }) => (
-      <Badge variant={STAGE_VARIANT[row.original.stage]}>
+      <StatusBadge variant={STAGE_VARIANT[row.original.stage]}>
         {CONTENT_STAGE_LABEL[row.original.stage]}
-      </Badge>
+      </StatusBadge>
     ),
     size: 120,
     enableSorting: false,
@@ -157,9 +173,10 @@ export function ListView({ rows }: { rows: ListRow[] }) {
       onRowClick={(row) => router.push(`/planner/${row.id}`)}
     >
       <div className="rounded-lg border">
-        <DataGridScrollArea>
+        <DataGridScrollArea className="hidden md:block">
           <DataGridTable />
         </DataGridScrollArea>
+        <DataGridStacked />
       </div>
     </DataGrid>
   )

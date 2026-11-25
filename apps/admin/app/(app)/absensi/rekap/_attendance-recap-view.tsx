@@ -1,9 +1,27 @@
 import Link from "next/link"
 import { format, parseISO } from "date-fns"
 import { id as localeId } from "date-fns/locale"
+import {
+  CalendarIcon,
+  CircleDotIcon,
+  UserIcon,
+  UserCheckIcon,
+  CalendarCheckIcon,
+  CircleCheckIcon,
+  FileTextIcon,
+  ThermometerIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 
 import { ATTENDANCE_STATUSES } from "@workspace/db/schema/stages"
-import { Badge } from "@workspace/ui/components/reui/badge"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@workspace/ui/components/empty"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   Table,
   TableBody,
@@ -15,6 +33,23 @@ import {
 
 import { STATUS_LABEL } from "@/lib/attendance/recap"
 import type { AttendanceRecap } from "@/lib/attendance/recap-queries"
+
+// Selaras dengan legenda di /galeri.
+const ABSENCE_VARIANT = {
+  hadir: "success-light",
+  izin: "info-light",
+  izin_kegiatan: "info-outline",
+  sakit: "warning-light",
+  tanpa_keterangan: "destructive-light",
+} as const
+
+const STATUS_ICON = {
+  hadir: CircleCheckIcon,
+  izin: FileTextIcon,
+  izin_kegiatan: CalendarCheckIcon,
+  sakit: ThermometerIcon,
+  tanpa_keterangan: TriangleAlertIcon,
+} as const
 
 const day = (iso: string) => format(parseISO(iso), "EEE, d MMM", { locale: localeId })
 
@@ -36,22 +71,30 @@ export function AttendanceRecapView({ recap }: { recap: AttendanceRecap }) {
       <section className="flex flex-col gap-2">
         <h3 className="text-base font-semibold">Hari tidak hadir</h3>
         {recap.absences.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Tidak ada pada periode ini.</p>
+          <Empty className="border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <UserCheckIcon />
+              </EmptyMedia>
+              <EmptyTitle>Tidak ada hari tidak hadir</EmptyTitle>
+              <EmptyDescription>Semua hari kerja pada periode ini tercatat hadir.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead icon={CalendarIcon}>Tanggal</TableHead>
+                  <TableHead icon={CircleDotIcon}>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recap.absences.map((a) => (
                   <TableRow key={a.date}>
-                    <TableCell className="whitespace-nowrap">{day(a.date)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{STATUS_LABEL[a.status]}</Badge>
+                    <TableCell icon={CalendarIcon} data-label="Tanggal" className="whitespace-nowrap">{day(a.date)}</TableCell>
+                    <TableCell icon={CircleDotIcon} data-label="Status">
+                      <StatusBadge variant={ABSENCE_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</StatusBadge>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -77,9 +120,9 @@ export function TeamAttendance({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nama</TableHead>
+            <TableHead icon={UserIcon}>Nama</TableHead>
             {ATTENDANCE_STATUSES.map((s) => (
-              <TableHead key={s} className="text-right whitespace-nowrap">
+              <TableHead key={s} numeric icon={STATUS_ICON[s]} className="whitespace-nowrap">
                 {STATUS_LABEL[s]}
               </TableHead>
             ))}
@@ -88,7 +131,7 @@ export function TeamAttendance({
         <TableBody>
           {rows.map(({ id, name, recap }) => (
             <TableRow key={id}>
-              <TableCell className="font-medium">
+              <TableCell icon={UserIcon} data-label="Nama" className="font-medium">
                 <Link
                   href={`/absensi/rekap/${id}?${query}`}
                   className="underline-offset-4 outline-none hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring"
@@ -97,7 +140,7 @@ export function TeamAttendance({
                 </Link>
               </TableCell>
               {ATTENDANCE_STATUSES.map((s) => (
-                <TableCell key={s} className="text-right tabular-nums">
+                <TableCell numeric icon={STATUS_ICON[s]} data-label={STATUS_LABEL[s]} key={s}>
                   {recap.counts[s]}
                 </TableCell>
               ))}

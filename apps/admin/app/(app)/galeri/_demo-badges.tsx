@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge as IconStatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   Frame,
   FrameDescription,
@@ -148,6 +149,20 @@ export function BadgesDemo() {
           </div>
         </FramePanel>
       ))}
+      <FramePanel className="grid gap-2 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium">Badge status berikon</span>
+          <span className="text-xs text-muted-foreground">
+            Ikon bawaan per nada, supaya makna tidak hanya dari warna.
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <IconStatusBadge variant="success-light">Tuntas</IconStatusBadge>
+          <IconStatusBadge variant="warning-light">Tertunda</IconStatusBadge>
+          <IconStatusBadge variant="info-light">Diajukan</IconStatusBadge>
+          <IconStatusBadge variant="destructive-light">Ditolak</IconStatusBadge>
+        </div>
+      </FramePanel>
     </Frame>
   )
 }

@@ -9,13 +9,17 @@ import {
   type SortingState,
 } from "@tanstack/react-table"
 import {
+  Building2Icon,
   CircleAlertIcon,
+  CircleDotIcon,
+  CrownIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   PowerIcon,
-  CrownIcon,
   SearchIcon,
+  ShieldIcon,
+  UserIcon,
   UsersIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -74,14 +78,24 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@workspace/ui/components/reui/alert"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@workspace/ui/components/empty"
 import { Badge } from "@workspace/ui/components/reui/badge"
+import { StatusBadge } from "@workspace/ui/components/domain/status-badge"
 import {
   DataGrid,
   dataGridFeatures,
   type DataGridFeatures,
 } from "@workspace/ui/components/reui/data-grid/data-grid"
-import { DataGridColumnHeader } from "@workspace/ui/components/reui/data-grid/data-grid-column-header"
+import { DataGridHeader, gridMeta } from "@workspace/ui/components/domain/data-grid-header"
 import { DataGridPagination } from "@workspace/ui/components/reui/data-grid/data-grid-pagination"
+import { DataGridStacked } from "@workspace/ui/components/domain/data-grid-stacked"
+import { DataGridPaginationCompact } from "@workspace/ui/components/domain/data-grid-pagination-compact"
 import { DataGridScrollArea } from "@workspace/ui/components/reui/data-grid/data-grid-scroll-area"
 import { DataGridTable } from "@workspace/ui/components/reui/data-grid/data-grid-table"
 import {
@@ -573,10 +587,10 @@ function AccountDialog({
 /* ---------------- Tabel akun ---------------- */
 
 function statusBadge(a: Account) {
-  if (a.disabled) return <Badge variant="destructive-light">Nonaktif</Badge>
+  if (a.disabled) return <StatusBadge variant="destructive-light">Nonaktif</StatusBadge>
   // Akun manual yang pemiliknya belum pernah masuk dengan Simtama ID.
-  if (!a.sso) return <Badge variant="warning-light">Belum masuk</Badge>
-  return <Badge variant="success-light">Aktif</Badge>
+  if (!a.sso) return <StatusBadge variant="warning-light">Belum masuk</StatusBadge>
+  return <StatusBadge variant="success-light">Aktif</StatusBadge>
 }
 
 export function AccountsClient({
@@ -618,8 +632,9 @@ export function AccountsClient({
       {
         accessorKey: "name",
         id: "name",
+        meta: gridMeta({ headerTitle: "Akun", icon: UserIcon }),
         header: ({ column }) => (
-          <DataGridColumnHeader title="Akun" column={column} />
+          <DataGridHeader title="Akun" column={column} />
         ),
         cell: ({ row }) => (
           <div className="flex min-w-0 items-center gap-3">
@@ -648,7 +663,8 @@ export function AccountsClient({
       },
       {
         id: "roles",
-        header: "Peran",
+        meta: gridMeta({ headerTitle: "Peran", icon: ShieldIcon }),
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) =>
           row.original.roles.length ? (
             <div className="flex flex-wrap gap-1">
@@ -669,7 +685,8 @@ export function AccountsClient({
       },
       {
         id: "bidang",
-        header: "Bidang / unit",
+        meta: gridMeta({ headerTitle: "Bidang / unit", icon: Building2Icon }),
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) => {
           const a = row.original
           if (a.roles.length)
@@ -692,7 +709,8 @@ export function AccountsClient({
       },
       {
         id: "status",
-        header: "Status",
+        meta: gridMeta({ headerTitle: "Status", icon: CircleDotIcon }),
+        header: ({ column }) => <DataGridHeader column={column} />,
         cell: ({ row }) => statusBadge(row.original),
         size: 150,
       },
@@ -774,20 +792,25 @@ export function AccountsClient({
         i18n={DATA_GRID_I18N_ID}
         tableLayout={{ headerBackground: false }}
         emptyMessage={
-          <div className="flex flex-col items-center gap-2 py-6 text-muted-foreground">
-            <UsersIcon aria-hidden className="size-5" />
-            Belum ada akun.
-          </div>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <UsersIcon />
+              </EmptyMedia>
+              <EmptyTitle>Belum ada akun</EmptyTitle>
+              <EmptyDescription>Akun yang ditambahkan tampil di sini.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         }
       >
         <Card className="w-full gap-0 p-0">
-          <CardHeader className="px-4 py-3">
+          <CardHeader className="px-4 py-3 max-md:grid-cols-1!">
             <CardTitle>Daftar akun</CardTitle>
             <CardDescription>
               {active.length} aktif · {unitStaff} staf unit ·{" "}
               {active.length - unitStaff} staf unit lain
             </CardDescription>
-            <CardAction>
+            <CardAction className="max-md:col-start-1 max-md:row-span-1 max-md:row-start-3 max-md:mt-2 max-md:justify-self-start">
               <Button
                 size="sm"
                 onClick={() => setDialog({ open: true, account: null })}
@@ -798,12 +821,16 @@ export function AccountsClient({
             </CardAction>
           </CardHeader>
           <CardContent className="border-y px-0">
-            <DataGridScrollArea>
+            <DataGridScrollArea className="hidden md:block">
               <DataGridTable />
             </DataGridScrollArea>
+            <DataGridStacked />
           </CardContent>
-          <CardFooter className="border-none bg-transparent! px-4 py-2.5">
-            <DataGridPagination />
+          <CardFooter className="border-none bg-transparent! px-4 py-2.5 max-md:bg-muted/50! max-md:py-4">
+            <div className="hidden md:block">
+              <DataGridPagination />
+            </div>
+            <DataGridPaginationCompact />
           </CardFooter>
         </Card>
       </DataGrid>
