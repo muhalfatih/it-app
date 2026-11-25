@@ -86,17 +86,6 @@ import {
   TimelineSeparator,
   TimelineTitle,
 } from "@workspace/ui/components/reui/timeline"
-import { ScrollArea } from "@workspace/ui/components/scroll-area"
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet"
 import { Separator } from "@workspace/ui/components/separator"
 import { Pattern as ToastVariants } from "@workspace/ui/components/examples/c-sonner-4"
 import { Pattern as ToastAction } from "@workspace/ui/components/examples/c-sonner-6"
@@ -261,26 +250,26 @@ function TwoStepDelete() {
   )
 }
 
-/* Sheet detail kartu dengan konten yang bisa di-scroll (pola c-sheet-4). */
-function CardSheet() {
+/* Dialog detail kartu dengan konten yang bisa di-scroll dan footer sticky (pola c-dialog-3). */
+function CardDialog() {
   return (
-    <Sheet>
-      <SheetTrigger render={<Button variant="outline" size="sm" />}>
+    <Dialog>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
         Detail kartu
-      </SheetTrigger>
-      <SheetContent className="flex flex-col gap-0">
-        <SheetHeader>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="warning-light">Review</Badge>
             <span className="text-xs text-muted-foreground">Isi terkunci</span>
           </div>
-          <SheetTitle>Video Profil Sekolah 2026</SheetTitle>
-          <SheetDescription>
+          <DialogTitle>Video Profil Sekolah 2026</DialogTitle>
+          <DialogDescription>
             Tayang Kamis, 19 November · YouTube, TV Display
-          </SheetDescription>
-        </SheetHeader>
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="flex flex-col gap-5 px-4 pb-4">
+          </DialogDescription>
+        </DialogHeader>
+        <div className="-mx-4 px-4 no-scrollbar max-h-[70vh] overflow-y-auto overscroll-contain py-1">
+          <div className="flex flex-col gap-5">
             <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Penugasan</dt>
               <dd className="flex items-center gap-2">
@@ -320,15 +309,15 @@ function CardSheet() {
               </Timeline>
             </div>
           </div>
-        </ScrollArea>
-        <SheetFooter className="flex-row justify-end">
-          <SheetClose render={<Button variant="outline" />}>
+        </div>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>
             Kembalikan ke Draft
-          </SheetClose>
+          </DialogClose>
           <Button>Setujui</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -362,7 +351,7 @@ export function OverlaysDemo() {
             title="Panel samping"
             when="Detail panjang tanpa meninggalkan halaman."
           >
-            <CardSheet />
+            <CardDialog />
           </Scenario>
         </Frame>
 

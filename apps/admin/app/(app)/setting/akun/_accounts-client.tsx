@@ -85,6 +85,14 @@ import { DataGridPagination } from "@workspace/ui/components/reui/data-grid/data
 import { DataGridScrollArea } from "@workspace/ui/components/reui/data-grid/data-grid-scroll-area"
 import { DataGridTable } from "@workspace/ui/components/reui/data-grid/data-grid-table"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -92,14 +100,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@workspace/ui/components/sheet"
 import { Spinner } from "@workspace/ui/components/spinner"
 import {
   ToggleGroup,
@@ -257,7 +257,7 @@ function StaffSearch({
   )
 }
 
-/* ---------------- Form akun (Sheet) ---------------- */
+/* ---------------- Form akun (Dialog) ---------------- */
 
 type FormValue = {
   username: string
@@ -267,7 +267,7 @@ type FormValue = {
   unitId: number | null
 }
 
-function AccountSheet({
+function AccountDialog({
   open,
   onOpenChange,
   account,
@@ -357,24 +357,24 @@ function AccountSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {editing ? `Ubah ${account.name}` : "Akun baru"}
-          </SheetTitle>
-          <SheetDescription>
+          </DialogTitle>
+          <DialogDescription>
             {editing
               ? "Perubahan peran berlaku saat halaman dimuat ulang oleh pemilik akun."
               : fromSimtama
                 ? "Pilih pegawai dari direktori Simtama. Ia masuk dengan akun Simtama ID-nya, tanpa kata sandi baru."
                 : "Isi username Simtama ID pemilik akun. Akun tertaut saat ia pertama kali masuk dengan Simtama ID; pastikan aksesnya ke aplikasi ini sudah diberikan di Simtama."}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <form
           id={formId}
           onSubmit={submit}
-          className="flex-1 overflow-y-auto px-4 pb-4"
+          className="-mx-4 px-4 no-scrollbar max-h-[70vh] overflow-y-auto overscroll-contain py-1"
         >
           <FieldGroup>
             {fromSimtama ? (
@@ -556,7 +556,7 @@ function AccountSheet({
             </Alert>
           ) : null}
         </form>
-        <SheetFooter className="flex-row justify-end border-t">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Batal
           </Button>
@@ -564,9 +564,9 @@ function AccountSheet({
             {pending ? <Spinner data-icon="inline-start" /> : null}
             {editing ? "Simpan perubahan" : "Buat akun"}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -590,7 +590,7 @@ export function AccountsClient({
   currentUserId: string
   directory: boolean
 }) {
-  const [sheet, setSheet] = React.useState<{
+  const [dialog, setDialog] = React.useState<{
     open: boolean
     account: Account | null
   }>({
@@ -718,7 +718,7 @@ export function AccountsClient({
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onClick={() => setSheet({ open: true, account: a })}
+                    onClick={() => setDialog({ open: true, account: a })}
                   >
                     <PencilIcon />
                     Ubah
@@ -790,7 +790,7 @@ export function AccountsClient({
             <CardAction>
               <Button
                 size="sm"
-                onClick={() => setSheet({ open: true, account: null })}
+                onClick={() => setDialog({ open: true, account: null })}
               >
                 <PlusIcon data-icon="inline-start" />
                 Akun baru
@@ -808,10 +808,10 @@ export function AccountsClient({
         </Card>
       </DataGrid>
 
-      <AccountSheet
-        open={sheet.open}
-        onOpenChange={(open) => setSheet((s) => ({ ...s, open }))}
-        account={sheet.account}
+      <AccountDialog
+        open={dialog.open}
+        onOpenChange={(open) => setDialog((s) => ({ ...s, open }))}
+        account={dialog.account}
         units={units}
         directory={directory}
       />
